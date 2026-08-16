@@ -1,0 +1,1435 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
+     enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cozy Cat Solitaire</title>
+<style>
+  /* Prompt/invitation font, bundled locally so the app needs no internet.
+     Quicksand (SIL Open Font License) lives in assets/fonts/. Google ships it
+     as one variable file covering weights 400–600, so a single @font-face with
+     a weight RANGE serves every weight the app uses. Latin subset only — enough
+     for the English invitations; add latin-ext if we ever localise. */
+  @font-face{
+    font-family:"Quicksand";
+    font-style:normal;
+    font-weight:400 600;
+    font-display:swap;
+    src:url("assets/fonts/quicksand-latin.woff2") format("woff2");
+  }
+  /* =======================================================================
+     Cozy Cat Solitaire — watercolor visual redesign.
+     The look is driven ENTIRELY by Dani's approved artwork in /assets.
+     Layout follows ClaudeHandoff/DESIGN-SPEC.md, built on a 1080x2160 board.
+     One design unit (--u) = board width / 1080, so every reference pixel in
+     the spec maps to `calc(<ref> * var(--u))`.
+     ======================================================================= */
+  :root{
+    --paper:#FAF7F1;                 /* base paper color (spec §3) */
+    --ink:#282B2A;                   /* prompt text color (spec §4) */
+    --ink-soft:#7c766a;
+    --accent:#d7a86e;                /* honey, for gentle selection glow */
+    /* The board is a 1080x2160 portrait surface, scaled to fit the viewport.
+       width <= 100vw AND height(=2*width) <= 100vh  ->  width <= 50vh. */
+    --board: min(100vw, 50vh);
+    --boardH: calc(var(--board) * 2);
+    --u: calc(var(--board) / 1080);
+    --cw: calc(132 * var(--u));      /* card width  (spec §5) */
+    --ch: calc(210 * var(--u));      /* card height */
+    --stack-down: calc(32 * var(--u));  /* face-down overlap (spec §7) */
+    --stack-up:   calc(46 * var(--u));  /* face-up overlap, reveals the rank */
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; height:100%; }
+  body{
+    font-family:"Garamond","EB Garamond","Georgia",serif;
+    color:var(--ink);
+    background:var(--paper);
+    min-height:100dvh;
+    display:flex; justify-content:center; align-items:center;
+    overflow-x:hidden;
+    user-select:none; -webkit-user-select:none;
+  }
+
+  /* ---- the scaled portrait board ---- */
+  #app{
+    position:relative;
+    width:var(--board);
+    min-height:var(--boardH);
+    background:var(--paper);
+    overflow:hidden;
+  }
+  /* faint watercolor wash over the paper (spec §3: ~18% opacity, barely there) */
+  #app::before{
+    content:""; position:absolute; inset:0; z-index:0;
+    background:url("assets/background/background-1-600dpi.jpg") center/cover no-repeat;
+    opacity:.18; pointer-events:none;
+  }
+  #app > *{ position:relative; z-index:1; }
+
+  /* ================= prompt focal group (spec §4) =================
+     A centered vertical stack: the invitation on top, the cat and mouse
+     nestled close together just below it, and the whole group centered in
+     its space. Flex keeps the text and the animals from ever colliding,
+     however long the note runs. */
+  #prompt{
+    position:absolute; top:0; left:0; width:100%;
+    height:calc(890 * var(--u));
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:flex-start;
+    gap:calc(60 * var(--u));
+    padding:calc(250 * var(--u)) calc(70 * var(--u)) calc(40 * var(--u));
+    box-sizing:border-box;
+    text-align:center;
+  }
+  #promptText{
+    font-family:"Quicksand","Segoe UI",sans-serif;
+    font-size:calc(52 * var(--u)); line-height:1.22;
+    color:var(--ink); font-weight:500; letter-spacing:.01em;
+    max-width:calc(920 * var(--u));
+    min-height:calc(127 * var(--u));           /* reserve ~2 lines so the cat doesn't shift as the words fade */
+    opacity:0; transition:opacity .55s ease;    /* invitations drift in, hold, then drift out (see fadeInPrompt) */
+  }
+  #promptText.long{ font-size:calc(42 * var(--u)); line-height:1.34; }
+  /* the cat + mouse move as one unit; the mouse floats up beside the cat's
+     whiskers. The container is shifted left by half the mouse's reach so the
+     PAIR is centered, not just the cat. */
+  #promptPets{
+    position:relative;
+    display:flex; justify-content:center;
+    transform:translateX(calc(-90 * var(--u) - 0.225cm));
+  }
+  #promptCat{
+    width:calc(300 * var(--u)); height:auto; display:block;
+    pointer-events:none;
+  }
+  #promptMouse{
+    position:absolute;
+    top:calc(108 * var(--u));         /* ~whisker height on the cat's face */
+    left:calc(100% + 0.45cm);         /* just past the whiskers */
+    transform:translateY(-50%) scaleX(-1);  /* face the mouse toward the cat */
+    width:calc(180 * var(--u)); height:auto; display:block;
+    pointer-events:none;
+  }
+
+  /* ================= cards ================= */
+  .card{
+    position:absolute; width:var(--cw); height:var(--ch);
+    cursor:pointer;
+    transition:transform .12s ease;
+  }
+  .card img{
+    width:100%; height:100%; object-fit:contain; display:block;
+    image-rendering:auto;
+    filter:drop-shadow(calc(3*var(--u)) calc(5*var(--u)) calc(7*var(--u)) rgba(70,57,50,.15));
+  }
+  .card.down img{
+    filter:drop-shadow(calc(2*var(--u)) calc(3*var(--u)) calc(4*var(--u)) rgba(70,57,50,.09));
+  }
+  .card.selected{ transform:translateY(calc(-8 * var(--u))); }
+  .card.selected img{
+    filter:drop-shadow(0 0 calc(7*var(--u)) rgba(215,168,110,.95))
+           drop-shadow(calc(3*var(--u)) calc(6*var(--u)) calc(8*var(--u)) rgba(70,57,50,.22));
+  }
+  /* the hint: a card gently "breathes" — lifts + pulses a few times — with a
+     warm honey glow, so it's easy to notice without breaking the calm. The
+     static glow alone is strong enough for anyone with motion turned off. */
+  .card.hint img{
+    filter:drop-shadow(0 0 calc(14*var(--u)) rgba(215,168,110,.95))
+           drop-shadow(0 0 calc(28*var(--u)) rgba(215,168,110,.55))
+           drop-shadow(calc(3*var(--u)) calc(5*var(--u)) calc(7*var(--u)) rgba(70,57,50,.15));
+  }
+  @keyframes hintBreathe{
+    0%,100%{ transform:translateY(0) scale(1); }
+    50%    { transform:translateY(calc(-12 * var(--u))) scale(1.06); }
+  }
+  .card.hint, .slot.hint{ animation:hintBreathe .8s ease-in-out 3; z-index:6; }
+  /* the draw pile when it's an empty "gather back" slot (no card img to glow) */
+  .slot.hint{
+    box-shadow:0 0 calc(14 * var(--u)) rgba(215,168,110,.95),
+               0 0 calc(28 * var(--u)) rgba(215,168,110,.55);
+    border-color:rgba(215,168,110,.9);
+  }
+  /* a card uncovered in the tableau eases into view instead of popping */
+  @keyframes cardReveal{
+    from{ opacity:0; transform:scale(.94); }
+    to{   opacity:1; transform:none; }
+  }
+  .card.reveal{ animation:cardReveal .26s ease-out; }
+  /* a supplied asset failed to load — make it LOUD in development, never fall
+     back to a text glyph or generated card (engineering acceptance criteria) */
+  .card img.missing, img.missing{
+    outline:3px solid #c0392b; background:#c0392b22;
+  }
+
+  /* faint empty slots */
+  .slot{
+    position:absolute; width:var(--cw); height:var(--ch);
+    border-radius:calc(17 * var(--u));
+    background:rgba(255,252,248,.086);
+    border:calc(2 * var(--u)) solid rgba(190,151,120,.30);
+    display:grid; place-items:center;
+  }
+  .slot img.paw{ width:calc(58 * var(--u)); height:auto; opacity:.24; pointer-events:none; }
+
+  /* ================= foundation / waste / draw row (spec §6) ================= */
+  #topRow{
+    position:absolute; top:calc(890 * var(--u)); left:0; width:100%;
+    height:var(--ch);
+  }
+  /* the fanned waste pile lives in its own persistent layer so its cards can
+     slide smoothly between slots instead of being rebuilt each draw */
+  #wasteFan{ position:absolute; inset:0; pointer-events:none; }
+  .wastecard{
+    transition:left .30s cubic-bezier(.22,1,.36,1), opacity .24s ease;
+    will-change:left;
+  }
+  /* ================= tableau (spec §7) ================= */
+  #tableau{
+    position:absolute; top:calc(1180 * var(--u)); left:0; width:100%;
+    bottom:calc(200 * var(--u));
+    overflow-y:auto; overflow-x:hidden;
+  }
+  .col{ position:absolute; width:var(--cw); top:0; }
+
+  /* ================= bottom buttons (spec §8) ================= */
+  #buttons{
+    position:absolute; left:0; width:100%;
+    top:calc(1966 * var(--u));
+    display:flex; justify-content:space-between;
+    padding:0 calc(90 * var(--u));
+  }
+  .ctrl{
+    border:none; background:transparent; padding:0; cursor:pointer;
+    width:calc(108 * var(--u)); height:calc(108 * var(--u));
+    min-width:44px; min-height:44px;         /* keep the touch target usable */
+    display:grid; place-items:center;
+    transition:transform .1s ease;
+  }
+  .ctrl:active{ transform:translateY(2px); }
+  .ctrl img{ width:100%; height:100%; object-fit:contain; display:block; }
+
+  /* ================= overlays (win / settings / menu) ================= */
+  .overlay{
+    position:fixed; inset:0; display:none; z-index:30;
+    align-items:center; justify-content:center; padding:24px;
+    background:rgba(250,247,241,.88); backdrop-filter:blur(3px);
+    overflow-y:auto;
+  }
+  .panel{
+    /* same soft rounded voice as the invitations on the board */
+    font-family:"Quicksand","Segoe UI",sans-serif;
+    /* warm painted paper, not a flat white card: a faint honey wash pools
+       at the top and melts into warm cream */
+    background:
+      radial-gradient(115% 80% at 50% -12%, #fff6e8 0%, rgba(255,246,232,0) 62%),
+      #fffdf7;
+    border-radius:28px; padding:24px 24px 26px;
+    max-width:340px; width:100%; text-align:center;
+    box-shadow:0 16px 46px rgba(120,90,60,.18);
+    border:1px solid #f0e2c9;
+    max-height:calc(100dvh - 48px); overflow-y:auto;
+  }
+  .panel h2{ margin:8px 0 6px; font-size:23px; font-weight:600;
+             letter-spacing:.01em; color:var(--ink); }
+  .panel p{ margin:6px 0 14px; color:var(--ink-soft); font-size:14.5px; line-height:1.5; }
+  /* watercolor art at the head of a panel, in place of an emoji */
+  #winCat, .panelArt{ display:block; margin:0 auto 4px; height:auto; }
+  #winCat{ width:150px; }
+  /* nudged ~11px left so the cat's NOSE (which sits right-of-image-center
+     because of the big left-curling tail) is centered between the two blooms */
+  .panelArt.cat{ width:150px; margin-bottom:2px; transform:translateX(-11px); }
+  .panelArt.paw{ width:64px; margin:6px auto 2px; }
+  /* Soft watercolor "bloom" buttons, echoing the painted toolbar discs:
+     no hard border, an uneven wash that pools toward one corner, charcoal
+     text, and a gentle same-hue glow instead of a crisp shadow. */
+  .btn{
+    border:none; cursor:pointer; width:100%; margin-top:12px;
+    padding:13px 18px; border-radius:999px;
+    font-family:"Quicksand","Segoe UI",sans-serif;
+    font-size:15px; font-weight:600; color:var(--ink);
+    /* blush wash (matches the pink play-button bloom) */
+    background:
+      radial-gradient(130% 150% at 28% 18%, rgba(255,255,255,.85) 0%, rgba(255,255,255,0) 46%),
+      radial-gradient(110% 130% at 76% 88%, #f6d6dd 0%, #f0c6d0 62%, #ecbecb 100%);
+    box-shadow:0 6px 16px rgba(214,150,165,.26), inset 0 1px 2px rgba(255,255,255,.6);
+    transition:transform .12s ease, box-shadow .2s ease;
+  }
+  .btn.primary{
+    color:#5a4426; font-weight:700;
+    /* honey wash (matches the appearance-button bloom) */
+    background:
+      radial-gradient(130% 150% at 28% 18%, rgba(255,255,255,.8) 0%, rgba(255,255,255,0) 46%),
+      radial-gradient(110% 130% at 76% 88%, #f1d2a0 0%, #e7bb7c 62%, #ddac68 100%);
+    box-shadow:0 6px 16px rgba(200,150,90,.28), inset 0 1px 2px rgba(255,255,255,.55);
+  }
+  .btn:active{ transform:translateY(1px); box-shadow:0 3px 10px rgba(150,110,80,.22); }
+
+  /* Painted watercolor-bloom buttons: a transparent PNG carries the art and
+     its own soft glow, while the real text sits on top — so the wording stays
+     translatable and readable by screen readers, unlike text baked into a
+     picture. The three popup actions each get their own colored bloom. */
+  .btn.bloom{
+    background:none; box-shadow:none; border-radius:0;
+    height:82px; padding:0 26px; margin-top:4px;
+    display:flex; align-items:center; justify-content:center;
+    background-repeat:no-repeat; background-position:center; background-size:contain;
+    color:var(--ink); font-weight:600;
+  }
+  .btn.bloom:active{ box-shadow:none; }
+  #menuNew.bloom{     background-image:url("assets/buttons/popup-new-game.png"); }
+  #menuClose.bloom{   background-image:url("assets/buttons/popup-return.png"); }
+  #settingsDone.bloom{ background-image:url("assets/buttons/popup-done.png"); }
+  /* the win button "Play again" deals a fresh game, the same action as
+     "New gentle game", so it reuses the pink new-game bloom to match */
+  #winAgain.bloom{     background-image:url("assets/buttons/popup-new-game.png"); }
+  /* the New Game pop-up's two actions sit side by side on one row */
+  .btnrow{ display:flex; gap:10px; margin-top:8px; }
+  .btnrow .btn{ width:auto; flex:1 1 0; min-width:0; margin-top:0; }
+  .btnrow .btn.bloom{ font-size:12px; padding:0 4px; height:66px; white-space:nowrap;
+    /* blooms enlarged so the text has generous painted room around it, not on the edge */
+    background-size:calc(100% + 28px); }
+
+  /* settings rows (kept from the original, now opened by the appearance button) */
+  .setrow{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:11px 2px; border-top:1px solid #efdcc0; text-align:left;
+  }
+  .setrow:first-of-type{ border-top:none; }
+  .setlabel{ font-size:14.5px; color:var(--ink); }
+  .sethint{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; line-height:1.3; }
+  .setnote{ margin:15px 2px 2px; font-size:12px; color:var(--ink-soft); text-align:center; line-height:1.5; }
+  .switch{ position:relative; flex:0 0 auto; width:46px; height:26px; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .slider{ position:absolute; inset:0; cursor:pointer; border-radius:999px;
+           background:#d9d0bf; transition:background .2s ease; }
+  .slider::before{ content:""; position:absolute; height:20px; width:20px; left:3px; top:3px;
+                   background:#fffdf9; border-radius:50%; transition:transform .2s ease;
+                   box-shadow:0 1px 3px rgba(70,57,50,.2); }
+  /* "on" state is the Done button's peach, deepened a touch (#e6b88c) so it reads
+     clearly against the warm panel while staying in the same watercolor family */
+  .switch input:checked + .slider{ background:#e6b88c; }
+  .switch input:checked + .slider::before{ transform:translateX(20px); }
+
+  /* language chooser — same warm voice as the panel; "coming soon" for now, so
+     it's shown but disabled (soft, non-clickable) like Music/Sounds */
+  .langselect{
+    flex:0 0 auto; font-family:"Quicksand","Segoe UI",sans-serif; font-size:13.5px;
+    color:var(--ink); background:#fffdf9; border:1px solid #ead9bd;
+    border-radius:999px; padding:7px 12px; cursor:pointer;
+  }
+  .langselect:disabled{ cursor:default; opacity:.55; }
+
+  /* ---- accessibility ---- */
+  .visually-hidden{
+    position:absolute !important; width:1px; height:1px; padding:0; margin:-1px;
+    overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;
+  }
+  .card:focus-visible, .slot:focus-visible, .ctrl:focus-visible,
+  .btn:focus-visible, .switch input:focus-visible + .slider{
+    outline:3px solid var(--accent); outline-offset:2px;
+  }
+  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; animation:none !important; } }
+  body.reduce-motion *{ transition:none !important; animation:none !important; }
+  /* bigger cards for low-vision play: grow the whole board's unit */
+  body.big-cards{ --u: calc(min(100vw, 50vh) / 1080 * 1.14); }
+
+  /* ================= full-screen story screens (welcome / loading / win) =====
+     Three approved companion screens from ClaudeHandoff-AdditionalScreens-Final.
+     Each is a full-viewport layer with the SAME centered 1080x2160 portrait
+     column as #app, so the spec's reference-pixel coordinates map straight onto
+     `calc(<ref> * var(--u))`. All text is live Quicksand (never baked into art);
+     the cats + mouse are Dani's untouched scanned watercolors. */
+  .screen{
+    position:fixed; inset:0; z-index:60; display:none;
+    justify-content:center; align-items:center; background:var(--paper); opacity:1;
+  }
+  .screen.show{ display:flex; }
+  .screen.fade{ transition:opacity .6s ease; }
+  body.reduce-motion .screen.fade{ transition:none; }
+  /* the centered portrait column that carries the wash + the positioned art */
+  .screen-col{
+    position:relative; width:var(--board); height:var(--boardH);
+    overflow:hidden; flex:0 0 auto;
+  }
+  .screen-col::before{
+    content:""; position:absolute; inset:0;
+    background:url("assets/background/background-1-600dpi.jpg") center/cover no-repeat;
+    opacity:.18; pointer-events:none;
+  }
+  .scr-art{ position:absolute; display:block; height:auto; }
+  .scr-text{
+    position:absolute; left:0; width:100%; margin:0; text-align:center;
+    font-family:"Quicksand","Segoe UI",sans-serif; font-weight:500;
+    color:var(--ink); transform:translateY(-50%);
+    padding:0 calc(40 * var(--u));
+  }
+  /* ---- Welcome (spec Screen 1) ---- */
+  #welCat{     left:calc(256 * var(--u)); top:calc(490 * var(--u));  width:calc(700 * var(--u)); }
+  #welHeading{ top:calc(1345 * var(--u)); font-size:calc(70 * var(--u)); }
+  #welSub{     top:calc(1462 * var(--u)); font-size:calc(44 * var(--u)); color:#4C4644; }
+  /* ---- Loading (spec Screen 2) ---- */
+  #loadPrompt{ top:calc(440 * var(--u));  font-size:calc(52 * var(--u)); line-height:1.22; white-space:pre-line; }
+  #loadCat{    left:calc(300 * var(--u)); top:calc(780 * var(--u));  width:calc(480 * var(--u)); }
+  #loadTrack{  position:absolute; left:calc(175 * var(--u)); top:calc(1760 * var(--u));
+               width:calc(730 * var(--u)); height:calc(5 * var(--u)); border-radius:999px;
+               background:rgba(191,164,151,0.41); }
+  #loadFill{   position:absolute; left:0; top:calc(-1 * var(--u)); height:calc(7 * var(--u));
+               width:0; border-radius:999px; background:rgba(206,137,151,0.69); }
+  #loadMouse{  position:absolute; top:calc(1667 * var(--u)); left:0; width:calc(132 * var(--u)); }
+  /* ---- After winning (spec Screen 3) ---- */
+  #winCatArt{  left:calc(195 * var(--u)); top:calc(460 * var(--u));  width:calc(650 * var(--u)); }
+  #winPrompt{  top:calc(1275 * var(--u)); font-size:calc(52 * var(--u)); line-height:1.28; white-space:pre-line; }
+  /* ---- No moves left (after-losing, ClaudeHandoff-AfterLosingScreen-v1) ---- */
+  #lostCatArt{ left:calc(249 * var(--u)); top:calc(500 * var(--u));  width:calc(760 * var(--u)); }
+  #lostPrompt{ top:calc(1344 * var(--u)); font-size:calc(52 * var(--u)); line-height:1.28; white-space:pre-line; }
+  /* the New Game bloom is identical on the win and losing screens (same spec bbox) */
+  #winNewBtn, #lostNewBtn{
+    position:absolute; left:calc(260 * var(--u)); top:calc(1805 * var(--u));
+    width:calc(560 * var(--u)); height:calc(199 * var(--u));
+    background:url("assets/buttons/new-game-blank-watercolor.png") center/contain no-repeat;
+    border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    font-family:"Quicksand","Segoe UI",sans-serif; font-weight:500; color:var(--ink);
+    font-size:calc(54 * var(--u));
+  }
+  #winNewBtn:active, #lostNewBtn:active{ transform:translateY(calc(1 * var(--u))); }
+</style>
+</head>
+<body>
+  <!-- a quiet voice for screen readers: game events are announced here -->
+  <div id="live" class="visually-hidden" role="status" aria-live="polite"></div>
+  <p id="sr-intro" class="visually-hidden">
+    Cozy Cat Solitaire, a calm game of Klondike patience. To play with a keyboard
+    or screen reader: move to a card and press Enter or Space, and it travels on its
+    own to the best legal spot — home to its foundation, or onto the card it can
+    build on. Press Enter on the draw pile to turn a card. There are no timers and
+    no score — take all the time you like.
+  </p>
+
+  <div id="app">
+    <!-- prompt focal group -->
+    <div id="prompt">
+      <div id="promptText"></div>
+      <div id="promptPets">
+        <img id="promptCat" src="assets/interface/prompt-cat.png" alt="" aria-hidden="true">
+        <img id="promptMouse" src="assets/interface/prompt-mouse.png" alt="" aria-hidden="true">
+      </div>
+    </div>
+
+    <!-- foundations (left) · waste (three) · draw pile (far right) -->
+    <div id="topRow"></div>
+
+    <!-- seven tableau columns -->
+    <div id="tableau"></div>
+
+    <!-- five watercolor buttons -->
+    <div id="buttons">
+      <button class="ctrl" id="btnMenu"   aria-label="New game"><img src="assets/buttons/button-play.png" alt=""></button>
+      <button class="ctrl" id="btnUndo"   aria-label="Undo the last move"><img src="assets/buttons/button-undo.png" alt=""></button>
+      <button class="ctrl" id="btnPaw"    aria-label="A little invitation"><img src="assets/buttons/button-paw.png" alt=""></button>
+      <button class="ctrl" id="btnHint"   aria-label="Show me a move"><img src="assets/buttons/button-hint.png" alt=""></button>
+      <button class="ctrl" id="btnAppear" aria-label="Appearance settings"><img src="assets/buttons/button-appearance.png" alt=""></button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       Companion story screens (welcome / loading / after-winning),
+       from ClaudeHandoff-AdditionalScreens-Final. Full-screen layers
+       over the game; all text is live Quicksand (never baked into art),
+       the cats + mouse are Dani's untouched scanned watercolors, and
+       every element is placed by the spec's 1080x2160 reference
+       coordinates via calc(<ref> * var(--u)). The loading line and the
+       win invitation are PLACEHOLDERS until Dani writes the real words. -->
+  <div class="screen fade" id="screenWelcome" aria-label="Welcome to mindful play">
+    <div class="screen-col">
+      <img class="scr-art" id="welCat" src="assets/interface/meditating-cat.png" alt="A watercolor cat sitting quietly, settled and calm.">
+      <h1 class="scr-text" id="welHeading">Welcome to mindful play</h1>
+      <p  class="scr-text" id="welSub">Mindfulness, woven into everyday moments</p>
+    </div>
+  </div>
+
+  <div class="screen fade" id="screenLoading" aria-label="A quiet moment before the game">
+    <div class="screen-col">
+      <p class="scr-text" id="loadPrompt"></p>
+      <img class="scr-art" id="loadCat" src="assets/interface/paw-licking-cat.png" alt="A watercolor cat pausing to lick a paw.">
+      <div id="loadTrack" role="progressbar" aria-label="Getting the game ready" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div id="loadFill"></div>
+      </div>
+      <img class="scr-art" id="loadMouse" src="assets/interface/loading-mouse.png" alt="" aria-hidden="true">
+    </div>
+  </div>
+
+  <div class="screen fade" id="screenWin" role="dialog" aria-modal="true" aria-label="You finished the game">
+    <div class="screen-col">
+      <img class="scr-art" id="winCatArt" src="assets/interface/stretching-cat.png" alt="A watercolor cat in a long, happy stretch.">
+      <p class="scr-text" id="winPrompt"></p>
+      <button id="winNewBtn">New Game</button>
+    </div>
+  </div>
+
+  <!-- No moves left: a gentle New Game screen, shown only when the player presses
+       hint and the board is a true dead end (see onNoMovesLeft). Same build as the
+       win screen; art + layout from ClaudeHandoff-AfterLosingScreen-v1. The message
+       is live Quicksand (LOST_LINES), never baked into the art. -->
+  <div class="screen fade" id="screenLost" role="dialog" aria-modal="true" aria-label="No moves left">
+    <div class="screen-col">
+      <img class="scr-art" id="lostCatArt" src="assets/interface/after-losing-cat.png" alt="A watercolor cat flopped down for a rest.">
+      <p class="scr-text" id="lostPrompt"></p>
+      <button id="lostNewBtn">New Game</button>
+    </div>
+  </div>
+
+  <!-- small menu (opened by the menu button) -->
+  <div id="menu" class="overlay">
+    <div class="panel" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
+      <img class="panelArt cat" src="assets/interface/newgame-cat.png" alt="" aria-hidden="true">
+      <!-- kept for screen readers so the dialog still has a name, but no
+           longer shown on screen (Dani's request: nothing above the buttons) -->
+      <h2 id="menuTitle" class="visually-hidden">Cozy Cat</h2>
+      <div class="btnrow">
+        <button class="btn bloom" id="menuNew">New gentle game</button>
+        <button class="btn bloom" id="menuClose">Back to the game</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- appearance / settings -->
+  <div id="settings" class="overlay">
+    <div class="panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <img class="panelArt paw" src="assets/interface/foundation-paw.png" alt="" aria-hidden="true">
+      <h2 id="settingsTitle">Settings</h2>
+
+      <div class="setrow">
+        <div><div class="setlabel">Language</div><div class="sethint">English · Español · Français · coming soon</div></div>
+        <select id="setLang" class="langselect" disabled aria-label="Language">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="fr">Français</option>
+        </select>
+      </div>
+      <div class="setrow">
+        <div><div class="setlabel">Music</div><div class="sethint">soft background music · coming soon</div></div>
+        <label class="switch"><input type="checkbox" id="setMusic"><span class="slider"></span></label>
+      </div>
+      <div class="setrow">
+        <div><div class="setlabel">Sounds</div><div class="sethint">gentle card sounds · coming soon</div></div>
+        <label class="switch"><input type="checkbox" id="setSounds"><span class="slider"></span></label>
+      </div>
+      <div class="setrow">
+        <div><div class="setlabel">Timed invitations</div><div class="sethint">soft notes that drift in on their own, now and then</div></div>
+        <label class="switch"><input type="checkbox" id="setTimed"><span class="slider"></span></label>
+      </div>
+      <div class="setrow">
+        <div><div class="setlabel">Invitations linked to the game</div><div class="sethint">notes that notice the board — like when there's no clear move</div></div>
+        <label class="switch"><input type="checkbox" id="setLinked"><span class="slider"></span></label>
+      </div>
+      <div class="setlabel" style="margin:18px 2px 2px; font-weight:650; text-align:center;">Making it yours</div>
+
+      <div class="setrow">
+        <div><div class="setlabel">Left-handed layout</div><div class="sethint">flip the table for a left-handed game</div></div>
+        <label class="switch"><input type="checkbox" id="setLeft"><span class="slider"></span></label>
+      </div>
+      <div class="setrow">
+        <div><div class="setlabel">Bigger cards</div><div class="sethint">larger cards and text, gentler on the eyes</div></div>
+        <label class="switch"><input type="checkbox" id="setBig"><span class="slider"></span></label>
+      </div>
+      <div class="setrow">
+        <div><div class="setlabel">Reduce motion</div><div class="sethint">calm the soft fades and shifts, for less movement on screen</div></div>
+        <label class="switch"><input type="checkbox" id="setMotion"><span class="slider"></span></label>
+      </div>
+
+      <button class="btn bloom" id="settingsDone">Done</button>
+    </div>
+  </div>
+
+<script>
+/* =========================================================================
+   Cozy Cat Solitaire — a calm Klondike (draw 1, unlimited redeals).
+   The GAME ENGINE below is unchanged from the working version; only the
+   presentation (render) now uses Dani's painted card art instead of text.
+   ========================================================================= */
+
+const SUITS = [
+  {s:'♠', color:'black'},
+  {s:'♥', color:'red'},
+  {s:'♦', color:'red'},
+  {s:'♣', color:'black'},
+];
+const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const rankVal = r => RANKS.indexOf(r) + 1; // A=1 ... K=13
+
+let state, selection = null;
+let trackedWaste = new Map();   // card.id -> its persistent waste-fan element
+let justRevealed = new Set();    // ids of cards just flipped face-up, to ease in
+let pendingFlip = null;          // {ids, from} of cards to glide after a move
+
+/* ---------- asset resolver: the single source of truth for card art -------
+   Given {rank, suit} return the exact PNG path per ASSET-MAP.md. Never infer
+   colors or draw glyphs — the art is already correctly painted. */
+const SUIT_FILE = { '♠':'spades', '♥':'hearts', '♦':'diamonds', '♣':'clubs' };
+const FACE_FILE = { A:'ace', J:'jack', Q:'queen', K:'king' };
+function cardFace(card){
+  const suit = SUIT_FILE[card.suit];
+  if (FACE_FILE[card.rank]) return `assets/cards/${FACE_FILE[card.rank]}-of-${suit}.png`;
+  return `assets/cards/${String(card.rank).padStart(2,'0')}-${suit}.png`;
+}
+const CARD_BACK = 'assets/card-back/card-back2.png';
+
+/* ---------- settings (remembered on this device) ---------- */
+const SETTINGS_KEY = 'cozycat.settings';
+const DEFAULT_SETTINGS = { music:false, sounds:false, timedInvites:true, linkedInvites:true,
+                           leftHanded:false, bigCards:false, reduceMotion:false };
+let settings = loadSettings();
+function loadSettings(){
+  try{
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) return Object.assign({}, DEFAULT_SETTINGS, JSON.parse(raw));
+  }catch(e){}
+  return Object.assign({}, DEFAULT_SETTINGS);
+}
+function saveSettings(){
+  try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }catch(e){}
+}
+
+/* ---------- accessibility helpers ---------- */
+function applyA11y(){
+  document.body.classList.toggle('big-cards',   !!settings.bigCards);
+  document.body.classList.toggle('reduce-motion', !!settings.reduceMotion);
+  if (state) render();          // left-handed changes card X positions
+}
+function announce(msg){
+  const live = document.getElementById('live');
+  if (!live || !msg) return;
+  live.textContent = '';
+  requestAnimationFrame(()=>{ live.textContent = msg; });
+}
+const RANK_NAMES = { A:'Ace', J:'Jack', Q:'Queen', K:'King' };
+const SUIT_NAMES = { '♠':'spades', '♥':'hearts', '♦':'diamonds', '♣':'clubs' };
+function cardName(card){
+  if (!card) return 'nothing';
+  const r = RANK_NAMES[card.rank] || card.rank;
+  return `${r} of ${SUIT_NAMES[card.suit] || 'cards'}`;
+}
+function cardById(id){
+  const piles = [state.waste, ...state.foundations, ...state.tableau, state.stock];
+  for (const p of piles) for (const c of p) if (c.id === id) return c;
+  return null;
+}
+
+/* ---------- audio (placeholders — no music/sounds designed yet) ---------- */
+function playSound(name){ if(!settings.sounds) return; }
+function updateMusic(){ }
+
+/* ================= layout helpers (reference-pixel coordinates) =================
+   The board is 1080 wide; --u scales it. Left-handed play mirrors the game
+   rows (draw pile to the left, foundations to the right) by flipping X. */
+const U = 'var(--u)';
+const LH = ()=> !!settings.leftHanded;
+function ux(px){ return `calc(${px} * ${U})`; }
+function xpos(x, w){ return ux(LH() ? (1080 - x - w) : x); }
+const CARD_W = 132;
+// spec §6 / §7 reference X coordinates
+const FOUND_X = [34, 176, 318, 460];
+const WASTE_X = [630, 679, 728];
+const DRAW_X  = 902;
+const COL_X   = [27, 178, 329, 480, 631, 782, 933];
+
+/* ---------- prompt / invitations ----------
+   The invitation is now the strongest visual feature: it lives in the prompt
+   group at the top. Short two-line notes lean toward noticing the BODY. */
+// Dani's invitations (2026-08-15). The five "Take a moment…" lines are a family;
+// showInvitation() never shows two of them in a row (see isMomentPrompt).
+const PROMPTS = [
+  "Take a moment…\nnotice how your jaw feels",
+  "Take a moment…\nnotice how your shoulders feel",
+  "Take a moment…\nnotice how your neck feels",
+  "Take a moment…\nnotice how your hands feel",
+  "Take a moment…\nnotice how your body feels",
+  "Breathe out,\nand let every muscle flop like a wet noodle",
+  "Do you notice any thoughts\narise as you play?",
+  "Do you notice any feelings\narise as you play?",
+  "Your focus right now…\ntense, calm, or something else?",
+  "What helps your nervous system\nsettle to rest-and-digest?",
+  "Feel your feet\non the floor",
+  "Feel where you're held\nby the chair",
+];
+const isMomentPrompt = t => t.startsWith("Take a moment");
+let lastPrompt = 3;   // the default is the "hands" moment line, so the first rotation avoids another moment
+const promptTextEl = ()=> document.getElementById('promptText');
+function setPrompt(text, opts={}){
+  const el = promptTextEl();
+  el.classList.toggle('long', !!opts.long);
+  el.textContent = '';
+  (text || '').split('\n').forEach((ln, i)=>{
+    if (i) el.appendChild(document.createElement('br'));
+    el.appendChild(document.createTextNode(ln));
+  });
+  // visible only when there are words; empty = a quiet, blank prompt space
+  const has = !!text;
+  el.style.opacity = has ? '1' : '0';
+  if (has) el.removeAttribute('aria-hidden'); else el.setAttribute('aria-hidden', 'true');
+}
+
+/* Invitations now DRIFT: the space starts empty, a note fades in, holds ~10s
+   (long enough to actually do it — same as the loading pause), fades away, and
+   the space stays blank for the next stretch of moves before the next one.
+   The cat + mouse stay put the whole time; only the words come and go. */
+const PROMPT_HOLD = 15000;           // 15s to sit with the invitation and enact it slowly (Dani, 2026-08-15)
+let promptShowing = false;
+let promptHoldTimer = null;
+function fadeInPrompt(text){
+  const el = promptTextEl();
+  setPrompt(text);                                   // sets the words + opacity 1
+  if (reducedMotion()) return;                       // no fade under reduce-motion
+  el.style.opacity = '0'; void el.offsetWidth; el.style.opacity = '1';   // animate 0 -> 1
+}
+function showInvitation(force){
+  let i;
+  // never repeat the exact prompt, and never follow a "Take a moment…" with another
+  do { i = Math.floor(Math.random()*PROMPTS.length); }
+  while (PROMPTS.length>1 && ( i===lastPrompt ||
+         (isMomentPrompt(PROMPTS[i]) && isMomentPrompt(PROMPTS[lastPrompt])) ));
+  lastPrompt = i;
+  fadeInPrompt(PROMPTS[i]);
+  if (force) announce('A gentle invitation. ' + PROMPTS[i].replace('\n',' '));
+  promptShowing = true;
+  clearTimeout(promptHoldTimer);
+  promptHoldTimer = setTimeout(hideInvitation, PROMPT_HOLD);
+}
+function hideInvitation(){
+  clearTimeout(promptHoldTimer);
+  const el = promptTextEl();
+  el.style.opacity = '0';
+  el.setAttribute('aria-hidden', 'true');
+  promptShowing = false;
+  movesSinceInvite = 0;          // the next gap begins only once the words have faded
+  inviteThreshold = 20;          // ~20 moves between invitations → ~5 per game (Dani, 2026-08-15)
+  const clearText = ()=>{ if (!promptShowing) el.textContent = ''; };   // tidy up once invisible
+  if (reducedMotion()) clearText(); else setTimeout(clearText, 600);
+}
+/* fresh game (or first launch): empty prompt space, first invitation after ~5 moves */
+function clearPromptState(){
+  clearTimeout(promptHoldTimer);
+  promptShowing = false;
+  movesSinceInvite = 0;
+  inviteThreshold = 5;
+  setPrompt('');
+}
+
+/* ---------- linked invitation: arises from a real board fact, never the player -- */
+const STUCK_NOTE = "The board shows no clear move right now. Whatever arrived when you noticed that — maybe a flicker of frustration — see if it can just be a feeling, passing through. Nothing has gone wrong.";
+let lastLinkedAt = 0;
+function maybeLinkedStuck(){
+  if (!settings.linkedInvites) return;
+  if (findHint()) return;                          // there IS a move — not stuck
+  if (Date.now() - lastLinkedAt < 60000) return;
+  if (Math.random() < 0.6){
+    lastLinkedAt = Date.now();
+    setPrompt(STUCK_NOTE, {long:true});
+    announce(STUCK_NOTE);
+  }
+}
+
+/* which overlay is currently visible (used by the Escape-key handler) */
+function isShowing(id){
+  const el = document.getElementById(id);
+  return !!el && getComputedStyle(el).display !== 'none';
+}
+
+/* ================= deck & deal ================= */
+function makeDeck(){
+  const d = []; let id = 0;
+  for (const su of SUITS)
+    for (const r of RANKS)
+      d.push({id:id++, rank:r, suit:su.s, color:su.color, faceUp:false});
+  return d;
+}
+function shuffle(a){
+  for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+function deal(){
+  const deck = shuffle(makeDeck());
+  state = { stock:[], waste:[], foundations:[[],[],[],[]], tableau:[[],[],[],[],[],[],[]] };
+  for (let col=0; col<7; col++){
+    for (let n=0; n<=col; n++){
+      const card = deck.pop();
+      card.faceUp = (n===col);
+      state.tableau[col].push(card);
+    }
+  }
+  state.stock = deck;
+  selection = null;
+  undoStack = [];
+  justRevealed.clear();
+  clearPromptState();      // empty prompt space; first invitation drifts in after ~5 moves
+  render();
+  announce('A fresh game, dealt and ready. Take your time.');
+}
+
+/* ================= undo (snapshot the whole board before each move) ========= */
+let undoStack = [];
+function snapshot(){
+  undoStack.push(JSON.stringify(state));
+  if (undoStack.length > 50) undoStack.shift();
+}
+function undo(){
+  if (!undoStack.length){ announce('Nothing to take back yet.'); return; }
+  state = JSON.parse(undoStack.pop());
+  clearSelection();
+  justRevealed.clear();
+  render();
+  announce('Took back the last move.');
+}
+
+/* ================= move rules ================= */
+function canStackTableau(moving, ontoCard){
+  if (!ontoCard) return moving.rank === 'K';
+  return ontoCard.color !== moving.color && rankVal(ontoCard.rank) === rankVal(moving.rank)+1;
+}
+function canStackFoundation(card, foundationPile){
+  if (foundationPile.length === 0) return card.rank === 'A';
+  const top = foundationPile[foundationPile.length-1];
+  return top.suit === card.suit && rankVal(card.rank) === rankVal(top.rank)+1;
+}
+
+/* ================= tap = smart auto-move =================
+   One tap on a card sends it to the best legal spot: its foundation first,
+   otherwise a tableau card it can build on, otherwise an empty column (Kings,
+   only when that reveals a hidden card). Same rules — just far fewer taps. */
+function clearSelection(){
+  selection = null;
+  document.querySelectorAll('.card.selected').forEach(c=>c.classList.remove('selected'));
+}
+
+// the card (or valid face-up run) a tap would move, or null if it can't move
+function pickUpRun(where, colIndex, cardIndex){
+  if (where === 'tableau'){
+    const pile = state.tableau[colIndex];
+    if (cardIndex < 0 || cardIndex >= pile.length) return null;
+    if (!pile[cardIndex].faceUp) return null;
+    const cards = pile.slice(cardIndex);
+    for (let i=0;i<cards.length-1;i++) if(!canStackTableau(cards[i+1], cards[i])) return null;
+    return cards;
+  }
+  if (where === 'waste'){
+    return state.waste.length ? [state.waste[state.waste.length-1]] : null;
+  }
+  return null;
+}
+
+function removeFromSource(where, colIndex, cardIndex){
+  if (where === 'tableau'){
+    state.tableau[colIndex].splice(cardIndex);
+    const pile = state.tableau[colIndex];
+    if (pile.length && !pile[pile.length-1].faceUp){
+      pile[pile.length-1].faceUp = true;
+      justRevealed.add(pile[pile.length-1].id);   // ease this uncovered card in
+    }
+  } else if (where === 'waste'){
+    state.waste.pop();
+  }
+}
+
+/* FLIP: after a move re-renders the moved card at its destination, slide it
+   there from where it started, so a tap glides instead of teleporting. */
+function captureRects(ids){
+  const m = new Map();
+  ids.forEach(id=>{ const el = document.querySelector(`.card[data-id="${id}"]`); if (el) m.set(id, el.getBoundingClientRect()); });
+  return m;
+}
+function flipAnimate(ids, fromRects){
+  if (settings.reduceMotion || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+  ids.forEach(id=>{
+    const from = fromRects.get(id);
+    const el = document.querySelector(`.card[data-id="${id}"]`);
+    if (!from || !el) return;
+    const to = el.getBoundingClientRect();
+    const dx = from.left - to.left, dy = from.top - to.top;
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;   // barely moved — skip
+    el.style.transition = 'none';
+    el.style.transform = `translate(${dx}px, ${dy}px)`;   // invert to the start
+    el.style.zIndex = '60';                               // fly above the board
+    void el.offsetWidth;                                   // commit that start
+    el.style.transition = 'transform .26s cubic-bezier(.22,1,.36,1)';
+    el.style.transform = 'none';                           // play to the landing spot
+    const clear = ()=>{ el.style.transition=''; el.style.transform=''; el.style.zIndex=''; };
+    el.addEventListener('transitionend', clear, { once:true });
+    setTimeout(clear, 420);                                // fallback if the event is missed
+  });
+}
+
+// the heart of one-tap play: find the best destination and go there
+function autoMove(where, colIndex, cardIndex){
+  const cards = pickUpRun(where, colIndex, cardIndex);
+  if (!cards) return;
+  const moving = cards[0];
+  const movingIds = cards.map(c=>c.id);
+  pendingFlip = { ids: movingIds, from: captureRects(movingIds) };  // start positions
+
+  // 1) send a single card home to its foundation
+  if (cards.length === 1){
+    for (let f=0; f<4; f++){
+      if (canStackFoundation(moving, state.foundations[f])){
+        snapshot();
+        removeFromSource(where, colIndex, cardIndex);
+        state.foundations[f].push(moving);
+        announce(`${cardName(moving)} sent home to its foundation.`);
+        afterMove(); return;
+      }
+    }
+  }
+
+  // 2) build onto a face-up card in another tableau column
+  for (let d=0; d<7; d++){
+    if (where==='tableau' && d===colIndex) continue;
+    const dp = state.tableau[d];
+    if (!dp.length) continue;
+    if (canStackTableau(moving, dp[dp.length-1])){
+      const onto = dp[dp.length-1];
+      snapshot();
+      removeFromSource(where, colIndex, cardIndex);
+      cards.forEach(c=>state.tableau[d].push(c));
+      announce(`Placed ${cardName(moving)} onto ${cardName(onto)}.`);
+      afterMove(); return;
+    }
+  }
+
+  // 3) a King may go to an empty column — but only when that makes progress
+  if (moving.rank === 'K'){
+    let worthwhile = true;
+    if (where === 'tableau'){
+      const pile = state.tableau[colIndex];
+      worthwhile = cardIndex > 0 && !pile[cardIndex-1].faceUp; // it flips a hidden card
+    }
+    if (worthwhile){
+      for (let d=0; d<7; d++){
+        if (where==='tableau' && d===colIndex) continue;
+        if (state.tableau[d].length === 0){
+          snapshot();
+          removeFromSource(where, colIndex, cardIndex);
+          cards.forEach(c=>state.tableau[d].push(c));
+          announce(`Placed ${cardName(moving)} in an empty column.`);
+          afterMove(); return;
+        }
+      }
+    }
+  }
+
+  // nothing legal right now — stay gentle, no scolding
+  pendingFlip = null;
+  announce(`No spot for ${cardName(moving)} just yet.`);
+}
+let movesSinceInvite = 0;
+let inviteThreshold = 5;        // first invitation after ~5 moves, then ~20 between (reset in hideInvitation)
+function afterMove(){
+  render();
+  if (pendingFlip){ flipAnimate(pendingFlip.ids, pendingFlip.from); pendingFlip = null; }
+  movesSinceInvite++;
+  // one invitation at a time: don't start another while one is holding on screen
+  if (settings.timedInvites && !promptShowing && movesSinceInvite >= inviteThreshold){ showInvitation(); }
+  if (state.foundations.every(f=>f.length===13)) winScreen();
+}
+
+/* ================= stock ================= */
+function drawStock(){
+  clearSelection();
+  let recycled = false;
+  if (state.stock.length){
+    snapshot();
+    const c = state.stock.pop(); c.faceUp = true; state.waste.push(c);
+    announce(`Turned ${cardName(c)}.`);
+  } else {
+    snapshot();
+    while (state.waste.length){ const c = state.waste.pop(); c.faceUp=false; state.stock.push(c); }
+    recycled = true;
+    announce('Gathered the used cards back into the draw pile.');
+  }
+  render();
+  if (recycled) maybeLinkedStuck();
+}
+
+/* ================= rendering ================= */
+/* one reusable card element: an <img> of the exact painted asset */
+function cardEl(card){
+  const el = document.createElement('div');
+  el.className = 'card ' + (card.faceUp ? '' : 'down');
+  el.dataset.id = card.id;
+  el.setAttribute('role', 'button');
+  const img = document.createElement('img');
+  img.src = card.faceUp ? cardFace(card) : CARD_BACK;
+  img.alt = '';
+  img.addEventListener('error', ()=>{ img.classList.add('missing'); console.error('Missing card asset:', img.src); });
+  el.appendChild(img);
+  if (card.faceUp){
+    el.setAttribute('aria-label', cardName(card));
+    el.tabIndex = 0;
+  } else {
+    el.setAttribute('aria-label', 'face down card');
+    el.tabIndex = -1;
+  }
+  el.addEventListener('keydown', e=>{
+    if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); el.click(); }
+  });
+  return el;
+}
+function isSelectedCard(id){
+  return selection && selection.cards.some(c=>c.id===id);
+}
+function makeSlot(opts={}){
+  const slot = document.createElement('div');
+  slot.className = 'slot';
+  if (opts.paw){
+    const paw = document.createElement('img');
+    paw.className = 'paw'; paw.src = 'assets/interface/foundation-paw.png'; paw.alt='';
+    paw.addEventListener('error', ()=>paw.classList.add('missing'));
+    slot.appendChild(paw);
+  }
+  if (opts.label){ slot.setAttribute('role','button'); slot.tabIndex = 0; slot.setAttribute('aria-label', opts.label); }
+  return slot;
+}
+
+function render(){
+  renderTopRow();
+  renderTableau();
+}
+
+function renderTopRow(){
+  const row = document.getElementById('topRow');
+  // keep the persistent waste fan; rebuild only the foundations + draw pile
+  row.querySelectorAll('.top-dyn').forEach(el=>el.remove());
+  let fan = document.getElementById('wasteFan');
+  if (!fan){ fan = document.createElement('div'); fan.id='wasteFan'; row.appendChild(fan); }
+
+  // four foundation slots on the left (each a faint paw watermark)
+  state.foundations.forEach((pile, f)=>{
+    let el;
+    if (pile.length){
+      el = cardEl(pile[pile.length-1]);
+      el.tabIndex = -1;    // a completed pile is a target, not something you tap
+      el.setAttribute('aria-label', `Foundation ${f+1}, ${cardName(pile[pile.length-1])} on top`);
+    } else {
+      el = makeSlot({ paw:true });
+      el.setAttribute('aria-label', `Foundation ${f+1}, empty`);
+    }
+    el.classList.add('top-dyn');
+    el.style.left = xpos(FOUND_X[f], CARD_W);
+    el.style.top = '0';
+    row.appendChild(el);
+  });
+
+  // draw pile on the far right
+  let draw;
+  if (state.stock.length){
+    draw = cardEl({ id:'stock', faceUp:false });
+    draw.tabIndex = 0;
+    draw.setAttribute('aria-label', `Draw pile, ${state.stock.length} card${state.stock.length===1?'':'s'} left. Activate to turn one.`);
+    draw.onclick = drawStock;
+    draw.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); drawStock(); } };
+  } else {
+    draw = makeSlot({ label:'Draw pile is empty. Activate to gather the used cards back.' });
+    draw.onclick = drawStock;
+    draw.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); drawStock(); } };
+  }
+  draw.classList.add('top-dyn', 'drawpile');
+  draw.style.left = xpos(DRAW_X, CARD_W);
+  draw.style.top = '0';
+  row.appendChild(draw);
+
+  // the fanned waste (with its smooth slide) is managed separately so its
+  // card elements survive between draws and can animate to new positions
+  updateWaste();
+}
+
+/* The waste fan: up to three cards, growing rightward. The newest sits on the
+   right (the only playable one); older ones peek out to its left showing their
+   rank. Each draw slides the new card in from the draw pile and glides the
+   others left; when a fourth arrives the oldest slips away under the fan.
+   Elements persist across renders (keyed by card id) so the motion is smooth. */
+function updateWaste(){
+  const fan = document.getElementById('wasteFan');
+  if (!fan) return;
+  const waste = state.waste;
+  const visible = waste.slice(-3);                 // left→right = oldest→newest shown
+  const newestId = waste.length ? waste[waste.length-1].id : null;
+  const visIndex = new Map(visible.map((c,j)=>[c.id, j]));
+
+  // 1) retire elements that are no longer among the visible three
+  for (const [id, el] of [...trackedWaste]){
+    if (visIndex.has(id)) continue;
+    trackedWaste.delete(id);
+    el._retired = true;                  // stop any pending entry frame from moving it
+    const stillBuried = waste.some(c=>c.id===id);
+    if (stillBuried){
+      // pushed out of the fan by a newer card — fade out IN PLACE (staying at
+      // its leftmost slot) so the card sliding onto that slot covers it, rather
+      // than drifting off toward the foundations
+      el.style.zIndex = '0';
+      el.style.pointerEvents = 'none';
+      el.style.opacity = '0';
+      setTimeout(()=>el.remove(), 320);
+    } else {
+      el.remove();   // played to a pile, or gathered back into the stock
+    }
+  }
+
+  // 2) place each visible card at its slot, creating + animating in new ones.
+  // Right-anchored: the newest card always sits at the far-right slot and the
+  // older ones fan out to its left, so a freshly drawn card lands at the right
+  // end in one motion (not left/middle first).
+  visible.forEach((card, j)=>{
+    const isTop = (j === visible.length - 1);
+    const slotIdx = WASTE_X.length - visible.length + j;   // e.g. 1 card -> slot 2 (right)
+    const targetX = xpos(WASTE_X[slotIdx], CARD_W);
+    let el = trackedWaste.get(card.id);
+    if (!el){
+      el = cardEl(card);
+      el.classList.add('wastecard');
+      el.style.top = '0';
+      // where it slides in FROM: the newest comes off the draw pile; an older
+      // card re-surfacing (after the top was played) eases in from the left
+      const fromX = (card.id === newestId) ? xpos(DRAW_X, CARD_W)
+                                           : xpos(WASTE_X[0] - 44, CARD_W);
+      el.style.left = fromX;
+      el.style.opacity = (card.id === newestId) ? '1' : '0';
+      fan.appendChild(el);
+      trackedWaste.set(card.id, el);
+      // commit the start position (forced reflow), then set the slot so the CSS
+      // transition runs the slide — reliable even when rAF is throttled
+      void el.offsetWidth;
+      el.style.left = targetX;
+      el.style.opacity = '1';
+    } else {
+      el.style.left = targetX;      // existing card glides to its new slot
+      el.style.opacity = '1';
+    }
+    el.style.zIndex = String(10 + j);
+    if (isTop){
+      el.style.pointerEvents = 'auto';
+      el.tabIndex = 0;
+      el.removeAttribute('aria-hidden');
+      el.onclick = ()=> autoMove('waste', 0, 0);
+    } else {
+      el.style.pointerEvents = 'none';
+      el.tabIndex = -1;
+      el.setAttribute('aria-hidden', 'true');
+      el.onclick = null;
+    }
+  });
+}
+
+function renderTableau(){
+  const area = document.getElementById('tableau');
+  area.innerHTML = '';
+  for (let col=0; col<7; col++){
+    const colEl = document.createElement('div');
+    colEl.className = 'col';
+    colEl.style.left = xpos(COL_X[col], CARD_W);
+    colEl.setAttribute('aria-label', `Column ${col+1}`);
+    const pile = state.tableau[col];
+
+    if (pile.length===0){
+      const slot = makeSlot();
+      slot.style.left = '0'; slot.style.top = '0'; slot.style.position='absolute';
+      slot.setAttribute('aria-label', `Column ${col+1}, empty`);
+      colEl.appendChild(slot);
+    }
+
+    let y = 0;
+    pile.forEach((card, idx)=>{
+      const el = cardEl(card);
+      el.style.left = '0';
+      el.style.top = `calc(${y} * ${U})`;
+      if (card.faceUp){
+        if (justRevealed.has(card.id)){ el.classList.add('reveal'); justRevealed.delete(card.id); }
+        el.onclick = (e)=>{ e.stopPropagation(); autoMove('tableau', col, idx); };
+      }
+      colEl.appendChild(el);
+      // step down: less for face-down, more for face-up so the rank shows
+      y += (card.faceUp ? 46 : 32);
+    });
+
+    area.appendChild(colEl);
+  }
+}
+
+/* ================= hint: find one legal move ================= */
+function findHint(){
+  const sources = [];
+  if (state.waste.length) sources.push({card:state.waste[state.waste.length-1], id:state.waste[state.waste.length-1].id});
+  state.tableau.forEach(p=>{ if(p.length){ const t=p[p.length-1]; if(t.faceUp) sources.push({card:t,id:t.id}); }});
+  for (const src of sources)
+    for (let f=0;f<4;f++)
+      if (canStackFoundation(src.card, state.foundations[f])) return [src.id];
+  for (let c=0;c<7;c++){
+    const pile = state.tableau[c];
+    for (let i=0;i<pile.length;i++){
+      if (!pile[i].faceUp) continue;
+      let ok=true;
+      for (let k=i;k<pile.length-1;k++) if(!canStackTableau(pile[k+1],pile[k])){ok=false;break;}
+      if(!ok) continue;
+      const head = pile[i];
+      // moving this run only makes progress toward winning if it either lands on
+      // a real card, or clears an empty column while flipping a face-down card
+      const revealsHidden = i>0 && !pile[i-1].faceUp;
+      for (let d=0;d<7;d++){
+        if (d===c) continue;
+        const dest = state.tableau[d];
+        const onto = dest[dest.length-1];
+        if (!canStackTableau(head, onto)) continue;
+        // don't suggest sliding a King into an empty column when nothing is
+        // uncovered by it — that's a pointless shuffle, not a real hint
+        if (!onto && !revealsHidden) continue;
+        return [head.id];
+      }
+      break;
+    }
+  }
+  if (state.waste.length){
+    const w = state.waste[state.waste.length-1];
+    for (let d=0;d<7;d++){ const dest=state.tableau[d]; if(canStackTableau(w, dest[dest.length-1])) return [w.id]; }
+  }
+  return null;
+}
+/* would ANY card still in the stock or waste be playable if it came up? (only
+   asked after findHint() finds no board move). If yes, drawing is worth it; if
+   no, it's a true dead end. The board's tops don't change while you draw, so
+   testing every pile card against the current foundations/tableau is exact. */
+function anyPileCardPlayable(){
+  const pileCards = state.stock.concat(state.waste);
+  for (const c of pileCards){
+    for (let f=0; f<4; f++) if (canStackFoundation(c, state.foundations[f])) return true;
+    for (let t=0; t<7; t++){ const p=state.tableau[t]; if (canStackTableau(c, p[p.length-1])) return true; }
+  }
+  return false;
+}
+function clearHints(){ document.querySelectorAll('.hint').forEach(c=>c.classList.remove('hint')); }
+function showHint(){
+  clearHints();
+  const ids = findHint();
+  if (!ids){ hintDrawPile(); return; }
+  const hintCard = cardById(ids[0]);
+  if (hintCard) announce(`A gentle nudge: the ${cardName(hintCard)} has somewhere to go.`);
+  ids.forEach(id=>{ const el=document.querySelector(`.card[data-id="${id}"]`); if(el) el.classList.add('hint'); });
+  setTimeout(clearHints, 2500);
+}
+/* when the only move is to draw, point at the pile itself with the same gentle
+   breathing hint, instead of showing words. Only falls back to the soft note if
+   there's truly nothing to draw or recycle (stock AND waste empty — a near-done
+   board). */
+function hintDrawPile(){
+  const pile = document.querySelector('.drawpile');
+  if (pile && anyPileCardPlayable()){
+    pile.classList.add('hint');
+    announce(state.stock.length ? 'A gentle nudge: turn a card from the draw pile.'
+                                : 'A gentle nudge: tap the pile to gather the cards back.');
+    setTimeout(clearHints, 2500);
+  } else {
+    onNoMovesLeft();
+  }
+}
+/* the true dead end: no productive move on the board AND nothing in the pile
+   could be played even if drawn. Shows Dani's gentle "No moves left" New Game
+   screen (art from ClaudeHandoff-AfterLosingScreen-v1). Player-invited only —
+   this only ever fires from a hint press, never as an interruption. */
+function onNoMovesLeft(){ lostScreen(); }
+function lostScreen(){
+  const line = pick(LOST_LINES);
+  document.getElementById('lostPrompt').textContent = line;
+  showScreen('screenLost', true);   // gentle fade-in over the stuck board
+  announce('No moves left. ' + line.replace(/\n/g,' ') + '. New Game button available.');
+  const btn = document.getElementById('lostNewBtn');
+  setTimeout(()=>{ try{ btn.focus(); }catch(e){} }, reducedMotion() ? 0 : 650);
+}
+
+/* ================= win ================= */
+function winScreen(){
+  const line = pick(WIN_LINES);
+  document.getElementById('winPrompt').textContent = line;
+  showScreen('screenWin', true);   // gentle fade-in over the finished board
+  announce('You finished the game. ' + line.replace(/\n/g,' ') + '. New Game button available.');
+  const btn = document.getElementById('winNewBtn');
+  setTimeout(()=>{ try{ btn.focus(); }catch(e){} }, reducedMotion() ? 0 : 650);
+}
+
+/* ================= overlays & buttons ================= */
+function openOverlay(id, focusId){
+  document.getElementById(id).style.display='flex';
+  if (focusId) document.getElementById(focusId).focus();
+}
+function closeOverlay(id){ document.getElementById(id).style.display='none'; }
+
+document.getElementById('btnMenu').onclick   = ()=> openOverlay('menu','menuNew');
+document.getElementById('btnUndo').onclick   = undo;
+document.getElementById('btnPaw').onclick    = ()=> showInvitation(true);
+document.getElementById('btnHint').onclick   = showHint;
+document.getElementById('btnAppear').onclick = openSettings;
+
+document.getElementById('menuNew').onclick   = ()=>{ closeOverlay('menu'); deal(); };
+document.getElementById('menuClose').onclick = ()=>{ closeOverlay('menu'); document.getElementById('btnMenu').focus(); };
+document.getElementById('menu').addEventListener('click', e=>{ if(e.target.id==='menu') closeOverlay('menu'); });
+
+/* ================= settings panel wiring ================= */
+const TOGGLES = { setMusic:'music', setSounds:'sounds', setTimed:'timedInvites', setLinked:'linkedInvites',
+                  setLeft:'leftHanded', setBig:'bigCards', setMotion:'reduceMotion' };
+function syncToggles(){
+  for (const id in TOGGLES){ const el=document.getElementById(id); if(el) el.checked = !!settings[TOGGLES[id]]; }
+}
+for (const id in TOGGLES){
+  document.getElementById(id).addEventListener('change', (e)=>{
+    settings[TOGGLES[id]] = e.target.checked;
+    saveSettings(); updateMusic(); applyA11y();
+  });
+}
+function openSettings(){ syncToggles(); openOverlay('settings','settingsDone'); }
+function closeSettings(){ closeOverlay('settings'); document.getElementById('btnAppear').focus(); }
+document.getElementById('settingsDone').onclick = closeSettings;
+document.getElementById('settings').addEventListener('click', (e)=>{ if (e.target.id === 'settings') closeSettings(); });
+document.addEventListener('keydown', (e)=>{
+  if (e.key==='Escape'){
+    if (isShowing('settings')) closeSettings();
+    else if (isShowing('menu')) closeOverlay('menu');
+  }
+});
+
+/* ================= companion screens: welcome / loading / win ==============
+   Full-screen story screens layered over the game. The loading line and the
+   win invitation are PLACEHOLDERS (the mockups' preview text) until Dani writes
+   the real words — kept as arrays so a gentle rotation drops straight in. */
+const LOADING_LINES = [                                     // Dani's words, 2026-08-15
+  "As you breathe in, you take in oxygen —\na gift from your kin, the plants.\nAs you breathe out, you gift\ncarbon dioxide back to them.",
+  "A yawn can be your nervous system\nsettling into rest-and-digest.",
+  "Tense muscles can be a sign\nour nervous system is often\nin survival mode",
+  "If our thoughts are clouds,\nwe are the sky.",
+  "We are the ocean, not the waves."
+];
+const WIN_LINES = [
+  "Stretching can feel yummyyy"                             // Dani's words, 2026-08-15
+];
+const LOST_LINES = [                                        // Dani's chosen words (direct + short), 2026-08-15
+  "No moves left! Start a new game?"
+];
+const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+// loading teaching: never the same one twice in a row, even across app reloads
+function pickLoadingLine(){
+  let last = -1;
+  try { last = parseInt(localStorage.getItem('cozycat.lastLoadLine'), 10); } catch(e){}
+  let i;
+  do { i = Math.floor(Math.random()*LOADING_LINES.length); }
+  while (LOADING_LINES.length > 1 && i === last);
+  try { localStorage.setItem('cozycat.lastLoadLine', String(i)); } catch(e){}
+  return LOADING_LINES[i];
+}
+
+function reducedMotion(){
+  return !!settings.reduceMotion ||
+         (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+let advanceScreen = null;   // the current skippable screen's "advance" fn, or null
+function fireAdvance(){ if(advanceScreen){ const fn=advanceScreen; advanceScreen=null; fn(); } }
+
+function showScreen(id, fadeIn){
+  const el = document.getElementById(id);
+  el.classList.add('show');
+  if (fadeIn && !reducedMotion()){ el.style.opacity='0'; void el.offsetWidth; el.style.opacity='1'; }
+  else { el.style.opacity='1'; }
+}
+function hideScreen(id, cb){
+  const el = document.getElementById(id);
+  const finish = ()=>{ el.classList.remove('show'); el.style.opacity=''; if(cb) cb(); };
+  if (reducedMotion()){ finish(); return; }
+  let done=false;
+  const once=()=>{ if(done) return; done=true; el.removeEventListener('transitionend',once); finish(); };
+  el.style.opacity='0';
+  el.addEventListener('transitionend', once);
+  setTimeout(once, 800);                 // fallback if transitionend is missed
+}
+
+/* the mindful "loading" pause: the mouse walks the line 0 -> 1, then reveal */
+function runLoading(finish){
+  document.getElementById('loadPrompt').textContent = pickLoadingLine();
+  const fill  = document.getElementById('loadFill');
+  const mouse = document.getElementById('loadMouse');
+  const track = document.getElementById('loadTrack');
+  const setP = (p)=>{
+    p = Math.max(0, Math.min(1, p));
+    fill.style.width = 'calc(' + (p*730).toFixed(1) + ' * var(--u))';             // completed line grows
+    mouse.style.left = 'calc(' + (175 + p*730 - 66).toFixed(1) + ' * var(--u))';  // mouse center tracks progress
+    track.setAttribute('aria-valuenow', Math.round(p*100));
+  };
+  setP(0);
+  announce('A quiet moment before we begin.');
+  const DUR = 10000;
+  let finished = false, raf = 0;
+  const done = ()=>{ if(finished) return; finished=true; advanceScreen=null; if(raf) cancelAnimationFrame(raf); setP(1); finish(); };
+  advanceScreen = done;                                       // Enter/Space/Escape or tap skips the pause
+  document.getElementById('screenLoading').onclick = fireAdvance;
+  if (reducedMotion()){
+    let p=0; const step=()=>{ p+=0.25; setP(p); if(p<1){ setTimeout(step, DUR/4); } else { setTimeout(done, 300); } };
+    setTimeout(step, DUR/4);
+    return;
+  }
+  const t0 = performance.now();
+  const tick = (now)=>{ const p=(now-t0)/DUR; setP(p); if(p<1){ raf=requestAnimationFrame(tick); } else { setTimeout(done, 320); } };
+  raf = requestAnimationFrame(tick);
+}
+
+function afterIntro(){ announce('The game is ready when you are.'); }
+
+/* every open -> welcome, then loading. (Dani, 2026-08-13: the welcome screen is
+   part of the ritual of arriving, so it greets you every launch, not just once.) */
+function startupFlow(){
+  /* design-preview harness: ?preview=welcome|loading|win freezes on one screen
+     (no auto-advance) so it can be inspected calmly. Only active with the param;
+     the normal app flow is untouched. */
+  const pv = new URLSearchParams(location.search).get('preview');
+  if (pv === 'welcome' || pv === 'loading' || pv === 'win' || pv === 'lost'){
+    if (pv === 'loading') document.getElementById('loadPrompt').textContent = pickLoadingLine();
+    if (pv === 'win')     document.getElementById('winPrompt').textContent  = pick(WIN_LINES);
+    if (pv === 'lost')    document.getElementById('lostPrompt').textContent = pick(LOST_LINES);
+    const screenId = pv === 'welcome' ? 'screenWelcome' : pv === 'loading' ? 'screenLoading'
+                   : pv === 'win' ? 'screenWin' : 'screenLost';
+    showScreen(screenId);
+    return;
+  }
+  // first-ever open lingers a little longer (5s) so a new player can settle;
+  // afterwards the welcome is briefer (3s) since it's familiar. It still shows
+  // every launch (Dani 2026-08-13) — only the auto-advance timing differs. (2026-08-14)
+  let firstEver = true;
+  try { firstEver = !localStorage.getItem('cozycat.seenWelcome'); } catch(e){}
+  try { localStorage.setItem('cozycat.seenWelcome','1'); } catch(e){}
+  const welcomeHold = firstEver ? 5000 : 3000;
+
+  showScreen('screenWelcome');
+  announce('Welcome to mindful play. Mindfulness, woven into everyday moments. Tap to begin.');
+  const proceed = ()=>{
+    const w = document.getElementById('screenWelcome');
+    showScreen('screenLoading');                    // covers the welcome screen
+    w.classList.remove('show'); w.style.opacity='';
+    runLoading(()=> hideScreen('screenLoading', afterIntro));
+  };
+  advanceScreen = proceed;
+  document.getElementById('screenWelcome').onclick = fireAdvance;
+  setTimeout(()=>{ if (advanceScreen === proceed) fireAdvance(); }, welcomeHold);  // auto-advance if untouched (5s first-ever, 3s after)
+}
+
+/* Enter / Space / Escape advance a skippable companion screen */
+document.addEventListener('keydown', (e)=>{
+  if (advanceScreen && (e.key==='Enter' || e.key===' ' || e.key==='Escape')){ e.preventDefault(); fireAdvance(); }
+});
+
+/* win + losing screens: New Game deals a fresh game through the normal game logic */
+document.getElementById('winNewBtn').onclick  = ()=>{ deal(); hideScreen('screenWin'); };
+document.getElementById('lostNewBtn').onclick = ()=>{ deal(); hideScreen('screenLost'); };
+
+/* ================= start ================= */
+syncToggles();
+updateMusic();
+applyA11y();
+deal();                 // deal() clears the prompt space; invitations drift in during play
+startupFlow();
+</script>
+</body>
+</html>
