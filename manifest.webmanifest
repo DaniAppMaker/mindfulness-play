@@ -1,0 +1,14 @@
+{
+  "name": "Mindfulness Play",
+  "short_name": "Mindfulness Play",
+  "description": "A calm game of solitaire with gentle mindfulness invitations.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7ede3",
+  "theme_color": "#f7ede3",
+  "icons": [
+    { "src": "assets/icon/icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "assets/icon/icon-512.png", "type": "image/png", "sizes": "512x512" }
+  ]
+}
