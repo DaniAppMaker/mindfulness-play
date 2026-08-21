@@ -44,8 +44,8 @@
     --board: min(100vw, 50vh);
     --boardH: calc(var(--board) * 2);
     --u: calc(var(--board) / 1080);
-    --cw: calc(132 * var(--u));      /* card width  (spec §5) */
-    --ch: calc(210 * var(--u));      /* card height */
+    --cw: calc(146 * var(--u));      /* card width  (was 132; widened +11% to fill the row, tighter gaps) */
+    --ch: calc(232 * var(--u));      /* card height (keeps the 994x1583 art ratio) */
     --stack-down: calc(32 * var(--u));  /* face-down overlap (spec §7) */
     --stack-up:   calc(46 * var(--u));  /* face-up overlap, reveals the rank */
   }
@@ -637,12 +637,13 @@ const U = 'var(--u)';
 const LH = ()=> !!settings.leftHanded;
 function ux(px){ return `calc(${px} * ${U})`; }
 function xpos(x, w){ return ux(LH() ? (1080 - x - w) : x); }
-const CARD_W = 132;
-// spec §6 / §7 reference X coordinates
-const FOUND_X = [34, 176, 318, 460];
-const WASTE_X = [630, 679, 728];
-const DRAW_X  = 902;
-const COL_X   = [27, 178, 329, 480, 631, 782, 933];
+const CARD_W = 146;   // was 132; must match --cw
+// spec §6 / §7 reference X coordinates — re-spaced for the wider card so the
+// 7 columns run edge-to-edge with hairline gaps (gap 8u, side margins ~5u).
+const FOUND_X = [6, 156, 306, 456];
+const WASTE_X = [644, 694, 744];
+const DRAW_X  = 930;
+const COL_X   = [6, 160, 314, 468, 622, 776, 930];
 
 /* ---------- prompt / invitations ----------
    The invitation is now the strongest visual feature: it lives in the prompt
