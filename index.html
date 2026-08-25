@@ -44,10 +44,10 @@
     --board: min(100vw, 50vh);
     --boardH: calc(var(--board) * 2);
     --u: calc(var(--board) / 1080);
-    --cw: calc(146 * var(--u));      /* card width  (was 132; widened +11% to fill the row, tighter gaps) */
-    --ch: calc(232 * var(--u));      /* card height (keeps the 994x1583 art ratio) */
+    --cw: calc(152 * var(--u));      /* card width  (was 132→146→152; near edge-to-edge, hairline gaps) */
+    --ch: calc(242 * var(--u));      /* card height (keeps the 994x1583 art ratio) */
     --stack-down: calc(32 * var(--u));  /* face-down overlap (spec §7) */
-    --stack-up:   calc(46 * var(--u));  /* face-up overlap, reveals the rank */
+    --stack-up:   calc(68 * var(--u));  /* face-up overlap, reveals the full rank + suit */
   }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body{ margin:0; height:100%; }
@@ -61,19 +61,21 @@
     user-select:none; -webkit-user-select:none;
   }
 
+  /* faint watercolor wash over the paper (spec §3: ~18% opacity, barely there).
+     Painted on a FIXED full-viewport layer so it fills the whole screen — the
+     board and any letterbox margins alike — and never visibly "ends" at an edge. */
+  body::before{
+    content:""; position:fixed; inset:0; z-index:0;
+    background:url("assets/background/background-1-600dpi.jpg") center/cover no-repeat;
+    opacity:.18; pointer-events:none;
+  }
   /* ---- the scaled portrait board ---- */
   #app{
     position:relative;
     width:var(--board);
     min-height:var(--boardH);
-    background:var(--paper);
+    background:transparent;   /* let the full-screen wash show through uniformly */
     overflow:hidden;
-  }
-  /* faint watercolor wash over the paper (spec §3: ~18% opacity, barely there) */
-  #app::before{
-    content:""; position:absolute; inset:0; z-index:0;
-    background:url("assets/background/background-1-600dpi.jpg") center/cover no-repeat;
-    opacity:.18; pointer-events:none;
   }
   #app > *{ position:relative; z-index:1; }
 
@@ -84,30 +86,36 @@
      however long the note runs. */
   #prompt{
     position:absolute; top:0; left:0; width:100%;
-    height:calc(890 * var(--u));
+    height:calc(640 * var(--u));
     display:flex; flex-direction:column;
     align-items:center; justify-content:flex-start;
-    gap:calc(60 * var(--u));
-    padding:calc(250 * var(--u)) calc(70 * var(--u)) calc(40 * var(--u));
+    gap:0;
+    padding:calc(90 * var(--u)) calc(70 * var(--u)) 0;  /* triple the space above the cat */
     box-sizing:border-box;
     text-align:center;
   }
+  #promptPets{ flex:0 0 auto; }              /* the cat sits fixed near the top */
   #promptText{
     font-family:"Quicksand","Segoe UI",sans-serif;
-    font-size:calc(52 * var(--u)); line-height:1.22;
-    color:var(--ink); font-weight:500; letter-spacing:.01em;
+    font-size:calc(58 * var(--u)); line-height:1.22;
+    color:var(--ink); font-weight:600; letter-spacing:.01em;   /* bolder (600 = heaviest bundled) + a touch larger */
     max-width:calc(920 * var(--u));
-    min-height:calc(127 * var(--u));           /* reserve ~2 lines so the cat doesn't shift as the words fade */
+    /* fill the space between the cat and the cards, and sit centered within it */
+    flex:1 1 auto;
+    display:flex; align-items:center; justify-content:center;
     opacity:0; transition:opacity .55s ease;    /* invitations drift in, hold, then drift out (see fadeInPrompt) */
   }
-  #promptText.long{ font-size:calc(42 * var(--u)); line-height:1.34; }
+  #promptText.long{ font-size:calc(47 * var(--u)); line-height:1.34; }   /* keep long notes a step smaller so they still fit */
   /* the cat + mouse move as one unit; the mouse floats up beside the cat's
      whiskers. The container is shifted left by half the mouse's reach so the
      PAIR is centered, not just the cat. */
   #promptPets{
     position:relative;
     display:flex; justify-content:center;
-    transform:translateX(calc(-90 * var(--u) - 0.225cm));
+    /* translateX centers the cat+mouse pair; translateY lowers the pair ~30% of
+       the gap toward the invitation text (transform doesn't shift the text's
+       layout, so only the cat moves closer) — Dani, 2026-08-24 */
+    transform:translate(calc(-90 * var(--u) - 0.225cm), calc(43 * var(--u)));
   }
   #promptCat{
     width:calc(300 * var(--u)); height:auto; display:block;
@@ -160,12 +168,35 @@
                0 0 calc(28 * var(--u)) rgba(215,168,110,.55);
     border-color:rgba(215,168,110,.9);
   }
-  /* a card uncovered in the tableau eases into view instead of popping */
-  @keyframes cardReveal{
-    from{ opacity:0; transform:scale(.94); }
-    to{   opacity:1; transform:none; }
+  /* A card uncovered in the tableau turns over like a real card: its BACK shows,
+     then it flips vertically (around the horizontal axis) to its FACE. Both faces
+     are real images (the back and the preloaded front), so there is no blank gap
+     and no jarring pop — the front is already there the instant the flip passes 90. */
+  .card.flipping{ perspective:900px; }
+  .card.flipping .flip-inner{
+    position:absolute; inset:0; transform-style:preserve-3d;
+    animation:cardFlip .42s cubic-bezier(.4,.7,.35,1) forwards;
   }
-  .card.reveal{ animation:cardReveal .26s ease-out; }
+  .card.flipping .flip-face{
+    position:absolute; inset:0;
+    -webkit-backface-visibility:hidden; backface-visibility:hidden;
+  }
+  .card.flipping .flip-front{ transform:rotateY(180deg); }   /* the face, pre-flipped so it lands upright */
+  @keyframes cardFlip{
+    from{ transform:rotateY(0deg); }     /* back facing the player */
+    to{   transform:rotateY(180deg); }   /* face facing the player */
+  }
+  body.reduce-motion .card.flipping .flip-inner{ animation:none; transform:rotateY(180deg); }
+  /* a card tapped with nowhere to go gives a quick shudder, so the tap clearly
+     registered and it's obvious the card simply has no move */
+  @keyframes cardShake{
+    0%,100%{ transform:translateX(0); }
+    18%{ transform:translateX(calc(-7 * var(--u))); }
+    38%{ transform:translateX(calc(7 * var(--u))); }
+    58%{ transform:translateX(calc(-5 * var(--u))); }
+    78%{ transform:translateX(calc(4 * var(--u))); }
+  }
+  .card.shake{ animation:cardShake .34s ease; }
   /* a supplied asset failed to load — make it LOUD in development, never fall
      back to a text glyph or generated card (engineering acceptance criteria) */
   .card img.missing, img.missing{
@@ -181,10 +212,16 @@
     display:grid; place-items:center;
   }
   .slot img.paw{ width:calc(58 * var(--u)); height:auto; opacity:.24; pointer-events:none; }
+  /* an empty tableau column: a clearer dashed frame so the open landing spot
+     for a King is easy to see against the felt */
+  .slot.col-slot{
+    background:rgba(255,252,248,.16);
+    border:calc(3 * var(--u)) dashed rgba(190,151,120,.62);
+  }
 
   /* ================= foundation / waste / draw row (spec §6) ================= */
   #topRow{
-    position:absolute; top:calc(890 * var(--u)); left:0; width:100%;
+    position:absolute; top:calc(640 * var(--u)); left:0; width:100%;
     height:var(--ch);
   }
   /* the fanned waste pile lives in its own persistent layer so its cards can
@@ -194,9 +231,21 @@
     transition:left .30s cubic-bezier(.22,1,.36,1), opacity .24s ease;
     will-change:left;
   }
+  /* the draw pile must always sit above the waste layer, so a card sliding off
+     it (or lingering after the slide) can never intercept a tap meant to turn
+     or recycle the pile */
+  .drawpile{ z-index:40; }
+  /* when the used cards are gathered back, the reformed pile gives a soft settle
+     so the recycle reads as a gentle motion, not an instant swap */
+  @keyframes drawRefill{
+    0%{   transform:scale(.82) translateY(calc(-10 * var(--u))); opacity:.2; }
+    60%{  opacity:1; }
+    100%{ transform:scale(1) translateY(0); opacity:1; }
+  }
+  .drawpile.refill{ animation:drawRefill .42s cubic-bezier(.34,1.2,.5,1); }
   /* ================= tableau (spec §7) ================= */
   #tableau{
-    position:absolute; top:calc(1180 * var(--u)); left:0; width:100%;
+    position:absolute; top:calc(930 * var(--u)); left:0; width:100%;
     bottom:calc(200 * var(--u));
     overflow-y:auto; overflow-x:hidden;
   }
@@ -352,7 +401,16 @@
      the cats + mouse are Dani's untouched scanned watercolors. */
   .screen{
     position:fixed; inset:0; z-index:60; display:none;
-    justify-content:center; align-items:center; background:var(--paper); opacity:1;
+    justify-content:center; align-items:center;
+    background:var(--paper);   /* opaque paper covers the whole screen (and the board behind) */
+    opacity:1;
+  }
+  /* the watercolor wash, now spread across the WHOLE screen (edge to edge) instead
+     of only the center column — matches the game screen, no visible column edge */
+  .screen::before{
+    content:""; position:absolute; inset:0; z-index:0;
+    background:url("assets/background/background-1-600dpi.jpg") center/cover no-repeat;
+    opacity:.18; pointer-events:none;
   }
   .screen.show{ display:flex; }
   .screen.fade{ transition:opacity .6s ease; }
@@ -362,11 +420,9 @@
     position:relative; width:var(--board); height:var(--boardH);
     overflow:hidden; flex:0 0 auto;
   }
-  .screen-col::before{
-    content:""; position:absolute; inset:0;
-    background:url("assets/background/background-1-600dpi.jpg") center/cover no-repeat;
-    opacity:.18; pointer-events:none;
-  }
+  /* The wash now comes from the full-screen body::before layer (edge to edge),
+     so the column no longer paints its own wash — that avoids a darker band
+     in the middle and a visible edge at the column sides. */
   .scr-art{ position:absolute; display:block; height:auto; }
   .scr-text{
     position:absolute; left:0; width:100%; margin:0; text-align:center;
@@ -419,11 +475,11 @@
   <div id="app">
     <!-- prompt focal group -->
     <div id="prompt">
-      <div id="promptText"></div>
       <div id="promptPets">
         <img id="promptCat" src="assets/interface/prompt-cat.png" alt="" aria-hidden="true">
         <img id="promptMouse" src="assets/interface/prompt-mouse.png" alt="" aria-hidden="true">
       </div>
+      <div id="promptText"></div>
     </div>
 
     <!-- foundations (left) · waste (three) · draw pile (far right) -->
@@ -529,10 +585,6 @@
         <div><div class="setlabel">Timed invitations</div><div class="sethint">soft notes that drift in on their own, now and then</div></div>
         <label class="switch"><input type="checkbox" id="setTimed"><span class="slider"></span></label>
       </div>
-      <div class="setrow">
-        <div><div class="setlabel">Invitations linked to the game</div><div class="sethint">notes that notice the board — like when there's no clear move</div></div>
-        <label class="switch"><input type="checkbox" id="setLinked"><span class="slider"></span></label>
-      </div>
       <div class="setlabel" style="margin:18px 2px 2px; font-weight:650; text-align:center;">Making it yours</div>
 
       <div class="setrow">
@@ -587,7 +639,7 @@ const CARD_BACK = 'assets/card-back/card-back2.png';
 
 /* ---------- settings (remembered on this device) ---------- */
 const SETTINGS_KEY = 'cozycat.settings';
-const DEFAULT_SETTINGS = { music:false, sounds:false, timedInvites:true, linkedInvites:true,
+const DEFAULT_SETTINGS = { music:false, sounds:false, timedInvites:true,
                            leftHanded:false, bigCards:false, reduceMotion:false };
 let settings = loadSettings();
 function loadSettings(){
@@ -637,13 +689,13 @@ const U = 'var(--u)';
 const LH = ()=> !!settings.leftHanded;
 function ux(px){ return `calc(${px} * ${U})`; }
 function xpos(x, w){ return ux(LH() ? (1080 - x - w) : x); }
-const CARD_W = 146;   // was 132; must match --cw
-// spec §6 / §7 reference X coordinates — re-spaced for the wider card so the
-// 7 columns run edge-to-edge with hairline gaps (gap 8u, side margins ~5u).
-const FOUND_X = [6, 156, 306, 456];
+const CARD_W = 152;   // was 132→146→152; must match --cw
+// spec §6 / §7 reference X coordinates — the 7 columns run near edge-to-edge:
+// step 154u, card 152u, so only a 2u hairline gap; side margins ~2u.
+const FOUND_X = [2, 156, 310, 464];
 const WASTE_X = [644, 694, 744];
-const DRAW_X  = 930;
-const COL_X   = [6, 160, 314, 468, 622, 776, 930];
+const DRAW_X  = 926;
+const COL_X   = [2, 156, 310, 464, 618, 772, 926];
 
 /* ---------- prompt / invitations ----------
    The invitation is now the strongest visual feature: it lives in the prompt
@@ -714,7 +766,7 @@ function hideInvitation(){
   el.setAttribute('aria-hidden', 'true');
   promptShowing = false;
   movesSinceInvite = 0;          // the next gap begins only once the words have faded
-  inviteThreshold = 20;          // ~20 moves between invitations → ~5 per game (Dani, 2026-08-15)
+  inviteThreshold = 10;          // ~10 moves between invitations (Dani wants them more frequent, 2026-08-23)
   const clearText = ()=>{ if (!promptShowing) el.textContent = ''; };   // tidy up once invisible
   if (reducedMotion()) clearText(); else setTimeout(clearText, 600);
 }
@@ -725,20 +777,6 @@ function clearPromptState(){
   movesSinceInvite = 0;
   inviteThreshold = 5;
   setPrompt('');
-}
-
-/* ---------- linked invitation: arises from a real board fact, never the player -- */
-const STUCK_NOTE = "The board shows no clear move right now. Whatever arrived when you noticed that — maybe a flicker of frustration — see if it can just be a feeling, passing through. Nothing has gone wrong.";
-let lastLinkedAt = 0;
-function maybeLinkedStuck(){
-  if (!settings.linkedInvites) return;
-  if (findHint()) return;                          // there IS a move — not stuck
-  if (Date.now() - lastLinkedAt < 60000) return;
-  if (Math.random() < 0.6){
-    lastLinkedAt = Date.now();
-    setPrompt(STUCK_NOTE, {long:true});
-    announce(STUCK_NOTE);
-  }
 }
 
 /* which overlay is currently visible (used by the Escape-key handler) */
@@ -826,6 +864,10 @@ function pickUpRun(where, colIndex, cardIndex){
   if (where === 'waste'){
     return state.waste.length ? [state.waste[state.waste.length-1]] : null;
   }
+  if (where === 'foundation'){
+    const pile = state.foundations[colIndex];
+    return pile.length ? [pile[pile.length-1]] : null;
+  }
   return null;
 }
 
@@ -839,6 +881,8 @@ function removeFromSource(where, colIndex, cardIndex){
     }
   } else if (where === 'waste'){
     state.waste.pop();
+  } else if (where === 'foundation'){
+    state.foundations[colIndex].pop();
   }
 }
 
@@ -872,14 +916,16 @@ function flipAnimate(ids, fromRects){
 
 // the heart of one-tap play: find the best destination and go there
 function autoMove(where, colIndex, cardIndex){
+  if (autoCompleting) return;   // hands off while the auto-finish cascade is running
   const cards = pickUpRun(where, colIndex, cardIndex);
   if (!cards) return;
   const moving = cards[0];
   const movingIds = cards.map(c=>c.id);
   pendingFlip = { ids: movingIds, from: captureRects(movingIds) };  // start positions
 
-  // 1) send a single card home to its foundation
-  if (cards.length === 1){
+  // 1) send a single card home to its foundation (but a card already ON a
+  //    foundation should only come DOWN to the columns, never hop foundations)
+  if (cards.length === 1 && where !== 'foundation'){
     for (let f=0; f<4; f++){
       if (canStackFoundation(moving, state.foundations[f])){
         snapshot();
@@ -927,29 +973,111 @@ function autoMove(where, colIndex, cardIndex){
     }
   }
 
-  // nothing legal right now — stay gentle, no scolding
+  // nothing legal right now — give a quick shudder so the tap clearly registered
   pendingFlip = null;
+  const el = document.querySelector(`.card[data-id="${moving.id}"]`);
+  if (el && !settings.reduceMotion){
+    el.classList.remove('shake');
+    void el.offsetWidth;               // restart the animation if it's mid-play
+    el.classList.add('shake');
+    setTimeout(()=>el.classList.remove('shake'), 360);
+  }
   announce(`No spot for ${cardName(moving)} just yet.`);
 }
-let movesSinceInvite = 0;
-let inviteThreshold = 5;        // first invitation after ~5 moves, then ~20 between (reset in hideInvitation)
-function afterMove(){
+/* ================= auto-complete ("cards fly home") =================
+   Once the win is guaranteed — every tableau card face-up and the stock &
+   waste empty — there's nothing left to decide: each remaining card can be
+   sent home in order. So we do it for the player, one flying card at a time,
+   instead of making them tap out the whole finish (like Netflix Solitaire). */
+let autoCompleting = false;
+
+function boardCanAutoComplete(){
+  if (autoCompleting) return false;
+  if (state.stock.length || state.waste.length) return false;   // still cards to turn
+  for (const pile of state.tableau)
+    for (const c of pile)
+      if (!c.faceUp) return false;                              // a hidden card remains
+  return state.tableau.some(p => p.length);                     // and there's something left to place
+}
+
+// send the single lowest exposed card home, then schedule the next — a gentle cascade
+function autoCompleteStep(){
+  let best = null;   // the lowest-rank column-top card that has a foundation to go to
+  for (let c = 0; c < 7; c++){
+    const pile = state.tableau[c];
+    if (!pile.length) continue;
+    const card = pile[pile.length-1];
+    for (let f = 0; f < 4; f++){
+      if (canStackFoundation(card, state.foundations[f])){
+        if (!best || rankVal(card.rank) < rankVal(best.card.rank)) best = { col:c, f, card, idx: pile.length-1 };
+        break;
+      }
+    }
+  }
+  if (!best){ autoCompleting = false; return; }                 // safety: nothing to send
+
+  pendingFlip = { ids:[best.card.id], from: captureRects([best.card.id]) };
+  removeFromSource('tableau', best.col, best.idx);
+  state.foundations[best.f].push(best.card);
   render();
   if (pendingFlip){ flipAnimate(pendingFlip.ids, pendingFlip.from); pendingFlip = null; }
+
+  if (state.foundations.every(f => f.length === 13)){           // that was the last card
+    autoCompleting = false;
+    setTimeout(winScreen, 520);
+    return;
+  }
+  const gap = settings.reduceMotion ? 90 : 200;                 // stagger so they fly one after another
+  setTimeout(autoCompleteStep, gap);
+}
+
+// call after any move: if the board is now a sure thing, start the cascade
+function maybeAutoComplete(){
+  if (!boardCanAutoComplete()) return;
+  autoCompleting = true;
+  announce('You did it — sending the rest home.');
+  setTimeout(autoCompleteStep, 340);
+}
+
+let movesSinceInvite = 0;
+let inviteThreshold = 5;        // first invitation after ~5 moves, then ~10 between (reset in hideInvitation)
+
+/* safety net: a tableau column must never be left with a face-down top card.
+   Whatever move just happened, uncover the top of every pile so a column can
+   never get "locked" (fixes the rare un-flipped card after a move). */
+function ensureTopsFaceUp(){
+  state.tableau.forEach(pile=>{
+    if (pile.length){
+      const top = pile[pile.length-1];
+      if (!top.faceUp){ top.faceUp = true; justRevealed.add(top.id); }
+    }
+  });
+}
+// advance the invitation counter after any move (a tableau move OR a stock turn)
+function progressInvites(){
   movesSinceInvite++;
   // one invitation at a time: don't start another while one is holding on screen
   if (settings.timedInvites && !promptShowing && movesSinceInvite >= inviteThreshold){ showInvitation(); }
-  if (state.foundations.every(f=>f.length===13)) winScreen();
+}
+function afterMove(){
+  ensureTopsFaceUp();
+  render();
+  if (pendingFlip){ flipAnimate(pendingFlip.ids, pendingFlip.from); pendingFlip = null; }
+  progressInvites();
+  if (state.foundations.every(f=>f.length===13)){ winScreen(); return; }
+  maybeAutoComplete();   // if the win is now guaranteed, fly the rest home automatically
 }
 
 /* ================= stock ================= */
 function drawStock(){
+  if (autoCompleting) return;   // hands off while the auto-finish cascade is running
   clearSelection();
-  let recycled = false;
+  let drew = false, recycled = false;
   if (state.stock.length){
     snapshot();
     const c = state.stock.pop(); c.faceUp = true; state.waste.push(c);
     announce(`Turned ${cardName(c)}.`);
+    drew = true;
   } else {
     snapshot();
     while (state.waste.length){ const c = state.waste.pop(); c.faceUp=false; state.stock.push(c); }
@@ -957,21 +1085,41 @@ function drawStock(){
     announce('Gathered the used cards back into the draw pile.');
   }
   render();
-  if (recycled) maybeLinkedStuck();
+  // turning a card is a move too — let it count toward the next invitation
+  if (drew) progressInvites();
+  // the reformed pile gives a soft settle so the gather reads as a gentle motion
+  if (recycled && !settings.reduceMotion){
+    const pile = document.querySelector('.drawpile');
+    if (pile){ pile.classList.add('refill'); setTimeout(()=>pile.classList.remove('refill'), 460); }
+  }
 }
 
 /* ================= rendering ================= */
 /* one reusable card element: an <img> of the exact painted asset */
-function cardEl(card){
+function cardEl(card, reveal){
   const el = document.createElement('div');
   el.className = 'card ' + (card.faceUp ? '' : 'down');
   el.dataset.id = card.id;
   el.setAttribute('role', 'button');
-  const img = document.createElement('img');
-  img.src = card.faceUp ? cardFace(card) : CARD_BACK;
-  img.alt = '';
-  img.addEventListener('error', ()=>{ img.classList.add('missing'); console.error('Missing card asset:', img.src); });
-  el.appendChild(img);
+  if (reveal && card.faceUp){
+    // two-sided flip: show the back, then turn to the face (both images real)
+    el.classList.add('flipping');
+    const inner = document.createElement('div'); inner.className = 'flip-inner';
+    const back  = document.createElement('div'); back.className  = 'flip-face flip-back';
+    const front = document.createElement('div'); front.className = 'flip-face flip-front';
+    const backImg = document.createElement('img'); backImg.src = CARD_BACK; backImg.alt='';
+    const frontImg= document.createElement('img'); frontImg.src = cardFace(card); frontImg.alt='';
+    frontImg.addEventListener('error', ()=>{ frontImg.classList.add('missing'); console.error('Missing card asset:', frontImg.src); });
+    back.appendChild(backImg); front.appendChild(frontImg);
+    inner.appendChild(back); inner.appendChild(front);
+    el.appendChild(inner);
+  } else {
+    const img = document.createElement('img');
+    img.src = card.faceUp ? cardFace(card) : CARD_BACK;
+    img.alt = '';
+    img.addEventListener('error', ()=>{ img.classList.add('missing'); console.error('Missing card asset:', img.src); });
+    el.appendChild(img);
+  }
   if (card.faceUp){
     el.setAttribute('aria-label', cardName(card));
     el.tabIndex = 0;
@@ -1016,9 +1164,12 @@ function renderTopRow(){
   state.foundations.forEach((pile, f)=>{
     let el;
     if (pile.length){
-      el = cardEl(pile[pile.length-1]);
-      el.tabIndex = -1;    // a completed pile is a target, not something you tap
-      el.setAttribute('aria-label', `Foundation ${f+1}, ${cardName(pile[pile.length-1])} on top`);
+      const topCard = pile[pile.length-1];
+      el = cardEl(topCard);
+      el.tabIndex = 0;     // tappable: you can bring a card back down to the columns
+      el.setAttribute('aria-label', `Foundation ${f+1}, ${cardName(topCard)} on top. Activate to bring it back to the columns.`);
+      el.onclick = ()=> autoMove('foundation', f, pile.length-1);
+      el.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); autoMove('foundation', f, pile.length-1); } };
     } else {
       el = makeSlot({ paw:true });
       el.setAttribute('aria-label', `Foundation ${f+1}, empty`);
@@ -1072,25 +1223,26 @@ function updateWaste(){
     el._retired = true;                  // stop any pending entry frame from moving it
     const stillBuried = waste.some(c=>c.id===id);
     if (stillBuried){
-      // pushed out of the fan by a newer card — fade out IN PLACE (staying at
-      // its leftmost slot) so the card sliding onto that slot covers it, rather
-      // than drifting off toward the foundations
+      // pushed out of the fan by a newer card — drift gently further left as it
+      // fades, so it slips away under the fan instead of flickering in place
       el.style.zIndex = '0';
       el.style.pointerEvents = 'none';
+      el.style.left = xpos(WASTE_X[0] - 52, CARD_W);
       el.style.opacity = '0';
-      setTimeout(()=>el.remove(), 320);
+      setTimeout(()=>el.remove(), 340);
     } else {
       el.remove();   // played to a pile, or gathered back into the stock
     }
   }
 
   // 2) place each visible card at its slot, creating + animating in new ones.
-  // Right-anchored: the newest card always sits at the far-right slot and the
-  // older ones fan out to its left, so a freshly drawn card lands at the right
-  // end in one motion (not left/middle first).
+  // Left-anchored: cards fill the slots left→middle→right. The 1st discard lands
+  // in the left slot, the 2nd in the middle, the 3rd on the right. When a 4th
+  // arrives the visible three shift one slot left (middle→left, right→middle) and
+  // the new card enters on the right; the oldest slips away off the left edge.
   visible.forEach((card, j)=>{
     const isTop = (j === visible.length - 1);
-    const slotIdx = WASTE_X.length - visible.length + j;   // e.g. 1 card -> slot 2 (right)
+    const slotIdx = j;   // 0=left, 1=middle, 2=right — fill left→right
     const targetX = xpos(WASTE_X[slotIdx], CARD_W);
     let el = trackedWaste.get(card.id);
     if (!el){
@@ -1141,6 +1293,7 @@ function renderTableau(){
 
     if (pile.length===0){
       const slot = makeSlot();
+      slot.classList.add('col-slot');
       slot.style.left = '0'; slot.style.top = '0'; slot.style.position='absolute';
       slot.setAttribute('aria-label', `Column ${col+1}, empty`);
       colEl.appendChild(slot);
@@ -1148,16 +1301,17 @@ function renderTableau(){
 
     let y = 0;
     pile.forEach((card, idx)=>{
-      const el = cardEl(card);
+      const revealing = card.faceUp && justRevealed.has(card.id);
+      const el = cardEl(card, revealing);
       el.style.left = '0';
       el.style.top = `calc(${y} * ${U})`;
       if (card.faceUp){
-        if (justRevealed.has(card.id)){ el.classList.add('reveal'); justRevealed.delete(card.id); }
+        if (revealing) justRevealed.delete(card.id);
         el.onclick = (e)=>{ e.stopPropagation(); autoMove('tableau', col, idx); };
       }
       colEl.appendChild(el);
-      // step down: less for face-down, more for face-up so the rank shows
-      y += (card.faceUp ? 46 : 32);
+      // step down: less for face-down, more for face-up so the full rank + suit show
+      y += (card.faceUp ? 68 : 32);
     });
 
     area.appendChild(colEl);
@@ -1281,7 +1435,7 @@ document.getElementById('menuClose').onclick = ()=>{ closeOverlay('menu'); docum
 document.getElementById('menu').addEventListener('click', e=>{ if(e.target.id==='menu') closeOverlay('menu'); });
 
 /* ================= settings panel wiring ================= */
-const TOGGLES = { setMusic:'music', setSounds:'sounds', setTimed:'timedInvites', setLinked:'linkedInvites',
+const TOGGLES = { setMusic:'music', setSounds:'sounds', setTimed:'timedInvites',
                   setLeft:'leftHanded', setBig:'bigCards', setMotion:'reduceMotion' };
 function syncToggles(){
   for (const id in TOGGLES){ const el=document.getElementById(id); if(el) el.checked = !!settings[TOGGLES[id]]; }
@@ -1356,6 +1510,21 @@ function hideScreen(id, cb){
   setTimeout(once, 800);                 // fallback if transitionend is missed
 }
 
+/* Preload every card face + the card back once, up front, so a card never has to
+   fetch/decode its image the moment it's drawn or flipped up. Over Wi-Fi each face
+   is ~260KB, so loading on demand made freshly-revealed cards appear late. We warm
+   the browser cache during the welcome/loading pause; images stay cached after. */
+let deckPreloaded = false;
+function preloadDeck(){
+  if (deckPreloaded) return;
+  deckPreloaded = true;
+  const urls = [CARD_BACK];
+  for (const suitObj of SUITS)
+    for (const rank of RANKS)
+      urls.push(cardFace({ rank, suit: suitObj.s }));
+  for (const url of urls){ const img = new Image(); img.decoding = 'async'; img.src = url; }
+}
+
 /* the mindful "loading" pause: the mouse walks the line 0 -> 1, then reveal */
 function runLoading(finish){
   document.getElementById('loadPrompt').textContent = pickLoadingLine();
@@ -1390,6 +1559,7 @@ function afterIntro(){ announce('The game is ready when you are.'); }
 /* every open -> welcome, then loading. (Dani, 2026-08-13: the welcome screen is
    part of the ritual of arriving, so it greets you every launch, not just once.) */
 function startupFlow(){
+  preloadDeck();   // warm the card-image cache during the welcome/loading pause
   /* design-preview harness: ?preview=welcome|loading|win freezes on one screen
      (no auto-advance) so it can be inspected calmly. Only active with the param;
      the normal app flow is untouched. */
