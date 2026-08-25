@@ -706,8 +706,11 @@ const COL_X   = [2, 156, 310, 464, 618, 772, 926];
 /* ---------- prompt / invitations ----------
    The invitation is now the strongest visual feature: it lives in the prompt
    group at the top. Short two-line notes lean toward noticing the BODY. */
-// Dani's invitations (2026-08-15). The five "Take a moment…" lines are a family;
-// showInvitation() never shows two of them in a row (see isMomentPrompt).
+// Dani's invitations. Most open with "Take a moment…" (Dani's preferred voice,
+// 2026-08-25). The five near-identical "notice how your ___ feels" body-scan
+// lines are a family; showInvitation() never shows two of THOSE in a row so the
+// scan doesn't feel repetitive (see isBodyScan). Other "Take a moment…" notes
+// may follow each other freely.
 const PROMPTS = [
   "Take a moment…\nnotice how your jaw feels",
   "Take a moment…\nnotice how your shoulders feel",
@@ -719,10 +722,10 @@ const PROMPTS = [
   "Do you notice any feelings\narise as you play?",
   "Your focus right now…\ntense, calm, or something else?",
   "What helps your nervous system\nsettle to rest-and-digest?",
-  "Feel your feet\non the floor",
-  "Feel where you're held\nby the chair",
+  "Take a moment…\nfeel your feet on the floor",
+  "Take a moment…\nfeel where you're held by the chair",
 ];
-const isMomentPrompt = t => t.startsWith("Take a moment");
+const isBodyScan = t => t.includes("notice how your");
 let lastPrompt = 3;   // the default is the "hands" moment line, so the first rotation avoids another moment
 const promptTextEl = ()=> document.getElementById('promptText');
 function setPrompt(text, opts={}){
@@ -754,10 +757,11 @@ function fadeInPrompt(text){
 }
 function showInvitation(force){
   let i;
-  // never repeat the exact prompt, and never follow a "Take a moment…" with another
+  // never repeat the exact prompt, and never follow a body-scan "notice how your
+  // ___ feels" line with another (they'd feel repetitive back-to-back)
   do { i = Math.floor(Math.random()*PROMPTS.length); }
   while (PROMPTS.length>1 && ( i===lastPrompt ||
-         (isMomentPrompt(PROMPTS[i]) && isMomentPrompt(PROMPTS[lastPrompt])) ));
+         (isBodyScan(PROMPTS[i]) && isBodyScan(PROMPTS[lastPrompt])) ));
   lastPrompt = i;
   fadeInPrompt(PROMPTS[i]);
   if (force) announce('A gentle invitation. ' + PROMPTS[i].replace('\n',' '));
