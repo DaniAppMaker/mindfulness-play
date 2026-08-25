@@ -727,6 +727,32 @@ const PROMPTS = [
 ];
 const isBodyScan = t => t.includes("notice how your");
 let lastPrompt = 3;   // the default is the "hands" moment line, so the first rotation avoids another moment
+
+/* Rotating openers (Dani, 2026-08-25): every invitation stored as "Take a moment…"
+   picks a fresh gentle opener each time it appears, so the pause-and-drop-in
+   framing never wears out. All say the same thing — settle in and stay a beat.
+   The plainer notes (questions, the wet-noodle line) keep their own words. */
+const OPENERS = [
+  "Take a moment",
+  "A little pause",
+  "A quiet moment",
+  "Just for a breath",
+  "Drop into the moment",
+  "Settle into the moment",
+];
+let lastOpener = -1;
+// swap the stored "Take a moment…" lead-in for a random opener (never twice in a row)
+function withOpener(text){
+  const nl = text.indexOf('\n');
+  if (nl < 0) return text;
+  if (!text.slice(0, nl).startsWith("Take a moment")) return text;   // only pausable notes rotate
+  const body = text.slice(nl + 1);
+  let o;
+  do { o = Math.floor(Math.random() * OPENERS.length); }
+  while (OPENERS.length > 1 && o === lastOpener);
+  lastOpener = o;
+  return OPENERS[o] + "…\n" + body;
+}
 const promptTextEl = ()=> document.getElementById('promptText');
 function setPrompt(text, opts={}){
   const el = promptTextEl();
@@ -763,8 +789,9 @@ function showInvitation(force){
   while (PROMPTS.length>1 && ( i===lastPrompt ||
          (isBodyScan(PROMPTS[i]) && isBodyScan(PROMPTS[lastPrompt])) ));
   lastPrompt = i;
-  fadeInPrompt(PROMPTS[i]);
-  if (force) announce('A gentle invitation. ' + PROMPTS[i].replace('\n',' '));
+  const shown = withOpener(PROMPTS[i]);   // rotate the gentle opener on "Take a moment…" notes
+  fadeInPrompt(shown);
+  if (force) announce('A gentle invitation. ' + shown.replace('\n',' '));
   promptShowing = true;
   clearTimeout(promptHoldTimer);
   promptHoldTimer = setTimeout(hideInvitation, PROMPT_HOLD);
