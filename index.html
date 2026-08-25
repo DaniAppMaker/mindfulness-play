@@ -99,9 +99,15 @@
     font-family:"Quicksand","Segoe UI",sans-serif;
     font-size:calc(58 * var(--u)); line-height:1.22;
     color:var(--ink); font-weight:600; letter-spacing:.01em;   /* bolder (600 = heaviest bundled) + a touch larger */
-    max-width:calc(920 * var(--u));
-    /* fill the space between the cat and the cards, and sit centered within it */
-    flex:1 1 auto;
+    /* Sit centered at the TRUE midpoint between the end of the cat's tail
+       (visible art bottom ≈ 395u) and the top card row (640u): (395+640)/2 ≈ 518u.
+       Positioned absolutely (not flex-filled) so the cat's translateY nudge can't
+       pull the text up toward the tail — it was landing ~23u high. — Dani, 2026-08-25 */
+    position:absolute;
+    top:calc(518 * var(--u));
+    left:50%;
+    transform:translate(-50%, -50%);
+    width:calc(920 * var(--u)); max-width:calc(100% - 140 * var(--u));
     display:flex; align-items:center; justify-content:center;
     opacity:0; transition:opacity .55s ease;    /* invitations drift in, hold, then drift out (see fadeInPrompt) */
   }
@@ -1223,11 +1229,10 @@ function updateWaste(){
     el._retired = true;                  // stop any pending entry frame from moving it
     const stillBuried = waste.some(c=>c.id===id);
     if (stillBuried){
-      // pushed out of the fan by a newer card — drift gently further left as it
-      // fades, so it slips away under the fan instead of flickering in place
+      // pushed out of the fan by a newer card — fade out gently IN PLACE
+      // (no drift toward the foundations), then remove
       el.style.zIndex = '0';
       el.style.pointerEvents = 'none';
-      el.style.left = xpos(WASTE_X[0] - 52, CARD_W);
       el.style.opacity = '0';
       setTimeout(()=>el.remove(), 340);
     } else {
