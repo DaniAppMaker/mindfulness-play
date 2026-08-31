@@ -141,7 +141,16 @@
     position:absolute; width:var(--cw); height:var(--ch);
     cursor:pointer;
     transition:transform .12s ease;
+    touch-action:none;   /* let a finger DRAG a card without scrolling the page */
   }
+  /* drag-and-drop (mouse + touch): a lifted run rides in a fixed overlay that
+     follows the pointer; the cards left behind dim so the lift reads clearly. */
+  .card.draggable{ cursor:grab; }
+  body.dragging, body.dragging *{ cursor:grabbing !important; }
+  .card.lifted{ opacity:.32; }
+  #dragLayer{ position:fixed; left:0; top:0; z-index:9000; pointer-events:none; will-change:transform; }
+  #dragLayer .ghost{ position:absolute; left:0; }
+  #dragLayer .ghost img{ filter:drop-shadow(calc(6*var(--u)) calc(9*var(--u)) calc(12*var(--u)) rgba(70,57,50,.32)); }
   .card img{
     width:100%; height:100%; object-fit:contain; display:block;
     image-rendering:auto;
@@ -1185,6 +1194,169 @@ function makeSlot(opts={}){
   return slot;
 }
 
+/* ================= drag-and-drop (mouse + touch) =================
+   True drag layered on top of the existing tap-to-move. The onclick / keyboard
+   handlers are left exactly as they were, so a quick tap or Enter still
+   auto-moves; a press that travels more than a few pixels becomes a drag. The
+   lifted card (and any valid run beneath it) rides in a fixed overlay that
+   follows the pointer and drops onto whichever pile it overlaps most — if that
+   move is legal. Unified through Pointer Events, so a mouse, a finger, or a
+   stylus all share one path. Kept permissive on purpose: a dragged King may go
+   to any empty column (the player clearly means it), where a tap is fussier. */
+let drag = null;             // the active drag session, or null
+let suppressClick = false;   // eat the click a mouse fires right after a drag
+const DRAG_THRESHOLD = 5;    // px of travel before a press counts as a drag
+
+// swallow the synthetic click that follows a mouse drag so it can't also tap-move
+document.addEventListener('click', e=>{
+  if (suppressClick){ e.stopPropagation(); e.preventDefault(); suppressClick = false; }
+}, true);
+
+// mark a card (and the run under it) as draggable from a given source
+function makeDraggable(el, where, colIndex, cardIndex){
+  if (el._dragBound) return;   // bind each element once; idempotent across renders
+  el._dragBound = true;
+  el.classList.add('draggable');
+  el.addEventListener('pointerdown', e=>{
+    if (e.button && e.button !== 0) return;        // primary button / touch / pen only
+    if (autoCompleting || drag) return;            // one drag at a time
+    if (!pickUpRun(where, colIndex, cardIndex)) return;   // nothing here to lift
+    drag = { where, colIndex, cardIndex, grabEl: el, pointerId: e.pointerId,
+             startX: e.clientX, startY: e.clientY, moving: false, layer: null, originEls: [] };
+    try { el.setPointerCapture(e.pointerId); } catch(_){}
+    el.addEventListener('pointermove', onDragMove);
+    el.addEventListener('pointerup', onDragEnd);
+    el.addEventListener('pointercancel', onDragEnd);
+  });
+}
+
+function onDragMove(e){
+  if (!drag) return;
+  if (!drag.moving){
+    if (Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) < DRAG_THRESHOLD) return;
+    beginDrag();
+    if (!drag.moving) return;   // couldn't start (state changed) — stays a tap
+  }
+  drag.layer.style.transform = `translate(${e.clientX - drag.grabDX}px, ${e.clientY - drag.grabDY}px)`;
+}
+
+function beginDrag(){
+  const cards = pickUpRun(drag.where, drag.colIndex, drag.cardIndex);
+  if (!cards) return;
+  const r0 = drag.grabEl.getBoundingClientRect();
+  drag.grabDX = drag.startX - r0.left;
+  drag.grabDY = drag.startY - r0.top;
+  const cw = drag.grabEl.offsetWidth, ch = drag.grabEl.offsetHeight;
+  const stackUp = 68 * (cw / 152);   // the same face-up overlap the board uses
+  const layer = document.createElement('div');
+  layer.id = 'dragLayer';
+  cards.forEach((c, i)=>{
+    const g = document.createElement('div');
+    g.className = 'ghost card';
+    g.style.width = cw + 'px'; g.style.height = ch + 'px'; g.style.top = (i*stackUp) + 'px';
+    const img = document.createElement('img'); img.src = cardFace(c); img.alt = '';
+    g.appendChild(img); layer.appendChild(g);
+    const orig = document.querySelector(`.card[data-id="${c.id}"]`);
+    if (orig){ orig.classList.add('lifted'); drag.originEls.push(orig); }
+  });
+  document.body.appendChild(layer);
+  document.body.classList.add('dragging');
+  drag.layer = layer; drag.cards = cards; drag.moving = true; suppressClick = true;
+  layer.style.transform = `translate(${drag.startX - drag.grabDX}px, ${drag.startY - drag.grabDY}px)`;
+}
+
+function onDragEnd(){
+  const el = drag && drag.grabEl;
+  if (el){
+    el.removeEventListener('pointermove', onDragMove);
+    el.removeEventListener('pointerup', onDragEnd);
+    el.removeEventListener('pointercancel', onDragEnd);
+    try { el.releasePointerCapture(drag.pointerId); } catch(_){}
+  }
+  if (!drag || !drag.moving){ drag = null; return; }   // was a tap → onclick handles it
+  const moving = drag.cards[0];
+  const topGhost = drag.layer.querySelector('.ghost');
+  const releaseRect = topGhost ? topGhost.getBoundingClientRect() : null;
+  const dest = findDropTarget(releaseRect, moving, drag.cards.length, drag.where, drag.colIndex);
+  if (dest){ performDrop(drag, dest); cleanupDrag(); }
+  else { snapBack(); }
+}
+
+function overlapArea(a, b){
+  if (!a || !b) return 0;
+  const x = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left));
+  const y = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+  return x * y;
+}
+
+// the legal pile the released card overlaps most, or null to snap back
+function findDropTarget(rect, moving, runLen, srcWhere, srcCol){
+  let best = null, bestOv = 0;
+  document.querySelectorAll('#tableau .col').forEach(colEl=>{
+    const d = +colEl.dataset.col;
+    if (srcWhere === 'tableau' && d === srcCol) return;   // never onto itself
+    const cards = colEl.querySelectorAll('.card');
+    const landEl = cards.length ? cards[cards.length-1] : colEl.querySelector('.slot');
+    const r = landEl ? landEl.getBoundingClientRect() : colEl.getBoundingClientRect();
+    const ov = overlapArea(rect, r);
+    if (ov <= bestOv) return;
+    const pile = state.tableau[d];
+    const ok = pile.length ? canStackTableau(moving, pile[pile.length-1]) : (moving.rank === 'K');
+    if (ok){ best = { where:'tableau', col:d }; bestOv = ov; }
+  });
+  if (runLen === 1){
+    document.querySelectorAll('#topRow [data-found]').forEach(fEl=>{
+      const f = +fEl.dataset.found;
+      const ov = overlapArea(rect, fEl.getBoundingClientRect());
+      if (ov <= bestOv) return;
+      if (canStackFoundation(moving, state.foundations[f])){ best = { where:'foundation', col:f }; bestOv = ov; }
+    });
+  }
+  return best;
+}
+
+function performDrop(src, dest){
+  const cards = pickUpRun(src.where, src.colIndex, src.cardIndex);
+  if (!cards) return;
+  const moving = cards[0];
+  const ids = cards.map(c=>c.id);
+  // glide each card home from where the player released it, not from its old spot
+  const from = new Map();
+  const ghosts = src.layer.querySelectorAll('.ghost');
+  ids.forEach((id, i)=>{ if (ghosts[i]) from.set(id, ghosts[i].getBoundingClientRect()); });
+  pendingFlip = { ids, from };
+  snapshot();
+  removeFromSource(src.where, src.colIndex, src.cardIndex);
+  if (dest.where === 'foundation'){
+    state.foundations[dest.col].push(moving);
+    announce(`${cardName(moving)} sent home to its foundation.`);
+  } else {
+    const destPile = state.tableau[dest.col];
+    const onto = destPile.length ? destPile[destPile.length-1] : null;
+    cards.forEach(c=>destPile.push(c));
+    announce(onto ? `Placed ${cardName(moving)} onto ${cardName(onto)}.`
+                  : `Placed ${cardName(moving)} in an empty column.`);
+  }
+  afterMove();
+}
+
+function snapBack(){
+  const layer = drag.layer;
+  layer.style.transition = 'transform .2s ease';
+  layer.style.transform = `translate(${drag.startX - drag.grabDX}px, ${drag.startY - drag.grabDY}px)`;
+  setTimeout(cleanupDrag, 200);
+}
+
+function cleanupDrag(){
+  if (drag){
+    if (drag.layer) drag.layer.remove();
+    drag.originEls.forEach(el=>el.classList.remove('lifted'));
+  }
+  document.body.classList.remove('dragging');
+  drag = null;
+  setTimeout(()=>{ suppressClick = false; }, 0);   // after the trailing click is eaten
+}
+
 function render(){
   renderTopRow();
   renderTableau();
@@ -1207,10 +1379,12 @@ function renderTopRow(){
       el.setAttribute('aria-label', `Foundation ${f+1}, ${cardName(topCard)} on top. Activate to bring it back to the columns.`);
       el.onclick = ()=> autoMove('foundation', f, pile.length-1);
       el.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); autoMove('foundation', f, pile.length-1); } };
+      makeDraggable(el, 'foundation', f, pile.length-1);   // drag a card back down to the columns
     } else {
       el = makeSlot({ paw:true });
       el.setAttribute('aria-label', `Foundation ${f+1}, empty`);
     }
+    el.dataset.found = f;   // a drop target for an Ace (empty) or the next card in suit
     el.classList.add('top-dyn');
     el.style.left = xpos(FOUND_X[f], CARD_W);
     el.style.top = '0';
@@ -1308,6 +1482,7 @@ function updateWaste(){
       el.tabIndex = 0;
       el.removeAttribute('aria-hidden');
       el.onclick = ()=> autoMove('waste', 0, 0);
+      makeDraggable(el, 'waste', 0, 0);
     } else {
       el.style.pointerEvents = 'none';
       el.tabIndex = -1;
@@ -1323,6 +1498,7 @@ function renderTableau(){
   for (let col=0; col<7; col++){
     const colEl = document.createElement('div');
     colEl.className = 'col';
+    colEl.dataset.col = col;   // so a drag can tell which column it dropped on
     colEl.style.left = xpos(COL_X[col], CARD_W);
     colEl.setAttribute('aria-label', `Column ${col+1}`);
     const pile = state.tableau[col];
@@ -1344,6 +1520,7 @@ function renderTableau(){
       if (card.faceUp){
         if (revealing) justRevealed.delete(card.id);
         el.onclick = (e)=>{ e.stopPropagation(); autoMove('tableau', col, idx); };
+        makeDraggable(el, 'tableau', col, idx);   // tap still works; drag is added on top
       }
       colEl.appendChild(el);
       // step down: less for face-down, more for face-up so the full rank + suit show
