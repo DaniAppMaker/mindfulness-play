@@ -5,7 +5,7 @@
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Mindfulness Play</title>
+<title>Mindfulness Play™</title>
 <!-- Home-screen ("Add to Home Screen") name + icon = the cropped welcome-screen cat. -->
 <meta name="application-name" content="Mindfulness Play" />
 <meta name="apple-mobile-web-app-title" content="Mindfulness Play" />
@@ -447,8 +447,10 @@
   }
   /* ---- Welcome (spec Screen 1) ---- */
   #welCat{     left:calc(256 * var(--u)); top:calc(490 * var(--u));  width:calc(700 * var(--u)); }
-  #welHeading{ top:calc(1345 * var(--u)); font-size:calc(70 * var(--u)); }
-  #welSub{     top:calc(1462 * var(--u)); font-size:calc(44 * var(--u)); color:#4C4644; }
+  #welBrand{   top:calc(1338 * var(--u)); font-size:calc(78 * var(--u)); font-weight:600; letter-spacing:.005em; }
+  #welBrand .tm{ font-size:.56em; font-weight:600; vertical-align:baseline; position:relative; top:-.46em; }
+  #welHeading{ top:calc(1456 * var(--u)); font-size:calc(48 * var(--u)); color:#4C4644; }
+  #welSub{     top:calc(1530 * var(--u)); font-size:calc(40 * var(--u)); color:#4C4644; }
   /* ---- Loading (spec Screen 2) ---- */
   #loadPrompt{ top:calc(440 * var(--u));  font-size:calc(52 * var(--u)); line-height:1.22; white-space:pre-line; }
   #loadCat{    left:calc(300 * var(--u)); top:calc(780 * var(--u));  width:calc(480 * var(--u)); }
@@ -524,7 +526,8 @@
   <div class="screen fade" id="screenWelcome" aria-label="Welcome to mindful play">
     <div class="screen-col">
       <img class="scr-art" id="welCat" src="assets/interface/meditating-cat.png" alt="A watercolor cat sitting quietly, settled and calm.">
-      <h1 class="scr-text" id="welHeading">Welcome to mindful play</h1>
+      <h1 class="scr-text" id="welBrand">Mindfulness Play<sup class="tm">&trade;</sup></h1>
+      <p  class="scr-text" id="welHeading">Welcome to mindful play</p>
       <p  class="scr-text" id="welSub">Mindfulness, woven into everyday moments</p>
     </div>
   </div>
@@ -1795,7 +1798,7 @@ function startupFlow(){
   const welcomeHold = firstEver ? 5000 : 3000;
 
   showScreen('screenWelcome');
-  announce('Welcome to mindful play. Mindfulness, woven into everyday moments. Tap to begin.');
+  announce('Mindfulness Play. Welcome to mindful play. Mindfulness, woven into everyday moments. Tap to begin.');
   const proceed = ()=>{
     const w = document.getElementById('screenWelcome');
     showScreen('screenLoading');                    // covers the welcome screen
