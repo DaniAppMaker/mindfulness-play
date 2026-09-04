@@ -420,7 +420,6 @@
   @media (prefers-reduced-motion: reduce){ *{ transition:none !important; animation:none !important; } }
   body.reduce-motion *{ transition:none !important; animation:none !important; }
   /* bigger cards for low-vision play: grow the whole board's unit */
-  body.big-cards{ --u: calc(min(100vw, 50vh) / 1080 * 1.14); }
 
   /* ================= full-screen story screens (welcome / loading / win) =====
      Three approved companion screens from ClaudeHandoff-AdditionalScreens-Final.
@@ -623,14 +622,6 @@
         <div><div class="setlabel">Left-handed layout</div><div class="sethint">flip the table for a left-handed game</div></div>
         <label class="switch"><input type="checkbox" id="setLeft"><span class="slider"></span></label>
       </div>
-      <div class="setrow">
-        <div><div class="setlabel">Bigger cards</div><div class="sethint">larger cards and text, gentler on the eyes</div></div>
-        <label class="switch"><input type="checkbox" id="setBig"><span class="slider"></span></label>
-      </div>
-      <div class="setrow">
-        <div><div class="setlabel">Reduce motion</div><div class="sethint">calm the soft fades and shifts, for less movement on screen</div></div>
-        <label class="switch"><input type="checkbox" id="setMotion"><span class="slider"></span></label>
-      </div>
 
       <button class="btn bloom" id="settingsDone">Done</button>
     </div>
@@ -672,7 +663,7 @@ const CARD_BACK = 'assets/card-back/card-back2.png';
 /* ---------- settings (remembered on this device) ---------- */
 const SETTINGS_KEY = 'cozycat.settings';
 const DEFAULT_SETTINGS = { music:false, sounds:false, timedInvites:true,
-                           leftHanded:false, bigCards:false, reduceMotion:false };
+                           leftHanded:false };
 let settings = loadSettings();
 function loadSettings(){
   try{
@@ -687,8 +678,9 @@ function saveSettings(){
 
 /* ---------- accessibility helpers ---------- */
 function applyA11y(){
-  document.body.classList.toggle('big-cards',   !!settings.bigCards);
-  document.body.classList.toggle('reduce-motion', !!settings.reduceMotion);
+  // Reduce-motion is still fully honored, automatically, from the phone's own
+  // system setting (CSS `prefers-reduced-motion` + reducedMotion()); there is no
+  // in-app toggle. "Bigger cards" was removed — the cards already open at max size.
   if (state) render();          // left-handed changes card X positions
 }
 function announce(msg){
@@ -957,7 +949,7 @@ function captureRects(ids){
   return m;
 }
 function flipAnimate(ids, fromRects){
-  if (settings.reduceMotion || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+  if (reducedMotion()) return;
   ids.forEach(id=>{
     const from = fromRects.get(id);
     const el = document.querySelector(`.card[data-id="${id}"]`);
@@ -1039,7 +1031,7 @@ function autoMove(where, colIndex, cardIndex){
   // nothing legal right now — give a quick shudder so the tap clearly registered
   pendingFlip = null;
   const el = document.querySelector(`.card[data-id="${moving.id}"]`);
-  if (el && !settings.reduceMotion){
+  if (el && !reducedMotion()){
     el.classList.remove('shake');
     void el.offsetWidth;               // restart the animation if it's mid-play
     el.classList.add('shake');
@@ -1090,7 +1082,7 @@ function autoCompleteStep(){
     setTimeout(winScreen, 520);
     return;
   }
-  const gap = settings.reduceMotion ? 90 : 200;                 // stagger so they fly one after another
+  const gap = reducedMotion() ? 90 : 200;                       // stagger so they fly one after another
   setTimeout(autoCompleteStep, gap);
 }
 
@@ -1157,7 +1149,7 @@ function drawStock(){
   // turning a card is a move too — let it count toward the next invitation
   if (drew) progressInvites();
   // the reformed pile gives a soft settle so the gather reads as a gentle motion
-  if (recycled && !settings.reduceMotion){
+  if (recycled && !reducedMotion()){
     const pile = document.querySelector('.drawpile');
     if (pile){ pile.classList.add('refill'); setTimeout(()=>pile.classList.remove('refill'), 460); }
   }
@@ -1688,7 +1680,7 @@ document.getElementById('menu').addEventListener('click', e=>{ if(e.target.id===
 
 /* ================= settings panel wiring ================= */
 const TOGGLES = { setMusic:'music', setSounds:'sounds', setTimed:'timedInvites',
-                  setLeft:'leftHanded', setBig:'bigCards', setMotion:'reduceMotion' };
+                  setLeft:'leftHanded' };
 function syncToggles(){
   for (const id in TOGGLES){ const el=document.getElementById(id); if(el) el.checked = !!settings[TOGGLES[id]]; }
 }
@@ -1727,8 +1719,22 @@ const LOST_LINES = [                                        // Dani's chosen wor
   "No moves left! Start a new game?"
 ];
 const pick = arr => arr[Math.floor(Math.random()*arr.length)];
-// loading teaching: never the same one twice in a row, even across app reloads
+// loading teaching: never the same one twice in a row, even across app reloads.
+// The very first loading screen a brand-new player ever sees opens with a
+// "nervous system" teaching (never the longer plants one) — that framing is the
+// hook, and it keeps the first impression short. (Dani, 2026-09-03)
 function pickLoadingLine(){
+  let firstLoad = true;
+  try { firstLoad = !localStorage.getItem('cozycat.seenLoading'); } catch(e){}
+  if (firstLoad){
+    try { localStorage.setItem('cozycat.seenLoading','1'); } catch(e){}
+    const nsIdx = LOADING_LINES.reduce((a,t,idx)=>{ if(/nervous system/i.test(t)) a.push(idx); return a; }, []);
+    if (nsIdx.length){
+      const i = nsIdx[Math.floor(Math.random()*nsIdx.length)];
+      try { localStorage.setItem('cozycat.lastLoadLine', String(i)); } catch(e){}
+      return LOADING_LINES[i];
+    }
+  }
   let last = -1;
   try { last = parseInt(localStorage.getItem('cozycat.lastLoadLine'), 10); } catch(e){}
   let i;
