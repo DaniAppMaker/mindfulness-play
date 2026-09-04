@@ -495,11 +495,16 @@
   <!-- a quiet voice for screen readers: game events are announced here -->
   <div id="live" class="visually-hidden" role="status" aria-live="polite"></div>
   <p id="sr-intro" class="visually-hidden">
-    Cozy Cat Solitaire, a calm game of Klondike patience. To play with a keyboard
-    or screen reader: move to a card and press Enter or Space, and it travels on its
-    own to the best legal spot — home to its foundation, or onto the card it can
-    build on. Press Enter on the draw pile to turn a card. There are no timers and
-    no score — take all the time you like.
+    Mindfulness Play — a calm game of Klondike solitaire. The board, in reading
+    order, is: four foundation piles and the draw pile across the top, then seven
+    columns of cards, then the buttons — new game, undo, invitation, show a move,
+    and settings. Each card tells you where it is and whether it is free to play.
+    To play with a keyboard or screen reader: move to a card and press Enter or
+    Space, and it travels on its own to the best legal spot — home to its
+    foundation, or onto the card it can build on. Press Enter on the draw pile to
+    turn a card, and again when it is empty to turn them all over once more. The
+    goal is to send every card home to the foundations. There are no timers and no
+    score — take all the time you like.
   </p>
 
   <div id="app">
@@ -513,18 +518,18 @@
     </div>
 
     <!-- foundations (left) · waste (three) · draw pile (far right) -->
-    <div id="topRow"></div>
+    <div id="topRow" role="group" aria-label="Foundations, waste, and draw pile"></div>
 
     <!-- seven tableau columns -->
-    <div id="tableau"></div>
+    <div id="tableau" role="group" aria-label="The seven columns"></div>
 
     <!-- five watercolor buttons -->
-    <div id="buttons">
+    <div id="buttons" role="group" aria-label="Game controls">
       <button class="ctrl" id="btnMenu"   aria-label="New game"><img src="assets/buttons/button-play.png" alt=""></button>
       <button class="ctrl" id="btnUndo"   aria-label="Undo the last move"><img src="assets/buttons/button-undo.png" alt=""></button>
       <button class="ctrl" id="btnPaw"    aria-label="A little invitation"><img src="assets/buttons/button-paw.png" alt=""></button>
       <button class="ctrl" id="btnHint"   aria-label="Show me a move"><img src="assets/buttons/button-hint.png" alt=""></button>
-      <button class="ctrl" id="btnAppear" aria-label="Appearance settings"><img src="assets/buttons/button-appearance.png" alt=""></button>
+      <button class="ctrl" id="btnAppear" aria-label="Settings"><img src="assets/buttons/button-appearance.png" alt=""></button>
     </div>
   </div>
 
@@ -809,7 +814,10 @@ function showInvitation(force){
   lastPrompt = i;
   const shown = withOpener(PROMPTS[i]);   // rotate the gentle opener on "Take a moment…" notes
   fadeInPrompt(shown);
-  if (force) announce('A gentle invitation. ' + shown.replace('\n',' '));
+  // Speak every invitation for screen-reader players — the timed ones too, not
+  // just the paw-button ones. It's the heart of the app; a blind player mustn't
+  // miss it. Polite live region, so it waits its turn and never cuts off a move.
+  announce('A gentle invitation. ' + shown.replace(/\n/g, ' '));
   promptShowing = true;
   clearTimeout(promptHoldTimer);
   promptHoldTimer = setTimeout(hideInvitation, PROMPT_HOLD);
@@ -1512,6 +1520,7 @@ function updateWaste(){
       el.style.pointerEvents = 'auto';
       el.tabIndex = 0;
       el.removeAttribute('aria-hidden');
+      el.setAttribute('aria-label', `${cardName(card)}, from the waste pile, ready to play.`);
       el.onclick = ()=> autoMove('waste', 0, 0);
       makeDraggable(el, 'waste', 0, 0);
     } else {
@@ -1550,6 +1559,18 @@ function renderTableau(){
       el.style.top = `calc(${y} * ${U})`;
       if (card.faceUp){
         if (revealing) justRevealed.delete(card.id);
+        // spoken label with location, so a blind player knows WHERE each card is
+        // and whether it's the free (top) card or has cards resting on it.
+        const above = pile.length - 1 - idx;
+        let lbl = `${cardName(card)}, column ${col+1}`;
+        if (above === 0){
+          lbl += ', top card';
+          const hidden = pile.filter(c=>!c.faceUp).length;
+          if (hidden) lbl += `, ${hidden} card${hidden>1?'s':''} face down below`;
+        } else {
+          lbl += `, ${above} card${above>1?'s':''} resting on top`;
+        }
+        el.setAttribute('aria-label', lbl + '.');
         el.onclick = (e)=>{ e.stopPropagation(); autoMove('tableau', col, idx); };
         makeDraggable(el, 'tableau', col, idx);   // tap still works; drag is added on top
       }
