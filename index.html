@@ -464,15 +464,31 @@
   #welBrand .tm{ font-size:.56em; font-weight:600; vertical-align:baseline; position:relative; top:-.46em; }
   #welHeading{ top:calc(1456 * var(--u)); font-size:calc(48 * var(--u)); color:#4C4644; }
   #welSub{     top:calc(1530 * var(--u)); font-size:calc(40 * var(--u)); color:#4C4644; }
+  /* the "next / begin" arrow, bottom-right of the welcome + loading screens.
+     Same hand-drawn ink stroke as the recycle arrow; breathes bigger/smaller
+     like a hinted card, so a sighted player sees where to tap. The global
+     reduce-motion rule stills the breathing but keeps the arrow visible.
+     A screen-reader player is told to double-tap anywhere, so they don't hunt
+     for it — but it's still a real, labelled "Begin" button they can land on. */
+  .next-arrow{
+    position:absolute; right:calc(70 * var(--u)); bottom:calc(150 * var(--u));
+    width:calc(150 * var(--u)); height:calc(150 * var(--u));
+    padding:0; border:none; background:none; cursor:pointer;
+    color:var(--ink); opacity:.72; z-index:4;
+    display:grid; place-items:center;
+    animation:arrowBreathe 2.4s ease-in-out infinite;
+  }
+  .next-arrow svg{ width:72%; height:72%; }
+  .next-arrow:active{ transform:scale(.94); }
+  @keyframes arrowBreathe{
+    0%,100%{ transform:scale(1);    opacity:.58; }
+    50%    { transform:scale(1.14); opacity:.92; }
+  }
   /* ---- Loading (spec Screen 2) ---- */
   #loadPrompt{ top:calc(440 * var(--u));  font-size:calc(52 * var(--u)); line-height:1.22; white-space:pre-line; }
   #loadCat{    left:calc(300 * var(--u)); top:calc(780 * var(--u));  width:calc(480 * var(--u)); }
-  #loadTrack{  position:absolute; left:calc(175 * var(--u)); top:calc(1760 * var(--u));
-               width:calc(730 * var(--u)); height:calc(5 * var(--u)); border-radius:999px;
-               background:rgba(191,164,151,0.41); }
-  #loadFill{   position:absolute; left:0; top:calc(-1 * var(--u)); height:calc(7 * var(--u));
-               width:0; border-radius:999px; background:rgba(206,137,151,0.69); }
-  #loadMouse{  position:absolute; top:calc(1667 * var(--u)); left:0; width:calc(132 * var(--u)); }
+  /* (the timed loading bar + mouse were retired 2026-09-06 — the screen now
+     waits for a tap, so there is nothing to "load") */
   /* ---- After winning (spec Screen 3) ---- */
   #winCatArt{  left:calc(195 * var(--u)); top:calc(460 * var(--u));  width:calc(650 * var(--u)); }
   #winPrompt{  top:calc(1275 * var(--u)); font-size:calc(52 * var(--u)); line-height:1.28; white-space:pre-line; }
@@ -541,23 +557,34 @@
        every element is placed by the spec's 1080x2160 reference
        coordinates via calc(<ref> * var(--u)). The loading line and the
        win invitation are PLACEHOLDERS until Dani writes the real words. -->
-  <div class="screen fade" id="screenWelcome" aria-label="Welcome to mindful play">
+  <!-- Welcome. DOM order below IS the screen-reader reading order (all pieces are
+       absolutely positioned by coordinate, so visual layout is independent). The
+       visible lines are read first, then the cat, then narration only a screen
+       reader hears, then the "Begin" arrow. Sighted players tap the breathing
+       arrow (or anywhere); VoiceOver players double-tap anywhere. -->
+  <div class="screen fade" id="screenWelcome">
     <div class="screen-col">
-      <img class="scr-art" id="welCat" src="assets/interface/meditating-cat.png" alt="A watercolor cat sitting quietly, settled and calm.">
-      <h1 class="scr-text" id="welBrand">Mindfulness Play<sup class="tm">&trade;</sup></h1>
+      <h1 class="scr-text" id="welBrand">Mindfulness Play<sup class="tm" aria-hidden="true">&trade;</sup></h1>
       <p  class="scr-text" id="welHeading">Welcome to mindful play</p>
       <p  class="scr-text" id="welSub">Mindfulness, woven into everyday moments</p>
+      <img class="scr-art" id="welCat" src="assets/interface/meditating-cat.png" alt="A watercolor cat sits quietly, settled and calm, sitting in a meditation pose.">
+      <p class="visually-hidden">This is a game of solitaire. As you play, small invitations arrive — gentle nudges to notice your body, your breath, a thought, a feeling. To have a break. To be mindful in real life, away from the meditation cushion.</p>
+      <p class="visually-hidden">To play with VoiceOver: swipe left or right to hear each thing, and double-tap to choose it.</p>
+      <p class="visually-hidden">When you're ready, double-tap anywhere to begin.</p>
+      <button type="button" class="next-arrow" id="welNext" aria-label="Begin">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4.5" y1="12" x2="18" y2="12"/><polyline points="12.5 6 18.5 12 12.5 18"/></svg>
+      </button>
     </div>
   </div>
 
-  <div class="screen fade" id="screenLoading" aria-label="A quiet moment before the game">
+  <div class="screen fade" id="screenLoading">
     <div class="screen-col">
       <p class="scr-text" id="loadPrompt"></p>
-      <img class="scr-art" id="loadCat" src="assets/interface/paw-licking-cat.png" alt="A watercolor cat pausing to lick a paw.">
-      <div id="loadTrack" role="progressbar" aria-label="Getting the game ready" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-        <div id="loadFill"></div>
-      </div>
-      <img class="scr-art" id="loadMouse" src="assets/interface/loading-mouse.png" alt="" aria-hidden="true">
+      <img class="scr-art" id="loadCat" src="assets/interface/paw-licking-cat.png" alt="A watercolor cat pauses to lick its paw.">
+      <p class="visually-hidden">Take a breath. When you're ready, double-tap anywhere to begin.</p>
+      <button type="button" class="next-arrow" id="loadNext" aria-label="Begin the game">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4.5" y1="12" x2="18" y2="12"/><polyline points="12.5 6 18.5 12 12.5 18"/></svg>
+      </button>
     </div>
   </div>
 
@@ -611,21 +638,21 @@
       </div>
       <div class="setrow">
         <div><div class="setlabel">Music</div><div class="sethint">soft background music · coming soon</div></div>
-        <label class="switch"><input type="checkbox" id="setMusic"><span class="slider"></span></label>
+        <label class="switch"><input type="checkbox" id="setMusic" aria-label="Music — soft background music, coming soon"><span class="slider"></span></label>
       </div>
       <div class="setrow">
         <div><div class="setlabel">Sounds</div><div class="sethint">gentle card sounds · coming soon</div></div>
-        <label class="switch"><input type="checkbox" id="setSounds"><span class="slider"></span></label>
+        <label class="switch"><input type="checkbox" id="setSounds" aria-label="Sounds — gentle card sounds, coming soon"><span class="slider"></span></label>
       </div>
       <div class="setrow">
         <div><div class="setlabel">Timed invitations</div><div class="sethint">soft notes that drift in on their own, now and then</div></div>
-        <label class="switch"><input type="checkbox" id="setTimed"><span class="slider"></span></label>
+        <label class="switch"><input type="checkbox" id="setTimed" aria-label="Timed invitations — soft notes that drift in on their own, now and then"><span class="slider"></span></label>
       </div>
       <div class="setlabel" style="margin:18px 2px 2px; font-weight:650; text-align:center;">Making it yours</div>
 
       <div class="setrow">
         <div><div class="setlabel">Left-handed layout</div><div class="sethint">flip the table for a left-handed game</div></div>
-        <label class="switch"><input type="checkbox" id="setLeft"><span class="slider"></span></label>
+        <label class="switch"><input type="checkbox" id="setLeft" aria-label="Left-handed layout — flip the table for a left-handed game"><span class="slider"></span></label>
       </div>
 
       <button class="btn bloom" id="settingsDone">Done</button>
@@ -1573,6 +1600,9 @@ function renderTableau(){
         el.setAttribute('aria-label', lbl + '.');
         el.onclick = (e)=>{ e.stopPropagation(); autoMove('tableau', col, idx); };
         makeDraggable(el, 'tableau', col, idx);   // tap still works; drag is added on top
+      } else {
+        // a blind player still hears WHERE each face-down card sits
+        el.setAttribute('aria-label', `Column ${col+1}, face-down card.`);
       }
       colEl.appendChild(el);
       // step down: less for face-down, more for face-up so the full rank + suit show
@@ -1805,35 +1835,29 @@ function preloadDeck(){
 }
 
 /* the mindful "loading" pause: the mouse walks the line 0 -> 1, then reveal */
+/* The quiet moment. No timer any more — it waits for the player, like the
+   welcome screen. Tapping anywhere (or the breathing arrow, which bubbles up to
+   this same handler) moves on; Enter/Space/Escape do too. A screen reader hears
+   the teaching line, the cat, and "double-tap anywhere to begin" from the
+   screen's own text. */
 function runLoading(finish){
   document.getElementById('loadPrompt').textContent = pickLoadingLine();
-  const fill  = document.getElementById('loadFill');
-  const mouse = document.getElementById('loadMouse');
-  const track = document.getElementById('loadTrack');
-  const setP = (p)=>{
-    p = Math.max(0, Math.min(1, p));
-    fill.style.width = 'calc(' + (p*730).toFixed(1) + ' * var(--u))';             // completed line grows
-    mouse.style.left = 'calc(' + (175 + p*730 - 66).toFixed(1) + ' * var(--u))';  // mouse center tracks progress
-    track.setAttribute('aria-valuenow', Math.round(p*100));
-  };
-  setP(0);
-  announce('A quiet moment before we begin.');
-  const DUR = 10000;
-  let finished = false, raf = 0;
-  const done = ()=>{ if(finished) return; finished=true; advanceScreen=null; if(raf) cancelAnimationFrame(raf); setP(1); finish(); };
-  advanceScreen = done;                                       // Enter/Space/Escape or tap skips the pause
+  let finished = false;
+  const done = ()=>{ if(finished) return; finished = true; advanceScreen = null; finish(); };
+  advanceScreen = done;
   document.getElementById('screenLoading').onclick = fireAdvance;
-  if (reducedMotion()){
-    let p=0; const step=()=>{ p+=0.25; setP(p); if(p<1){ setTimeout(step, DUR/4); } else { setTimeout(done, 300); } };
-    setTimeout(step, DUR/4);
-    return;
-  }
-  const t0 = performance.now();
-  const tick = (now)=>{ const p=(now-t0)/DUR; setP(p); if(p<1){ raf=requestAnimationFrame(tick); } else { setTimeout(done, 320); } };
-  raf = requestAnimationFrame(tick);
 }
 
-function afterIntro(){ announce('The game is ready when you are.'); }
+/* Spoken tour the moment the board appears, so a blind player knows it's
+   solitaire, what's on the table, and how to explore it. */
+const GAME_TOUR =
+  'The game is ready. This is a game of solitaire. Your goal is to build the four foundation piles, '
++ 'each from Ace up to King. The board has three parts. Across the top: four empty foundation piles, '
++ 'a draw pile, and a waste pile beside it. Below: seven columns of cards — in each column, only the '
++ 'bottom card faces up; the rest are face down for now. Swipe right to explore every pile and card. '
++ 'Each one tells you its name and where it sits. When you find a move, double-tap the card. '
++ 'If you would like a suggestion, find the button named Show me a move.';
+function afterIntro(){ announce(GAME_TOUR); }
 
 /* every open -> welcome, then loading. (Dani, 2026-08-13: the welcome screen is
    part of the ritual of arriving, so it greets you every launch, not just once.) */
@@ -1852,16 +1876,11 @@ function startupFlow(){
     showScreen(screenId);
     return;
   }
-  // first-ever open lingers a little longer (5s) so a new player can settle;
-  // afterwards the welcome is briefer (3s) since it's familiar. It still shows
-  // every launch (Dani 2026-08-13) — only the auto-advance timing differs. (2026-08-14)
-  let firstEver = true;
-  try { firstEver = !localStorage.getItem('cozycat.seenWelcome'); } catch(e){}
-  try { localStorage.setItem('cozycat.seenWelcome','1'); } catch(e){}
-  const welcomeHold = firstEver ? 5000 : 3000;
-
+  // The welcome screen shows every launch and now WAITS for the player — no
+  // auto-advance (Dani 2026-09-06). Everyone taps to move on: sighted players
+  // tap the breathing arrow (or anywhere), VoiceOver players double-tap anywhere.
+  // This keeps it equal for blind and sighted players and never rushes anyone.
   showScreen('screenWelcome');
-  announce('Mindfulness Play. Welcome to mindful play. Mindfulness, woven into everyday moments. Tap to begin.');
   const proceed = ()=>{
     const w = document.getElementById('screenWelcome');
     showScreen('screenLoading');                    // covers the welcome screen
@@ -1869,8 +1888,7 @@ function startupFlow(){
     runLoading(()=> hideScreen('screenLoading', afterIntro));
   };
   advanceScreen = proceed;
-  document.getElementById('screenWelcome').onclick = fireAdvance;
-  setTimeout(()=>{ if (advanceScreen === proceed) fireAdvance(); }, welcomeHold);  // auto-advance if untouched (5s first-ever, 3s after)
+  document.getElementById('screenWelcome').onclick = fireAdvance;   // arrow bubbles up to here too
 }
 
 /* Enter / Space / Escape advance a skippable companion screen */
