@@ -1855,14 +1855,29 @@ function runLoading(finish){
 // dropped during the screen transition. Focusing a tabindex=-1 element reliably
 // moves the AT cursor on iOS Safari.
 function afterIntro(){
+  setGameHiddenForAT(false);                // the board is the active screen now — let AT read it
   const intro = document.getElementById('sr-intro');
   if (intro) setTimeout(()=>{ try { intro.focus(); } catch(e){} }, 60);
 }
 
 /* every open -> welcome, then loading. (Dani, 2026-08-13: the welcome screen is
    part of the ritual of arriving, so it greets you every launch, not just once.) */
+/* While the welcome/loading screens cover the game, hide the game layer from
+   screen readers — otherwise VoiceOver reads the board (and the "fresh game"
+   live announcement) THROUGH the cover, instead of the welcome text. Un-hidden
+   in afterIntro when the board becomes the active screen. */
+function setGameHiddenForAT(hidden){
+  ['sr-intro','app','live'].forEach(id=>{
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (hidden) el.setAttribute('aria-hidden','true'); else el.removeAttribute('aria-hidden');
+  });
+}
+
 function startupFlow(){
   preloadDeck();   // warm the card-image cache during the welcome/loading pause
+  setGameHiddenForAT(true);                 // the board waits, hidden, behind the intro
+  const live = document.getElementById('live'); if (live) live.textContent = '';  // drop the deal announcement so it isn't read over the welcome
   /* design-preview harness: ?preview=welcome|loading|win freezes on one screen
      (no auto-advance) so it can be inspected calmly. Only active with the param;
      the normal app flow is untouched. */
