@@ -1867,10 +1867,16 @@ function afterIntro(){
    live announcement) THROUGH the cover, instead of the welcome text. Un-hidden
    in afterIntro when the board becomes the active screen. */
 function setGameHiddenForAT(hidden){
+  // Belt AND suspenders: aria-hidden PLUS display:none. display:none removes the
+  // node from the render tree entirely, so VoiceOver truly cannot reach the board
+  // through the welcome cover (aria-hidden alone was still being read on iPhone).
+  // The board is visually behind the full-screen intro anyway, so hiding it is
+  // invisible to sighted players.
   ['sr-intro','app','live'].forEach(id=>{
     const el = document.getElementById(id);
     if (!el) return;
-    if (hidden) el.setAttribute('aria-hidden','true'); else el.removeAttribute('aria-hidden');
+    if (hidden){ el.setAttribute('aria-hidden','true'); el.style.display = 'none'; }
+    else       { el.removeAttribute('aria-hidden'); el.style.display = ''; }
   });
 }
 
