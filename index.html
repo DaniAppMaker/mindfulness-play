@@ -562,7 +562,7 @@
        arrow (or anywhere); VoiceOver players double-tap anywhere. -->
   <div class="screen fade" id="screenWelcome">
     <div class="screen-col">
-      <p class="visually-hidden" id="welIntro">To get around, swipe left or right to hear each part of this screen. To begin the game, swipe to the Begin button, then double-tap it.</p>
+      <p class="visually-hidden" id="welIntro" tabindex="-1">To get around, swipe left or right to hear each part of this screen. To begin the game, swipe to the Begin button, then double-tap it.</p>
       <h1 class="scr-text" id="welBrand">Mindfulness Play<sup class="tm" aria-hidden="true">&trade;</sup></h1>
       <p  class="scr-text" id="welHeading">Welcome to mindful play</p>
       <p  class="scr-text" id="welSub">Mindfulness, woven into everyday moments</p>
@@ -576,7 +576,7 @@
 
   <div class="screen fade" id="screenLoading">
     <div class="screen-col">
-      <p class="scr-text" id="loadPrompt"></p>
+      <p class="scr-text" id="loadPrompt" tabindex="-1"></p>
       <p class="visually-hidden">Take a breath. To continue to the game, swipe to the Begin button, then double-tap it.</p>
       <img class="scr-art" id="loadCat" src="assets/interface/paw-licking-cat.png" alt="A watercolor cat pauses to lick its paw.">
       <button type="button" class="next-arrow" id="loadNext" aria-label="Begin the game">
@@ -1837,6 +1837,16 @@ function preloadDeck(){
    this same handler) moves on; Enter/Space/Escape do too. A screen reader hears
    the teaching line, the cat, and "double-tap anywhere to begin" from the
    screen's own text. */
+/* Move the VoiceOver / keyboard reading cursor onto an element by focusing it
+   (it must have tabindex="-1"). iOS moves the AT cursor to a freshly focused
+   element, so this lands the reader on our content. A tiny delay lets the screen
+   finish showing first. Harmless if focus can't move (wrapped in try/catch). */
+function moveATCursorTo(id){
+  const el = document.getElementById(id);
+  if (!el) return;
+  setTimeout(()=>{ try { el.focus(); } catch(e){} }, 80);
+}
+
 /* Fade the "Begin" arrow in AFTER the player has had time to read (Dani
    2026-09-08). It starts invisible; we add .revealed after `delay` ms so the
    text and cat are seen first, then the arrow quietly appears. Returns a
@@ -1852,6 +1862,8 @@ function revealArrowLater(id, delay){
 
 function runLoading(finish){
   document.getElementById('loadPrompt').textContent = pickLoadingLine();
+  // Jump the screen-reader cursor to the teaching line so it's read promptly.
+  moveATCursorTo('loadPrompt');
   let finished = false;
   // The arrow fades in ~10s in — matching the old loading auto-advance timing.
   const cancelArrow = revealArrowLater('loadNext', 10000);
@@ -1919,6 +1931,12 @@ function startupFlow(){
   // tap the breathing arrow (or anywhere), VoiceOver players double-tap anywhere.
   // This keeps it equal for blind and sighted players and never rushes anyone.
   showScreen('screenWelcome');
+  // Pull the VoiceOver / keyboard cursor straight to the welcome instruction, so
+  // a screen-reader player lands on our words instead of having to swipe past the
+  // browser's own toolbar first. Works best when VoiceOver is already on as the
+  // page opens (if it's switched on afterwards, iOS starts its own cursor at the
+  // top and this can't override it). Same trick as afterIntro() for the board.
+  moveATCursorTo('welIntro');
   // The Begin arrow fades in ~5s in — matching the old welcome auto-advance
   // timing — so the greeting is read before the arrow draws the eye.
   const cancelWelArrow = revealArrowLater('welNext', 5000);
