@@ -5,15 +5,7 @@
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Mindfulness Play™</title>
-<!-- Home-screen ("Add to Home Screen") name + icon = the cropped welcome-screen cat. -->
-<meta name="application-name" content="Mindfulness Play" />
-<meta name="apple-mobile-web-app-title" content="Mindfulness Play" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="theme-color" content="#f7ede3" />
-<link rel="icon" type="image/png" sizes="32x32" href="assets/icon/favicon-32.png" />
-<link rel="apple-touch-icon" href="assets/icon/apple-touch-icon.png" />
-<link rel="manifest" href="manifest.webmanifest" />
+<title>Cozy Cat Solitaire</title>
 <style>
   /* Prompt/invitation font, bundled locally so the app needs no internet.
      Quicksand (SIL Open Font License) lives in assets/fonts/. Google ships it
@@ -465,24 +457,30 @@
   #welHeading{ top:calc(1456 * var(--u)); font-size:calc(48 * var(--u)); color:#4C4644; }
   #welSub{     top:calc(1530 * var(--u)); font-size:calc(40 * var(--u)); color:#4C4644; }
   /* the "next / begin" arrow, bottom-right of the welcome + loading screens.
-     Same hand-drawn ink stroke as the recycle arrow; breathes bigger/smaller
-     like a hinted card, so a sighted player sees where to tap. The global
-     reduce-motion rule stills the breathing but keeps the arrow visible.
+     Same hand-drawn ink stroke as the recycle arrow; breathes gently (scale
+     only — no opacity pulse) so it hints without competing with the text/cat.
+     Softer, smaller, and it FADES IN LATER (JS adds .revealed after ~5s on
+     welcome / ~10s on loading) so reading happens first (Dani 2026-09-08).
+     Starts invisible (opacity:0); .revealed fades it to a soft resting opacity.
+     Under reduce-motion the global rule kills the transition AND the breathe,
+     so the arrow simply appears (snaps in) at the reveal time — still visible.
      A screen-reader player is told to double-tap anywhere, so they don't hunt
      for it — but it's still a real, labelled "Begin" button they can land on. */
   .next-arrow{
-    position:absolute; right:calc(70 * var(--u)); bottom:calc(150 * var(--u));
-    width:calc(150 * var(--u)); height:calc(150 * var(--u));
+    position:absolute; right:calc(84 * var(--u)); bottom:calc(160 * var(--u));
+    width:calc(104 * var(--u)); height:calc(104 * var(--u));
     padding:0; border:none; background:none; cursor:pointer;
-    color:var(--ink); opacity:.72; z-index:4;
+    color:var(--ink-soft); opacity:0; z-index:4;
     display:grid; place-items:center;
-    animation:arrowBreathe 2.4s ease-in-out infinite;
+    transition:opacity 1.8s ease-in;
+    animation:arrowBreathe 2.6s ease-in-out infinite;
   }
+  .next-arrow.revealed{ opacity:.5; }
   .next-arrow svg{ width:72%; height:72%; }
   .next-arrow:active{ transform:scale(.94); }
   @keyframes arrowBreathe{
-    0%,100%{ transform:scale(1);    opacity:.58; }
-    50%    { transform:scale(1.14); opacity:.92; }
+    0%,100%{ transform:scale(1);    }
+    50%    { transform:scale(1.09); }
   }
   /* ---- Loading (spec Screen 2) ---- */
   #loadPrompt{ top:calc(440 * var(--u));  font-size:calc(52 * var(--u)); line-height:1.22; white-space:pre-line; }
@@ -1839,10 +1837,25 @@ function preloadDeck(){
    this same handler) moves on; Enter/Space/Escape do too. A screen reader hears
    the teaching line, the cat, and "double-tap anywhere to begin" from the
    screen's own text. */
+/* Fade the "Begin" arrow in AFTER the player has had time to read (Dani
+   2026-09-08). It starts invisible; we add .revealed after `delay` ms so the
+   text and cat are seen first, then the arrow quietly appears. Returns a
+   canceller so an early advance can drop the pending reveal. Under reduce-motion
+   the CSS transition is off, so the arrow simply snaps in at `delay`. */
+function revealArrowLater(id, delay){
+  const el = document.getElementById(id);
+  if (!el) return ()=>{};
+  el.classList.remove('revealed');            // reset (screens re-show each launch)
+  const t = setTimeout(()=>{ el.classList.add('revealed'); }, delay);
+  return ()=>{ clearTimeout(t); };
+}
+
 function runLoading(finish){
   document.getElementById('loadPrompt').textContent = pickLoadingLine();
   let finished = false;
-  const done = ()=>{ if(finished) return; finished = true; advanceScreen = null; finish(); };
+  // The arrow fades in ~10s in — matching the old loading auto-advance timing.
+  const cancelArrow = revealArrowLater('loadNext', 10000);
+  const done = ()=>{ if(finished) return; finished = true; cancelArrow(); advanceScreen = null; finish(); };
   advanceScreen = done;
   // Advance ONLY via the Begin button — NOT a whole-screen tap. In VoiceOver a
   // double-tap activates the focused item, so a whole-screen advance stole every
@@ -1895,6 +1908,10 @@ function startupFlow(){
     const screenId = pv === 'welcome' ? 'screenWelcome' : pv === 'loading' ? 'screenLoading'
                    : pv === 'win' ? 'screenWin' : 'screenLost';
     showScreen(screenId);
+    // In the frozen preview, reveal the Begin arrow right away so it can be
+    // inspected without waiting out the timed fade-in.
+    if (pv === 'welcome') document.getElementById('welNext').classList.add('revealed');
+    if (pv === 'loading') document.getElementById('loadNext').classList.add('revealed');
     return;
   }
   // The welcome screen shows every launch and now WAITS for the player — no
@@ -1902,7 +1919,11 @@ function startupFlow(){
   // tap the breathing arrow (or anywhere), VoiceOver players double-tap anywhere.
   // This keeps it equal for blind and sighted players and never rushes anyone.
   showScreen('screenWelcome');
+  // The Begin arrow fades in ~5s in — matching the old welcome auto-advance
+  // timing — so the greeting is read before the arrow draws the eye.
+  const cancelWelArrow = revealArrowLater('welNext', 5000);
   const proceed = ()=>{
+    cancelWelArrow();
     const w = document.getElementById('screenWelcome');
     showScreen('screenLoading');                    // covers the welcome screen
     w.classList.remove('show'); w.style.opacity='';
