@@ -5,7 +5,17 @@
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Cozy Cat Solitaire</title>
+<title>Mindfulness Play™</title>
+<!-- Home-screen ("Add to Home Screen") name + icon = the cropped welcome-screen cat.
+     These live here (not just in the live folder) so a publish can never strip them
+     again — see the 2026-09-08 regression note. -->
+<meta name="application-name" content="Mindfulness Play" />
+<meta name="apple-mobile-web-app-title" content="Mindfulness Play" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="theme-color" content="#f7ede3" />
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icon/favicon-32.png" />
+<link rel="apple-touch-icon" href="assets/icon/apple-touch-icon.png" />
+<link rel="manifest" href="manifest.webmanifest" />
 <style>
   /* Prompt/invitation font, bundled locally so the app needs no internet.
      Quicksand (SIL Open Font License) lives in assets/fonts/. Google ships it
