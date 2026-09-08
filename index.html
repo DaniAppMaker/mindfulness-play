@@ -1875,14 +1875,18 @@ function runLoading(finish){
   document.getElementById('loadNext').onclick = (e)=>{ e.stopPropagation(); fireAdvance(); };
 }
 
-// When the board appears, move the VoiceOver / keyboard cursor to the overview
-// (#sr-intro) so it's actually read — a polite live-region announcement was being
-// dropped during the screen transition. Focusing a tabindex=-1 element reliably
-// moves the AT cursor on iOS Safari.
-function afterIntro(){
+// Advance from the loading screen to the board. Reveal the board to VoiceOver and
+// move the cursor to the overview (#sr-intro) SYNCHRONOUSLY — this runs inside the
+// double-tap gesture on the Begin button — then fade the loading cover away over
+// it. Doing the focus in-gesture (not on a timer) is what makes iOS VoiceOver
+// actually follow to the overview instead of falling back to the browser chrome;
+// same rule as the welcome->loading step. Focusing a tabindex=-1 element moves the
+// AT cursor on iOS Safari.
+function revealBoardForAT(){
   setGameHiddenForAT(false);                // the board is the active screen now — let AT read it
   const intro = document.getElementById('sr-intro');
-  if (intro) setTimeout(()=>{ try { intro.focus(); } catch(e){} }, 60);
+  try { if (intro) intro.focus(); } catch(e){}
+  hideScreen('screenLoading');              // fade the cover away; board is already revealed + focused
 }
 
 /* every open -> welcome, then loading. (Dani, 2026-08-13: the welcome screen is
@@ -1890,7 +1894,7 @@ function afterIntro(){
 /* While the welcome/loading screens cover the game, hide the game layer from
    screen readers — otherwise VoiceOver reads the board (and the "fresh game"
    live announcement) THROUGH the cover, instead of the welcome text. Un-hidden
-   in afterIntro when the board becomes the active screen. */
+   in revealBoardForAT when the board becomes the active screen. */
 function setGameHiddenForAT(hidden){
   // Belt AND suspenders: aria-hidden PLUS display:none. display:none removes the
   // node from the render tree entirely, so VoiceOver truly cannot reach the board
@@ -1935,7 +1939,7 @@ function startupFlow(){
   // a screen-reader player lands on our words instead of having to swipe past the
   // browser's own toolbar first. Works best when VoiceOver is already on as the
   // page opens (if it's switched on afterwards, iOS starts its own cursor at the
-  // top and this can't override it). Same trick as afterIntro() for the board.
+  // top and this can't override it). Same trick as revealBoardForAT() for the board.
   moveATCursorTo('welIntro');
   // The Begin arrow fades in ~5s in — matching the old welcome auto-advance
   // timing — so the greeting is read before the arrow draws the eye.
@@ -1943,9 +1947,17 @@ function startupFlow(){
   const proceed = ()=>{
     cancelWelArrow();
     const w = document.getElementById('screenWelcome');
-    showScreen('screenLoading');                    // covers the welcome screen
+    showScreen('screenLoading');                    // loading now covers the board
+    // Set up the loading screen and move the VoiceOver cursor into it RIGHT NOW,
+    // synchronously — still inside the double-tap gesture that fired this — and
+    // only THEN hide the welcome screen. iOS VoiceOver honors a focus change made
+    // during a user gesture but ignores a later, timer-based one; and hiding
+    // welcome first would destroy the Begin button VO was sitting on and orphan
+    // the cursor to the browser chrome (the 2026-09-08 "loading screen read
+    // nothing, swipe jumped to Safari's buttons" bug).
+    runLoading(()=> revealBoardForAT());            // sets the teaching line first
+    try { document.getElementById('loadPrompt').focus(); } catch(e){}
     w.classList.remove('show'); w.style.opacity='';
-    runLoading(()=> hideScreen('screenLoading', afterIntro));
   };
   advanceScreen = proceed;
   // Advance ONLY via the Begin button (see runLoading note) — never a whole-screen tap.
