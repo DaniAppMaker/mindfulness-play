@@ -1620,46 +1620,82 @@ function renderTableau(){
   }
 }
 
-/* ================= hint: find one legal move ================= */
-function findHint(){
-  const sources = [];
-  if (state.waste.length) sources.push({card:state.waste[state.waste.length-1], id:state.waste[state.waste.length-1].id});
-  state.tableau.forEach(p=>{ if(p.length){ const t=p[p.length-1]; if(t.faceUp) sources.push({card:t,id:t.id}); }});
-  for (const src of sources)
-    for (let f=0;f<4;f++)
-      if (canStackFoundation(src.card, state.foundations[f])) return [src.id];
+/* ================= find EVERY legal move (for the spoken "Show me a move") =====
+   Returns a list of {id, text} — id = the source card to gently pulse for sighted
+   players; text = a spoken phrase naming the card, WHERE it is, and WHERE it goes,
+   so a blind player can hear their whole set of options at once (the pattern the
+   leading Accessible Solitaire app uses; researched 2026-09-08). Same rules and
+   pruning as before — foundation moves first, then tableau — just collected all
+   instead of returning the first. */
+function findAllMoves(){
+  const moves = [];
+  const suitName = s => SUIT_NAMES[s] || 'cards';
+  const wasteTop = state.waste.length ? state.waste[state.waste.length-1] : null;
+
+  // ---- Foundation moves (single top cards go home) ----
+  if (wasteTop){
+    for (let f=0;f<4;f++) if (canStackFoundation(wasteTop, state.foundations[f])){
+      moves.push({ id: wasteTop.id, text: `${cardName(wasteTop)} from the draw pile, home to the ${suitName(wasteTop.suit)} foundation` });
+      break;
+    }
+  }
+  for (let c=0;c<7;c++){
+    const pile = state.tableau[c];
+    if (!pile.length) continue;
+    const top = pile[pile.length-1];
+    if (!top.faceUp) continue;
+    for (let f=0;f<4;f++) if (canStackFoundation(top, state.foundations[f])){
+      moves.push({ id: top.id, text: `${cardName(top)} in column ${c+1}, home to the ${suitName(top.suit)} foundation` });
+      break;
+    }
+  }
+
+  // ---- Tableau moves ----
+  // the drawn (waste) card onto a column
+  if (wasteTop){
+    for (let d=0;d<7;d++){
+      const onto = state.tableau[d][state.tableau[d].length-1];
+      if (!canStackTableau(wasteTop, onto)) continue;
+      moves.push({ id: wasteTop.id, text: onto
+        ? `${cardName(wasteTop)} from the draw pile, onto the ${cardName(onto)} in column ${d+1}`
+        : `${cardName(wasteTop)} from the draw pile, into the empty column ${d+1}` });
+      break;   // one tableau destination is enough to mention
+    }
+  }
+  // each column's deepest valid face-up run onto another column
   for (let c=0;c<7;c++){
     const pile = state.tableau[c];
     for (let i=0;i<pile.length;i++){
       if (!pile[i].faceUp) continue;
       let ok=true;
-      for (let k=i;k<pile.length-1;k++) if(!canStackTableau(pile[k+1],pile[k])){ok=false;break;}
+      for (let k=i;k<pile.length-1;k++) if(!canStackTableau(pile[k+1],pile[k])){ ok=false; break; }
       if(!ok) continue;
       const head = pile[i];
-      // moving this run only makes progress toward winning if it either lands on
-      // a real card, or clears an empty column while flipping a face-down card
+      // moving a run is only worth suggesting if it lands on a real card, or
+      // clears an empty column while flipping a face-down card underneath
       const revealsHidden = i>0 && !pile[i-1].faceUp;
       for (let d=0;d<7;d++){
         if (d===c) continue;
-        const dest = state.tableau[d];
-        const onto = dest[dest.length-1];
+        const onto = state.tableau[d][state.tableau[d].length-1];
         if (!canStackTableau(head, onto)) continue;
-        // don't suggest sliding a King into an empty column when nothing is
-        // uncovered by it — that's a pointless shuffle, not a real hint
-        if (!onto && !revealsHidden) continue;
-        return [head.id];
+        if (!onto && !revealsHidden) continue;   // skip a pointless King-into-empty shuffle
+        const carried = pile.length - 1 - i;      // cards riding on top of the run head
+        const from = carried > 0
+          ? `${cardName(head)} with ${carried} card${carried>1?'s':''} on top, column ${c+1}`
+          : `${cardName(head)} in column ${c+1}`;
+        moves.push({ id: head.id, text: onto
+          ? `${from}, onto the ${cardName(onto)} in column ${d+1}`
+          : `${from}, into the empty column ${d+1}` });
+        break;   // one destination per source is enough to hear
       }
-      break;
+      break;   // only the deepest valid run head per column, as before
     }
   }
-  if (state.waste.length){
-    const w = state.waste[state.waste.length-1];
-    for (let d=0;d<7;d++){ const dest=state.tableau[d]; if(canStackTableau(w, dest[dest.length-1])) return [w.id]; }
-  }
-  return null;
+
+  return moves;
 }
 /* would ANY card still in the stock or waste be playable if it came up? (only
-   asked after findHint() finds no board move). If yes, drawing is worth it; if
+   asked after findAllMoves() finds no board move). If yes, drawing is worth it; if
    no, it's a true dead end. The board's tops don't change while you draw, so
    testing every pile card against the current foundations/tableau is exact. */
 function anyPileCardPlayable(){
@@ -1673,11 +1709,20 @@ function anyPileCardPlayable(){
 function clearHints(){ document.querySelectorAll('.hint').forEach(c=>c.classList.remove('hint')); }
 function showHint(){
   clearHints();
-  const ids = findHint();
-  if (!ids){ hintDrawPile(); return; }
-  const hintCard = cardById(ids[0]);
-  if (hintCard) announce(`A gentle nudge: the ${cardName(hintCard)} has somewhere to go.`);
-  ids.forEach(id=>{ const el=document.querySelector(`.card[data-id="${id}"]`); if(el) el.classList.add('hint'); });
+  const moves = findAllMoves();
+  if (!moves.length){ hintDrawPile(); return; }
+  // Speak EVERY available move and where each one goes, so a blind player hears
+  // the full set of options at once and can decide — then double-tap the card to
+  // play it. Long lists are capped so it doesn't become a monologue; making a
+  // move reveals the next set. (Dani 2026-09-08, from the Accessible Solitaire pattern.)
+  const MAX = 6;
+  const shown = moves.slice(0, MAX).map(m=>m.text).join('; ');
+  const more = moves.length > MAX ? `; and ${moves.length - MAX} more` : '';
+  const n = moves.length;
+  announce(`${n} move${n>1?'s':''} you can make: ${shown}${more}. Find the card and double-tap it to move it.`);
+  // still give the gentle visual pulse on the first move's card for sighted players
+  const el = document.querySelector(`.card[data-id="${moves[0].id}"]`);
+  if (el) el.classList.add('hint');
   setTimeout(clearHints, 2500);
 }
 /* when the only move is to draw, point at the pile itself with the same gentle
