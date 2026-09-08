@@ -565,30 +565,41 @@
        every element is placed by the spec's 1080x2160 reference
        coordinates via calc(<ref> * var(--u)). The loading line and the
        win invitation are PLACEHOLDERS until Dani writes the real words. -->
-  <!-- Welcome. DOM order below IS the screen-reader reading order (all pieces are
-       absolutely positioned by coordinate, so visual layout is independent). The
-       visible lines are read first, then the cat, then narration only a screen
-       reader hears, then the "Begin" arrow. Sighted players tap the breathing
-       arrow (or anywhere); VoiceOver players double-tap anywhere. -->
+  <!-- Welcome. For SCREEN READERS this whole screen is ONE ordered narration
+       (#welNarration below): wherever a VoiceOver player taps — or with a single
+       swipe — it reads start to finish, so nothing gets missed. (Dani 2026-09-08
+       test: the old per-element pieces were scattered by their visual coordinates,
+       so tapping around skipped things like the game description.) The visible
+       title, headings and cat are kept for SIGHTED players but hidden from
+       VoiceOver (aria-hidden). Only the narration and the "Begin" button are read.
+       The generic "swipe / double-tap" tutorial was dropped — VoiceOver already
+       teaches its own gestures, and the Begin step is folded into the narration. -->
   <div class="screen fade" id="screenWelcome">
+    <!-- the single screen-reader narration; a transparent full-screen layer so a
+         tap anywhere lands on it. role="img" makes VoiceOver read the whole label
+         as one piece, in order. -->
+    <div id="welNarration" role="img" tabindex="-1" style="position:absolute; inset:0; z-index:2;"
+         aria-label="Welcome to Mindfulness Play. This is a game of solitaire, and as you play, small invitations arrive — gentle nudges to notice your body, your breath, a thought, a feeling; to take a break; to be mindful in real life, away from the meditation cushion. On the screen: a soft watercolor cat sits in a meditation pose, warm pink melting into golden yellow, eyes gently closed and paws folded — peaceful, and a little bit funny. The words on screen read: Mindfulness Play. Welcome to mindful play. Mindfulness, woven into everyday moments. When you are ready, swipe to find the Begin button and double-tap it to start."></div>
     <div class="screen-col">
-      <p class="visually-hidden" id="welIntro" tabindex="-1">To get around, swipe left or right to hear each part of this screen. To begin the game, swipe to the Begin button, then double-tap it.</p>
-      <h1 class="scr-text" id="welBrand">Mindfulness Play<sup class="tm" aria-hidden="true">&trade;</sup></h1>
-      <p  class="scr-text" id="welHeading">Welcome to mindful play</p>
-      <p  class="scr-text" id="welSub">Mindfulness, woven into everyday moments</p>
-      <img class="scr-art" id="welCat" src="assets/interface/meditating-cat.png" alt="A soft watercolor splotch, warm pink melting down into golden yellow, with loose black ink lines drawn over it: a round, plump cat sitting up in a meditation pose — eyes gently closed, whiskers out, front paws folded together in its lap, tail curled around. Peaceful, and a little bit funny.">
-      <p class="visually-hidden">This is a game of solitaire. As you play, small invitations arrive — gentle nudges to notice your body, your breath, a thought, a feeling. To have a break. To be mindful in real life, away from the meditation cushion.</p>
+      <h1 class="scr-text" id="welBrand" aria-hidden="true">Mindfulness Play<sup class="tm" aria-hidden="true">&trade;</sup></h1>
+      <p  class="scr-text" id="welHeading" aria-hidden="true">Welcome to mindful play</p>
+      <p  class="scr-text" id="welSub" aria-hidden="true">Mindfulness, woven into everyday moments</p>
+      <img class="scr-art" id="welCat" src="assets/interface/meditating-cat.png" alt="" aria-hidden="true">
       <button type="button" class="next-arrow" id="welNext" aria-label="Begin">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4.5" y1="12" x2="18" y2="12"/><polyline points="12.5 6 18.5 12 12.5 18"/></svg>
       </button>
     </div>
   </div>
 
+  <!-- Loading. Same one-ordered-narration approach as the welcome screen: the whole
+       screen reads start to finish wherever a VoiceOver player taps. The teaching
+       line changes each visit, so #loadNarration's label is built in runLoading()
+       (teaching line + cat + Begin step). Visible pieces are hidden from VoiceOver. -->
   <div class="screen fade" id="screenLoading">
+    <div id="loadNarration" role="img" tabindex="-1" style="position:absolute; inset:0; z-index:2;" aria-label=""></div>
     <div class="screen-col">
-      <p class="scr-text" id="loadPrompt" tabindex="-1"></p>
-      <p class="visually-hidden">Take a breath. To continue to the game, swipe to the Begin button, then double-tap it.</p>
-      <img class="scr-art" id="loadCat" src="assets/interface/paw-licking-cat.png" alt="A watercolor splotch of soft blue-green fading into warm peach, with black ink lines over it: a cat pausing to groom — one front paw lifted straight up, showing its little paw pads, head tilted to give it a lick, eyes closed and content, tail curled at its side.">
+      <p class="scr-text" id="loadPrompt" aria-hidden="true"></p>
+      <img class="scr-art" id="loadCat" src="assets/interface/paw-licking-cat.png" alt="" aria-hidden="true">
       <button type="button" class="next-arrow" id="loadNext" aria-label="Begin the game">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4.5" y1="12" x2="18" y2="12"/><polyline points="12.5 6 18.5 12 12.5 18"/></svg>
       </button>
@@ -1915,10 +1926,28 @@ function revealArrowLater(id, delay){
   return ()=>{ clearTimeout(t); };
 }
 
+/* the cat on the loading screen, described for the one-narration read (the loadCat
+   img itself is hidden from VoiceOver; this text goes into #loadNarration instead) */
+const LOAD_CAT_DESC = 'On the screen: a soft blue-green and peach watercolor cat pauses to groom — one front paw lifted, showing its little paw pads, head tilted to give it a lick, eyes closed and content.';
+
+/* pick a teaching line, show it for sighted players, and build the loading screen's
+   ONE ordered narration (teaching line, then cat, then the Begin step) so a VoiceOver
+   player hears it all wherever they tap. The teaching line carries \n line-breaks for
+   the VISUAL layout; flatten them to spaces and add a full stop so it reads as a clean
+   sentence, not a run-on. Shared by runLoading() and the ?preview=loading harness. */
+function setLoadingScreenText(){
+  const line = pickLoadingLine();
+  document.getElementById('loadPrompt').textContent = line;   // visible for sighted players
+  const spoken = line.replace(/\s+/g, ' ').trim();
+  const teaching = /[.!?]$/.test(spoken) ? spoken : spoken + '.';
+  document.getElementById('loadNarration').setAttribute('aria-label',
+    `${teaching} ${LOAD_CAT_DESC} Take a breath. When you are ready, swipe to find the Begin button and double-tap it to continue.`);
+}
+
 function runLoading(finish){
-  document.getElementById('loadPrompt').textContent = pickLoadingLine();
-  // Jump the screen-reader cursor to the teaching line so it's read promptly.
-  moveATCursorTo('loadPrompt');
+  setLoadingScreenText();
+  // Jump the screen-reader cursor to that narration so it's read promptly.
+  moveATCursorTo('loadNarration');
   let finished = false;
   // The arrow fades in ~10s in — matching the old loading auto-advance timing.
   const cancelArrow = revealArrowLater('loadNext', 10000);
@@ -1973,7 +2002,7 @@ function startupFlow(){
      the normal app flow is untouched. */
   const pv = new URLSearchParams(location.search).get('preview');
   if (pv === 'welcome' || pv === 'loading' || pv === 'win' || pv === 'lost'){
-    if (pv === 'loading') document.getElementById('loadPrompt').textContent = pickLoadingLine();
+    if (pv === 'loading') setLoadingScreenText();
     if (pv === 'win')     document.getElementById('winPrompt').textContent  = pick(WIN_LINES);
     if (pv === 'lost')    document.getElementById('lostPrompt').textContent = pick(LOST_LINES);
     const screenId = pv === 'welcome' ? 'screenWelcome' : pv === 'loading' ? 'screenLoading'
@@ -1990,12 +2019,13 @@ function startupFlow(){
   // tap the breathing arrow (or anywhere), VoiceOver players double-tap anywhere.
   // This keeps it equal for blind and sighted players and never rushes anyone.
   showScreen('screenWelcome');
-  // Pull the VoiceOver / keyboard cursor straight to the welcome instruction, so
-  // a screen-reader player lands on our words instead of having to swipe past the
-  // browser's own toolbar first. Works best when VoiceOver is already on as the
-  // page opens (if it's switched on afterwards, iOS starts its own cursor at the
-  // top and this can't override it). Same trick as revealBoardForAT() for the board.
-  moveATCursorTo('welIntro');
+  // Pull the VoiceOver / keyboard cursor straight to the welcome narration, so a
+  // screen-reader player lands on our words (and hears the whole welcome in order)
+  // instead of having to swipe past the browser's own toolbar first. Works best
+  // when VoiceOver is already on as the page opens (if it's switched on afterwards,
+  // iOS starts its own cursor at the top and this can't override it). Same trick as
+  // revealBoardForAT() for the board.
+  moveATCursorTo('welNarration');
   // The Begin arrow fades in ~5s in — matching the old welcome auto-advance
   // timing — so the greeting is read before the arrow draws the eye.
   const cancelWelArrow = revealArrowLater('welNext', 5000);
@@ -2010,8 +2040,8 @@ function startupFlow(){
     // welcome first would destroy the Begin button VO was sitting on and orphan
     // the cursor to the browser chrome (the 2026-09-08 "loading screen read
     // nothing, swipe jumped to Safari's buttons" bug).
-    runLoading(()=> revealBoardForAT());            // sets the teaching line first
-    try { document.getElementById('loadPrompt').focus(); } catch(e){}
+    runLoading(()=> revealBoardForAT());            // sets the teaching line + narration first
+    try { document.getElementById('loadNarration').focus(); } catch(e){}
     w.classList.remove('show'); w.style.opacity='';
   };
   advanceScreen = proceed;
