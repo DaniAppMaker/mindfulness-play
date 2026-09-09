@@ -519,7 +519,9 @@
   <!-- a quiet voice for screen readers: game events are announced here -->
   <div id="live" class="visually-hidden" role="status" aria-live="polite"></div>
   <p id="sr-intro" class="visually-hidden" tabindex="-1">
-    Mindfulness Play, a calm game of solitaire. Your goal is to send every card
+    Listen to the game description, or tap anywhere to skip it. To hear it again
+    later, tap the top of the screen with four fingers, or swipe left back to the
+    top. Mindfulness Play, a calm game of solitaire. Your goal is to send every card
     home to the four foundation piles, each built up from Ace to King. The board,
     in reading order, is: the four foundations and the draw pile across the top,
     then seven columns of cards, then the buttons — new game, undo, invitation,
@@ -1955,7 +1957,7 @@ function setLoadingScreenText(){
   const spoken = line.replace(/\s+/g, ' ').trim();
   const teaching = /[.!?]$/.test(spoken) ? spoken : spoken + '.';
   document.getElementById('loadNarration').setAttribute('aria-label',
-    `${teaching} ${LOAD_CAT_DESC} When you are ready, swipe to find the Begin button and double-tap it to continue.`);
+    `${teaching} ${LOAD_CAT_DESC} After you tap Begin, you can listen to the game description, or tap anything to skip it. When you are ready, swipe to find the Begin button and double-tap it to continue.`);
 }
 
 function runLoading(finish){
