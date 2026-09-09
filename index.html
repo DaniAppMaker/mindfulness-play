@@ -450,17 +450,6 @@
     position:relative; width:var(--board); height:var(--boardH);
     overflow:hidden; flex:0 0 auto;
   }
-  /* The screen-reader modal on the welcome + loading screens. Same size + centered
-     position as .screen-col, laid over it, so the narration covers the column and the
-     Begin arrow (positioned within) keeps its exact place. role="dialog" +
-     aria-modal="true" on this element trap VoiceOver inside it — the whole point:
-     iPhone VoiceOver ignored aria-hidden/inert on the decorations, but it DOES honor
-     an aria-modal, so it can't read anything outside this box. Transparent, so the
-     decorations behind it still show for sighted players. */
-  .at-modal{
-    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
-    width:var(--board); height:var(--boardH); z-index:2;
-  }
   /* The wash now comes from the full-screen body::before layer (edge to edge),
      so the column no longer paints its own wash — that avoids a darker band
      in the middle and a visible edge at the column sides. */
@@ -588,27 +577,25 @@
        The generic "swipe / double-tap" tutorial was dropped — VoiceOver already
        teaches its own gestures, and the Begin step is folded into the narration. -->
   <div class="screen fade" id="screenWelcome">
-    <!-- The decorations (title, headings, cat) are VISUAL ONLY, in their own column.
-         iPhone VoiceOver ignored aria-hidden AND inert here (it kept re-reading
-         "Mindfulness Play … image" after the Begin line), so the REAL guard is the
-         aria-modal dialog below: VoiceOver is trapped inside it and cannot reach
-         anything out here. aria-hidden+inert kept as belt-and-suspenders for engines
-         that DO honor them. (Dani 2026-09-08) -->
-    <div class="screen-col" aria-hidden="true" inert>
-      <h1 class="scr-text" id="welBrand">Mindfulness Play<sup class="tm">&trade;</sup></h1>
-      <p  class="scr-text" id="welHeading">Welcome to mindful play</p>
-      <p  class="scr-text" id="welSub">Mindfulness, woven into everyday moments</p>
-      <img class="scr-art" id="welCat" src="assets/interface/meditating-cat.png" alt="">
-    </div>
-    <!-- The ONLY thing VoiceOver can read on this screen. role="dialog" +
-         aria-modal="true" confine the reading cursor here, so after the Begin line it
-         has nowhere else to go and simply STOPS (the fix for "it kept talking after
-         the Begin button"). #welNarration (role=img) is still the single ordered
-         narration read on open; the Begin button is the one other stop, one swipe
-         away — then silence. -->
-    <div class="at-modal" role="dialog" aria-modal="true" aria-label="Welcome to Mindfulness Play">
-      <div id="welNarration" role="img" tabindex="-1" style="position:absolute; inset:0;"
-           aria-label="Welcome to Mindfulness Play. This is a game of solitaire with invitations to mindfulness sprinkled in. It's an opportunity to take a break and to bridge mindfulness into real life, away from the meditation cushion. On the screen: a soft peaceful watercolor cat sits in a meditation pose, warm pink melting into golden yellow, eyes gently closed and paws folded. The words on screen read: Mindfulness Play. Welcome to mindful play. Mindfulness, woven into everyday moments. When you are ready, swipe to find the Begin button and double-tap it to start."></div>
+    <div class="screen-col">
+      <!-- The decorations (title, headings, cat) live INSIDE #welNarration, which is
+           role="img". VoiceOver treats a role=img as ONE image and never exposes what's
+           inside it, so these are not separate, readable pieces — nothing for the
+           cursor to wander onto after the Begin line. This is the fix after iPhone
+           VoiceOver ignored aria-hidden, inert, AND aria-modal; role=img flattening is
+           core behavior (it's why the narration reads as one piece), not a skippable
+           hint. The label carries the whole spoken script. Decorations still render
+           normally for sighted players. (Dani 2026-09-08) -->
+      <div id="welNarration" role="img" tabindex="-1" style="position:absolute; inset:0; z-index:2;"
+           aria-label="Welcome to Mindfulness Play. This is a game of solitaire with invitations to mindfulness sprinkled in. It's an opportunity to take a break and to bridge mindfulness into real life, away from the meditation cushion. On the screen: a soft peaceful watercolor cat sits in a meditation pose, warm pink melting into golden yellow, eyes gently closed and paws folded. The words on screen read: Mindfulness Play. Welcome to mindful play. Mindfulness, woven into everyday moments. When you are ready, swipe to find the Begin button and double-tap it to start.">
+        <h1 class="scr-text" id="welBrand" aria-hidden="true">Mindfulness Play<sup class="tm" aria-hidden="true">&trade;</sup></h1>
+        <p  class="scr-text" id="welHeading" aria-hidden="true">Welcome to mindful play</p>
+        <p  class="scr-text" id="welSub" aria-hidden="true">Mindfulness, woven into everyday moments</p>
+        <img class="scr-art" id="welCat" src="assets/interface/meditating-cat.png" alt="" aria-hidden="true">
+      </div>
+      <!-- The one readable control besides the narration: swipe reaches it, then the
+           screen ends and VoiceOver goes quiet. Sibling of the narration (NOT inside
+           the role=img) so it stays reachable. -->
       <button type="button" class="next-arrow" id="welNext" aria-label="Begin">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4.5" y1="12" x2="18" y2="12"/><polyline points="12.5 6 18.5 12 12.5 18"/></svg>
       </button>
@@ -620,16 +607,14 @@
        line changes each visit, so #loadNarration's label is built in runLoading()
        (teaching line + cat + Begin step). Visible pieces are hidden from VoiceOver. -->
   <div class="screen fade" id="screenLoading">
-    <!-- Same structure + reason as the welcome screen: decorations are visual only and
-         hidden from VoiceOver, but the real guard is the aria-modal dialog (iPhone
-         VoiceOver ignored aria-hidden/inert). Reads the narration, one swipe to Begin,
-         then stops. -->
-    <div class="screen-col" aria-hidden="true" inert>
-      <p class="scr-text" id="loadPrompt"></p>
-      <img class="scr-art" id="loadCat" src="assets/interface/paw-licking-cat.png" alt="">
-    </div>
-    <div class="at-modal" role="dialog" aria-modal="true" aria-label="Loading">
-      <div id="loadNarration" role="img" tabindex="-1" style="position:absolute; inset:0;" aria-label=""></div>
+    <div class="screen-col">
+      <!-- Same fix as the welcome screen: the quote + cat live INSIDE #loadNarration
+           (role="img"), so VoiceOver reads only the label and never these pieces
+           separately. loadNarration's label is built in runLoading(). -->
+      <div id="loadNarration" role="img" tabindex="-1" style="position:absolute; inset:0; z-index:2;" aria-label="">
+        <p class="scr-text" id="loadPrompt" aria-hidden="true"></p>
+        <img class="scr-art" id="loadCat" src="assets/interface/paw-licking-cat.png" alt="" aria-hidden="true">
+      </div>
       <button type="button" class="next-arrow" id="loadNext" aria-label="Begin the game">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4.5" y1="12" x2="18" y2="12"/><polyline points="12.5 6 18.5 12 12.5 18"/></svg>
       </button>
