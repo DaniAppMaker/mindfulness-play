@@ -567,30 +567,34 @@
        every element is placed by the spec's 1080x2160 reference
        coordinates via calc(<ref> * var(--u)). The loading line and the
        win invitation are PLACEHOLDERS until Dani writes the real words. -->
-  <!-- Welcome. For SCREEN READERS this whole screen is ONE ordered narration
-       (#welNarration below): wherever a VoiceOver player taps — or with a single
-       swipe — it reads start to finish, so nothing gets missed. (Dani 2026-09-08
-       test: the old per-element pieces were scattered by their visual coordinates,
-       so tapping around skipped things like the game description.) The visible
-       title, headings and cat are kept for SIGHTED players but hidden from
-       VoiceOver (aria-hidden). Only the narration and the "Begin" button are read.
-       The generic "swipe / double-tap" tutorial was dropped — VoiceOver already
-       teaches its own gestures, and the Begin step is folded into the narration. -->
+  <!-- Welcome. For SCREEN READERS this reads as THREE ordered stops, in this order
+       (Dani 2026-09-10 — she wants the intro, THEN the on-screen words, THEN Begin,
+       then silence):
+         1. #welIntro  — the spoken intro script + the cat scene, invisible to sighted
+                         players (visually-hidden) but read by VoiceOver first.
+         2. the visible title/headings — now READ by VoiceOver as their own text (no
+                         longer aria-hidden). This IS "the words on screen"; we let VO
+                         read the real elements instead of describing them inside a label.
+         3. #welNext   — the "Begin" button. After it the screen ends and VO goes quiet.
+       Why the change: the old design crammed everything into ONE role="img" label and
+       hid the visible words with aria-hidden, so nothing would be read twice. But on
+       Dani's iPhone VoiceOver read the visible words ANYWAY (aria-hidden was ignored),
+       so the words were heard twice — once in the label, once from the elements. This
+       version stops fighting VoiceOver: the words live in the DOM once and are read
+       once, in a clean 1-2-3 order. -->
   <div class="screen fade" id="screenWelcome">
     <div class="screen-col">
-      <!-- The decorations (title, headings, cat) live INSIDE #welNarration, which is
-           role="img". VoiceOver treats a role=img as ONE image and never exposes what's
-           inside it, so these are not separate, readable pieces — nothing for the
-           cursor to wander onto after the Begin line. This is the fix after iPhone
-           VoiceOver ignored aria-hidden, inert, AND aria-modal; role=img flattening is
-           core behavior (it's why the narration reads as one piece), not a skippable
-           hint. The label carries the whole spoken script. Decorations still render
-           normally for sighted players. (Dani 2026-09-08) -->
-      <div id="welNarration" role="img" tabindex="-1" style="position:absolute; inset:0; z-index:2;"
-           aria-label="Welcome to Mindfulness Play. This is a game of solitaire with invitations to mindfulness sprinkled in. It's an opportunity to take a break and to bridge mindfulness into real life, away from the meditation cushion. On the screen: a soft peaceful watercolor cat sits in a meditation pose, warm pink melting into golden yellow, eyes gently closed and paws folded. The words on screen read: Mindfulness Play. Welcome to mindful play. Mindfulness, woven into everyday moments. When you are ready, swipe to find the Begin button and double-tap it to start.">
-        <h1 class="scr-text" id="welBrand" aria-hidden="true">Mindfulness Play<sup class="tm" aria-hidden="true">&trade;</sup></h1>
-        <p  class="scr-text" id="welHeading" aria-hidden="true">Welcome to mindful play</p>
-        <p  class="scr-text" id="welSub" aria-hidden="true">Mindfulness, woven into everyday moments</p>
+      <div id="welNarration" style="position:absolute; inset:0; z-index:2;">
+        <!-- STEP 1: the intro script + cat scene. Spoken to screen readers, invisible
+             to sighted players. It's the first thing the VoiceOver cursor lands on
+             (see moveATCursorTo('welIntro') in startupFlow). tabindex=-1 makes it a
+             focus target without adding it to the Tab order for keyboard players. -->
+        <p class="visually-hidden" id="welIntro" tabindex="-1">Welcome to Mindfulness Play. This is a game of solitaire with invitations to mindfulness sprinkled in. It's an opportunity to take a break and to bridge mindfulness into real life, away from the meditation cushion. On the screen, a soft peaceful watercolor cat sits in a meditation pose, warm pink melting into golden yellow, eyes gently closed and paws folded.</p>
+        <!-- STEP 2: the words on screen. No longer aria-hidden, so VoiceOver reads the
+             real elements once, in order, as the player swipes past the intro. -->
+        <h1 class="scr-text" id="welBrand">Mindfulness Play<sup class="tm" aria-hidden="true">&trade;</sup></h1>
+        <p  class="scr-text" id="welHeading">Welcome to mindful play</p>
+        <p  class="scr-text" id="welSub">Mindfulness, woven into everyday moments</p>
         <img class="scr-art" id="welCat" src="assets/interface/meditating-cat.png" alt="" aria-hidden="true">
       </div>
       <!-- The one readable control besides the narration: swipe reaches it, then the
@@ -2040,7 +2044,7 @@ function startupFlow(){
   // when VoiceOver is already on as the page opens (if it's switched on afterwards,
   // iOS starts its own cursor at the top and this can't override it). Same trick as
   // revealBoardForAT() for the board.
-  moveATCursorTo('welNarration');
+  moveATCursorTo('welIntro');   // land VO on the intro script first (step 1 of 3)
   // The Begin arrow fades in ~5s in — matching the old welcome auto-advance
   // timing — so the greeting is read before the arrow draws the eye.
   const cancelWelArrow = revealArrowLater('welNext', 5000);
