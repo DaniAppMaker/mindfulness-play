@@ -505,13 +505,24 @@
      focus ring. VoiceOver draws its own cursor, so this doesn't affect screen readers.
      (Same as #welCat:focus on the welcome screen.) */
   #loadPrompt:focus, #loadCat:focus{ outline:none; }
+  /* the loading line + walking mouse (Dani 2026-09-10). The line is SHORT (600u, from
+     175u to 775u) so the mouse stops well left of the Begin arrow (whose left edge is
+     ~892u) and never overlaps it. JS animates #loadFill width + #loadMouse left. */
+  #loadTrack{ position:absolute; left:calc(175 * var(--u)); top:calc(1760 * var(--u));
+              width:calc(520 * var(--u)); height:calc(5 * var(--u)); border-radius:999px;
+              background:rgba(191,164,151,0.41); }
+  #loadFill{  position:absolute; left:0; top:calc(-1 * var(--u)); height:calc(7 * var(--u));
+              width:0; border-radius:999px; background:rgba(206,137,151,0.69); }
+  #loadMouse{ position:absolute; top:calc(1667 * var(--u)); left:0; width:calc(132 * var(--u));
+              aspect-ratio:604 / 382; background:url("assets/interface/loading-mouse.png") center/contain no-repeat; }
   /* (the timed loading bar + mouse were retired 2026-09-06 — the screen now
      waits for a tap, so there is nothing to "load") */
   /* ---- After winning (spec Screen 3) ---- */
-  #winCatArt{  left:calc(195 * var(--u)); top:calc(460 * var(--u));  width:calc(650 * var(--u)); }
+  #winCatArt{  left:calc(195 * var(--u)); top:calc(460 * var(--u));  width:calc(650 * var(--u)); aspect-ratio:1823 / 1640; background:url("assets/interface/stretching-cat.png") center/contain no-repeat; }
   #winPrompt{  top:calc(1275 * var(--u)); font-size:calc(52 * var(--u)); line-height:1.28; white-space:pre-line; }
   /* ---- No moves left (after-losing, ClaudeHandoff-AfterLosingScreen-v1) ---- */
-  #lostCatArt{ left:calc(249 * var(--u)); top:calc(500 * var(--u));  width:calc(760 * var(--u)); }
+  #lostCatArt{ left:calc(249 * var(--u)); top:calc(500 * var(--u));  width:calc(760 * var(--u)); aspect-ratio:2102 / 1057; background:url("assets/interface/after-losing-cat.png") center/contain no-repeat; }
+  #winCatArt:focus, #lostCatArt:focus{ outline:none; }   /* focused only to seat the VoiceOver cursor */
   #lostPrompt{ top:calc(1344 * var(--u)); font-size:calc(52 * var(--u)); line-height:1.28; white-space:pre-line; }
   /* the New Game bloom is identical on the win and losing screens (same spec bbox) */
   #winNewBtn, #lostNewBtn{
@@ -526,17 +537,22 @@
 </style>
 </head>
 <body>
-  <!-- a quiet voice for screen readers: game events are announced here -->
+  <!-- a quiet voice for screen readers: game events (moves, draws) are announced here -->
   <div id="live" class="visually-hidden" role="status" aria-live="polite"></div>
+  <!-- SEPARATE channel just for invitations, so a fast flurry of move announcements in
+       #live can never erase a gentle invitation before it's spoken (Dani 2026-09-10:
+       invitations were sometimes not read at all, and never got a beat of their own). -->
+  <div id="liveInvite" class="visually-hidden" role="status" aria-live="polite"></div>
   <p id="sr-intro" class="visually-hidden" tabindex="-1">
     Listen to the game description, or tap anywhere to skip it. To hear it again
     later, tap the top of the screen with four fingers, or swipe left back to the
     top. Mindfulness Play, a calm game of solitaire. Your goal is to send every card
     home to the four foundation piles, each built up from Ace to King. The board,
-    in reading order, is: the four foundations and the draw pile across the top,
-    then seven columns of cards, then the buttons — new game, undo, invitation,
-    show me a move, and settings. Swipe right to move through it; each card tells
-    you where it sits and whether it is free to play. To move a card, double-tap
+    in reading order, is: first a cat and a mouse resting together at the top, then
+    the four foundations and the draw pile, then the seven columns of cards, then
+    the five buttons — new game, undo, invitation, show me a move, and settings.
+    Swipe right to move through it; each card tells you where it sits and whether it
+    has a move to make. To move a card, double-tap
     it — or press Enter — and it travels on its own to the best legal spot: home
     to its foundation, or onto the card it can build on. Double-tap the draw pile
     to turn a card, and again once it is empty to turn them all over. There are no
@@ -642,6 +658,13 @@
              description) is set in setLoadingScreenText(). -->
         <div class="scr-art" id="loadCat" role="img" tabindex="-1" aria-label=""></div>
       </div>
+      <!-- The mouse walks this line while the screen holds; when it reaches the end the
+           Begin arrow appears (Dani 2026-09-10). Purely VISUAL — aria-hidden so it stays
+           out of the VoiceOver path (teaching line -> cat -> Begin). The mouse is a
+           background image (like the cat) so it's never announced as "image". The line is
+           kept short so the mouse stops well before the arrow and never overlaps it. -->
+      <div id="loadTrack" aria-hidden="true"><div id="loadFill"></div></div>
+      <div id="loadMouse" aria-hidden="true"></div>
       <!-- STEP 3: the Begin button. Plain sibling of the (now plain) narration div. Its
            label folds in the "you can skip the description" heads-up for new players. -->
       <button type="button" class="next-arrow" id="loadNext" aria-label="Begin the game. When you begin, you can listen to a short description of the game, or tap anything to skip it.">
@@ -652,7 +675,12 @@
 
   <div class="screen fade" id="screenWin" role="dialog" aria-modal="true" aria-label="You finished the game">
     <div class="screen-col">
-      <img class="scr-art" id="winCatArt" src="assets/interface/stretching-cat.png" alt="A watercolor splotch shading from pink at the face through lilac to sky blue, with black ink lines over it: a happy cat mid-stretch — front legs reaching forward, back arched, tail curled up high, eyes squeezed shut in a big satisfied smile.">
+      <!-- Same VoiceOver recipe as welcome/loading (Dani 2026-09-10): the cat is a
+           background-image role="img" (a real element carrying the description); the
+           cursor lands here first (moveATCursorTo in winScreen), then swipes to the
+           prompt text, then the New Game button. Previously the code focused the button,
+           which skipped the cat and text. -->
+      <div class="scr-art" id="winCatArt" role="img" tabindex="-1" aria-label="You finished the game! A watercolor splotch shading from pink at the face through lilac to sky blue, with black ink lines over it: a happy cat mid-stretch — front legs reaching forward, back arched, tail curled up high, eyes squeezed shut in a big satisfied smile."></div>
       <p class="scr-text" id="winPrompt"></p>
       <button id="winNewBtn">New Game</button>
     </div>
@@ -664,7 +692,9 @@
        is live Quicksand (LOST_LINES), never baked into the art. -->
   <div class="screen fade" id="screenLost" role="dialog" aria-modal="true" aria-label="No moves left">
     <div class="screen-col">
-      <img class="scr-art" id="lostCatArt" src="assets/interface/after-losing-cat.png" alt="A soft pink watercolor splotch with black ink lines over it: a round cat flopped down on its belly for a rest, legs sprawled out, long tail trailing off to one side, eyes closed — completely relaxed.">
+      <!-- Same VoiceOver recipe as the win screen: cat as background-image role="img",
+           cursor lands here first, then the prompt text, then New Game. -->
+      <div class="scr-art" id="lostCatArt" role="img" tabindex="-1" aria-label="No moves left. A soft pink watercolor splotch with black ink lines over it: a round cat flopped down on its belly for a rest, legs sprawled out, long tail trailing off to one side, eyes closed — completely relaxed."></div>
       <p class="scr-text" id="lostPrompt"></p>
       <button id="lostNewBtn">New Game</button>
     </div>
@@ -783,6 +813,19 @@ function announce(msg){
   live.textContent = '';
   requestAnimationFrame(()=>{ live.textContent = msg; });
 }
+/* Invitations speak through their OWN polite region (#liveInvite), so a busy stream of
+   move announcements in #live can never overwrite them (Dani: invitations were getting
+   dropped when she played fast). A short delay lets the move that triggered it finish
+   first, so the invitation arrives as its own quiet beat rather than piled onto the move
+   (Dani: "no pause for the player to enact the invitation"). */
+let inviteSpeakTimer = null;
+function announceInvite(msg){
+  const live = document.getElementById('liveInvite');
+  if (!live || !msg) return;
+  clearTimeout(inviteSpeakTimer);
+  live.textContent = '';
+  inviteSpeakTimer = setTimeout(()=>{ live.textContent = msg; }, 1300);
+}
 const RANK_NAMES = { A:'Ace', J:'Jack', Q:'Queen', K:'King' };
 const SUIT_NAMES = { '♠':'spades', '♥':'hearts', '♦':'diamonds', '♣':'clubs' };
 function cardName(card){
@@ -833,7 +876,6 @@ const PROMPTS = [
   "Do you notice any thoughts\narise as you play?",
   "Do you notice any feelings\narise as you play?",
   "Your focus right now…\ntense, calm, or something else?",
-  "What helps your nervous system\nsettle to rest-and-digest?",
   "Take a moment…\nfeel your feet on the floor",
   "Take a moment…\nfeel where you're held by the chair",
 ];
@@ -905,8 +947,9 @@ function showInvitation(force){
   fadeInPrompt(shown);
   // Speak every invitation for screen-reader players — the timed ones too, not
   // just the paw-button ones. It's the heart of the app; a blind player mustn't
-  // miss it. Polite live region, so it waits its turn and never cuts off a move.
-  announce('A gentle invitation. ' + shown.replace(/\n/g, ' '));
+  // miss it. Its OWN polite region (announceInvite) so a flurry of move
+  // announcements can't erase it, and it arrives a beat after the move.
+  announceInvite('A gentle invitation. ' + shown.replace(/\n/g, ' '));
   promptShowing = true;
   clearTimeout(promptHoldTimer);
   promptHoldTimer = setTimeout(hideInvitation, PROMPT_HOLD);
@@ -1136,6 +1179,37 @@ function autoMove(where, colIndex, cardIndex){
   }
   announce(`No spot for ${cardName(moving)} just yet.`);
 }
+
+/* Does this card (or the run it heads) have any legal move right now? Mirrors
+   autoMove()'s exact logic — same order, same conditions — but changes nothing,
+   so the spoken "has a move / no moves" clue always matches what a tap would do.
+   (Dani 2026-09-10: a quick clue, not a description of the whole board.) */
+function cardHasMove(where, colIndex, cardIndex){
+  const cards = pickUpRun(where, colIndex, cardIndex);
+  if (!cards) return false;                    // can't even lift it (not a valid run)
+  const moving = cards[0];
+  if (cards.length === 1 && where !== 'foundation'){
+    for (let f=0; f<4; f++) if (canStackFoundation(moving, state.foundations[f])) return true;
+  }
+  for (let d=0; d<7; d++){
+    if (where==='tableau' && d===colIndex) continue;
+    const dp = state.tableau[d];
+    if (dp.length && canStackTableau(moving, dp[dp.length-1])) return true;
+  }
+  if (moving.rank === 'K'){
+    let worthwhile = true;
+    if (where === 'tableau'){
+      const pile = state.tableau[colIndex];
+      worthwhile = cardIndex > 0 && !pile[cardIndex-1].faceUp;   // only if it frees a hidden card
+    }
+    if (worthwhile) for (let d=0; d<7; d++){
+      if (where==='tableau' && d===colIndex) continue;
+      if (state.tableau[d].length === 0) return true;
+    }
+  }
+  return false;
+}
+
 /* ================= auto-complete ("cards fly home") =================
    Once the win is guaranteed — every tableau card face-up and the stock &
    waste empty — there's nothing left to decide: each remaining card can be
@@ -1212,12 +1286,23 @@ function progressInvites(){
   if (settings.timedInvites && !promptShowing && movesSinceInvite >= inviteThreshold){ showInvitation(); }
 }
 function afterMove(){
+  const movedId = pendingFlip && pendingFlip.ids && pendingFlip.ids[0];   // the card that just moved
   ensureTopsFaceUp();
   render();
   if (pendingFlip){ flipAnimate(pendingFlip.ids, pendingFlip.from); pendingFlip = null; }
   progressInvites();
   if (state.foundations.every(f=>f.length===13)){ winScreen(); return; }
   maybeAutoComplete();   // if the win is now guaranteed, fly the rest home automatically
+  // Follow the moved card with the VoiceOver / keyboard cursor, so it lands on a real,
+  // actionable element at the card's NEW home instead of being orphaned when its old
+  // element was destroyed by the full re-render. This fixes the glitch Dani hit after
+  // emptying a column (the cursor got stuck over neighbouring columns and their cards
+  // couldn't be selected — just beeps — until a draw forced a re-sync). Only for the
+  // keyboard/screen-reader path; :focus-visible means sighted mouse players see no ring.
+  if (movedId != null && !autoCompleting){
+    const el = document.querySelector(`.card[data-id="${movedId}"]`);
+    if (el){ try { el.focus(); } catch(e){} }
+  }
 }
 
 /* ================= stock ================= */
@@ -1524,11 +1609,13 @@ function renderTopRow(){
   if (state.stock.length){
     draw = cardEl({ id:'stock', faceUp:false });
     draw.tabIndex = 0;
-    draw.setAttribute('aria-label', `Draw pile. Activate to turn one.`);
+    // Just "Draw pile" — how it works is in the opening description (skippable), so a
+    // player drawing repeatedly doesn't hear the instructions every single time. (Dani 2026-09-10)
+    draw.setAttribute('aria-label', `Draw pile.`);
     draw.onclick = drawStock;
     draw.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); drawStock(); } };
   } else {
-    draw = makeSlot({ recycle:true, label:'Draw pile is empty. Activate to turn all the cards again.' });
+    draw = makeSlot({ recycle:true, label:'Draw pile, empty.' });
     draw.onclick = drawStock;
     draw.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); drawStock(); } };
   }
@@ -1609,7 +1696,8 @@ function updateWaste(){
       el.style.pointerEvents = 'auto';
       el.tabIndex = 0;
       el.removeAttribute('aria-hidden');
-      el.setAttribute('aria-label', `${cardName(card)}, from the waste pile, ready to play.`);
+      el.setAttribute('aria-label', `${cardName(card)}, from the waste pile.` +
+        (cardHasMove('waste', 0, 0) ? ' This card has a move.' : ' This card has no moves.'));
       el.onclick = ()=> autoMove('waste', 0, 0);
       makeDraggable(el, 'waste', 0, 0);
     } else {
@@ -1659,6 +1747,8 @@ function renderTableau(){
         // a sighted player can't see it either; which cards are face UP is the essential
         // thing to plan a move). Only when more than one is face up — a lone top card
         // has already named itself.
+        // a quick, non-verbose clue: does tapping this card actually do anything?
+        lbl += cardHasMove('tableau', col, idx) ? '. This card has a move' : '. This card has no moves';
         const faceUp = pile.filter(c=>c.faceUp);
         if (faceUp.length > 1)
           lbl += `. Face up in this column: ${faceUp.map(c=>cardName(c)).join(', ')}`;
@@ -1807,9 +1897,9 @@ function lostScreen(){
   const line = pick(LOST_LINES);
   document.getElementById('lostPrompt').textContent = line;
   showScreen('screenLost', true);   // gentle fade-in over the stuck board
-  announce('No moves left. ' + line.replace(/\n/g,' ') + '. New Game button available.');
-  const btn = document.getElementById('lostNewBtn');
-  setTimeout(()=>{ try{ btn.focus(); }catch(e){} }, reducedMotion() ? 0 : 650);
+  // Land the VoiceOver cursor on the cat so it reads cat -> message -> New Game in order
+  // (was focusing the button, which skipped the cat and the message). Same as welcome.
+  setTimeout(()=>{ moveATCursorTo('lostCatArt'); }, reducedMotion() ? 0 : 650);
 }
 
 /* ================= win ================= */
@@ -1817,9 +1907,11 @@ function winScreen(){
   const line = pick(WIN_LINES);
   document.getElementById('winPrompt').textContent = line;
   showScreen('screenWin', true);   // gentle fade-in over the finished board
-  announce('You finished the game. ' + line.replace(/\n/g,' ') + '. New Game button available.');
-  const btn = document.getElementById('winNewBtn');
-  setTimeout(()=>{ try{ btn.focus(); }catch(e){} }, reducedMotion() ? 0 : 650);
+  // Land the cursor on the cat so VoiceOver reads cat (which opens with "You finished
+  // the game") -> the message -> New Game, in order. (Was focusing the button, which
+  // skipped the cat and message.) The 650ms delay matches the fade and is known to
+  // land on iOS (Dani's earlier test landed on the button at this timing).
+  setTimeout(()=>{ moveATCursorTo('winCatArt'); }, reducedMotion() ? 0 : 650);
 }
 
 /* ================= overlays & buttons ================= */
@@ -1870,6 +1962,7 @@ const LOADING_LINES = [                                     // Dani's words, 202
   "As you breathe in, you take in oxygen —\na gift from your kin, the plants.\nAs you breathe out, you gift\ncarbon dioxide back to them.",
   "A yawn can be your nervous system\nsettling into rest-and-digest.",
   "Tense muscles can be a sign\nour nervous system is often\nin survival mode",
+  "What helps your nervous system\nsettle to rest-and-digest?",   // moved here from the in-game invitations (Dani 2026-09-10)
   "If our thoughts are clouds,\nwe are the sky.",
   "We are the ocean, not the waves."
 ];
@@ -1988,15 +2081,49 @@ function setLoadingScreenText(){
   document.getElementById('loadCat').setAttribute('aria-label', LOAD_CAT_DESC);
 }
 
+/* the loading mouse walks the short line 0 -> 1; when it arrives, reveal the Begin
+   arrow. Returns a canceller (an early advance drops a pending walk). The screen still
+   WAITS for the player — the walk is a gentle visual "loading" and the cue that Begin
+   is ready; it never auto-advances. (Dani 2026-09-10: bring the mouse back, and the
+   arrow appears once the mouse finishes.) */
+const LOAD_TRACK_START = 175, LOAD_TRACK_LEN = 520, LOAD_MOUSE_HALF = 66;   // reference units (line kept short so the mouse stops well before the Begin arrow)
+function startMouseWalk(onArrive){
+  const fill  = document.getElementById('loadFill');
+  const mouse = document.getElementById('loadMouse');
+  const setP = (p)=>{
+    p = Math.max(0, Math.min(1, p));
+    if (fill)  fill.style.width  = 'calc(' + (p*LOAD_TRACK_LEN).toFixed(1) + ' * var(--u))';
+    if (mouse) mouse.style.left  = 'calc(' + (LOAD_TRACK_START + p*LOAD_TRACK_LEN - LOAD_MOUSE_HALF).toFixed(1) + ' * var(--u))';
+  };
+  setP(0);
+  if (reducedMotion()){                       // no walk animation — settle at the end, then reveal
+    setP(1);
+    const t = setTimeout(onArrive, 900);      // still a beat to read first
+    return ()=> clearTimeout(t);
+  }
+  const DUR = 8500;                            // a calm, slow walk — the mindful pause
+  let raf = 0, start = 0, cancelled = false;
+  const step = (ts)=>{
+    if (cancelled) return;
+    if (!start) start = ts;
+    const p = (ts - start) / DUR;
+    setP(p);
+    if (p < 1) raf = requestAnimationFrame(step);
+    else onArrive();
+  };
+  raf = requestAnimationFrame(step);
+  return ()=>{ cancelled = true; if (raf) cancelAnimationFrame(raf); };
+}
 function runLoading(finish){
   setLoadingScreenText();
   // Seat the screen-reader cursor on the teaching line (step 1) so it reads promptly;
   // swipe advances to the cat (step 2), then the Begin button (step 3).
   moveATCursorTo('loadPrompt');
   let finished = false;
-  // The arrow fades in ~10s in — matching the old loading auto-advance timing.
-  const cancelArrow = revealArrowLater('loadNext', 10000);
-  const done = ()=>{ if(finished) return; finished = true; cancelArrow(); advanceScreen = null; finish(); };
+  // The Begin arrow starts hidden and appears when the mouse finishes walking the line.
+  document.getElementById('loadNext').classList.remove('revealed');
+  const cancelWalk = startMouseWalk(()=> document.getElementById('loadNext').classList.add('revealed'));
+  const done = ()=>{ if(finished) return; finished = true; cancelWalk(); advanceScreen = null; finish(); };
   advanceScreen = done;
   // Advance ONLY via the Begin button — NOT a whole-screen tap. In VoiceOver a
   // double-tap activates the focused item, so a whole-screen advance stole every
@@ -2056,7 +2183,7 @@ function startupFlow(){
     // In the frozen preview, reveal the Begin arrow right away so it can be
     // inspected without waiting out the timed fade-in.
     if (pv === 'welcome') document.getElementById('welNext').classList.add('revealed');
-    if (pv === 'loading') document.getElementById('loadNext').classList.add('revealed');
+    if (pv === 'loading'){ startMouseWalk(()=> document.getElementById('loadNext').classList.add('revealed')); }
     return;
   }
   // The welcome screen shows every launch and now WAITS for the player — no
