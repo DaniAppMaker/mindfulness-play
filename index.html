@@ -1524,7 +1524,7 @@ function renderTopRow(){
   if (state.stock.length){
     draw = cardEl({ id:'stock', faceUp:false });
     draw.tabIndex = 0;
-    draw.setAttribute('aria-label', `Draw pile, ${state.stock.length} card${state.stock.length===1?'':'s'} left. Activate to turn one.`);
+    draw.setAttribute('aria-label', `Draw pile. Activate to turn one.`);
     draw.onclick = drawStock;
     draw.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); drawStock(); } };
   } else {
@@ -1652,13 +1652,16 @@ function renderTableau(){
         // and whether it's the free (top) card or has cards resting on it.
         const above = pile.length - 1 - idx;
         let lbl = `${cardName(card)}, column ${col+1}`;
-        if (above === 0){
-          lbl += ', top card';
-          const hidden = pile.filter(c=>!c.faceUp).length;
-          if (hidden) lbl += `, ${hidden} card${hidden>1?'s':''} face down below`;
-        } else {
-          lbl += `, ${above} card${above>1?'s':''} resting on top`;
-        }
+        if (above === 0) lbl += ', top card';
+        else             lbl += `, ${above} card${above>1?'s':''} resting on top`;
+        // List every face-up card in this column, so wherever a blind player lands they
+        // hear the whole playable run (Dani 2026-09-10: the face-DOWN count was noise —
+        // a sighted player can't see it either; which cards are face UP is the essential
+        // thing to plan a move). Only when more than one is face up — a lone top card
+        // has already named itself.
+        const faceUp = pile.filter(c=>c.faceUp);
+        if (faceUp.length > 1)
+          lbl += `. Face up in this column: ${faceUp.map(c=>cardName(c)).join(', ')}`;
         el.setAttribute('aria-label', lbl + '.');
         el.onclick = (e)=>{ e.stopPropagation(); autoMove('tableau', col, idx); };
         makeDraggable(el, 'tableau', col, idx);   // tap still works; drag is added on top
