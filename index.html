@@ -567,40 +567,42 @@
        every element is placed by the spec's 1080x2160 reference
        coordinates via calc(<ref> * var(--u)). The loading line and the
        win invitation are PLACEHOLDERS until Dani writes the real words. -->
-  <!-- Welcome. For SCREEN READERS (Dani's iPhone, 2026-09-10 attempt 4) this reads as
-       three ordered stops, then silence:
-         1. #welNarration's role="img" LABEL — the intro script + cat scene (spoken,
-            invisible to sighted players).
-         2. the visible words inside it (#welBrand / #welHeading / #welSub) — "the words
-            on screen." Her iPhone's VoiceOver does NOT flatten role="img", so it reads
-            these descendant texts too. Standard VoiceOver would skip them; we lean into
-            her device's behavior on purpose.
-         3. #welNext — the "Begin" button (a SIBLING, z-index:4 above the narration).
-       History of what FAILED on her device (all confirmed on her real iPhone):
-         • hiding the words with aria-hidden / inert / aria-modal — IGNORED, words still
-           read (and, with a full label, read TWICE).
-         • NOT nesting them (a plain visually-hidden intro <p> she landed on) — the cursor
-           STOPPED on the hidden intro and never advanced to the words or the button.
-       So this version: a full-screen role="img" narration reliably reads AND advances the
-       cursor; its label is JUST the intro+cat (no repeated words); the descendants supply
-       the words once, in order. The cat is a BACKGROUND image (#welCat, a <div>) so it has
-       no accessibility node and is never announced as "image" between the words and Begin
-       (her VoiceOver announced even alt="" imgs). -->
+  <!-- Welcome. For SCREEN READERS (Dani's iPhone, 2026-09-10 attempt 5) this reads as
+       three ordered stops, each ONCE, then silence:
+         1. #welCat — the CAT is the one role="img", and its aria-LABEL is the spoken
+            intro + cat scene. It's a REAL, full-size element (not a 1px hidden <p>), so
+            focusing it and swiping advances cleanly. It has NO text descendants, so
+            nothing here can be read twice.
+         2. #welBrand / #welHeading / #welSub — "the words on screen." Now PLAIN text
+            (NOT nested inside any role="img"), so VoiceOver reads them exactly ONCE.
+         3. #welNext — the "Begin the game" button. #welNarration is now a PLAIN
+            positioning <div> (no role="img"), so it no longer "swallows" the region and
+            the button is a normal, reachable control. After it, VoiceOver goes quiet.
+       Why this shape (all prior failures confirmed on her real iPhone):
+         • role="img" ON THE CONTAINER with the words inside it → the words were read
+           TWICE (image label + descendants) AND the Begin button was never reached (the
+           full-screen role="img" swallowed it). [attempt 4]
+         • words hidden with aria-hidden / inert / aria-modal → IGNORED, still read.
+         • a plain visually-hidden intro <p> she landed on → cursor STOPPED on it and
+           never advanced. [attempt 3]
+       So: the spoken intro rides on the cat (a real image element that advances fine),
+       the words are plain read-once text, and the container carries no role so the button
+       stays reachable. The cat is a background image on #welCat (its picture has no
+       separate a11y node; the intro comes from its aria-label). -->
   <div class="screen fade" id="screenWelcome">
     <div class="screen-col">
-      <div id="welNarration" role="img" tabindex="-1" style="position:absolute; inset:0; z-index:2;"
-           aria-label="Welcome to Mindfulness Play. This is a game of solitaire with invitations to mindfulness sprinkled in. It's an opportunity to take a break and to bridge mindfulness into real life, away from the meditation cushion. On the screen, a soft peaceful watercolor cat sits in a meditation pose, warm pink melting into golden yellow, eyes gently closed and paws folded.">
-        <!-- The cat as a BACKGROUND image (no <img>, so no a11y node / never spoken). -->
-        <div class="scr-art" id="welCat" aria-hidden="true"></div>
-        <!-- STEP 2: the words on screen. Read by VoiceOver as descendants of the role=img
-             on Dani's iPhone (see the header note). -->
+      <div id="welNarration" style="position:absolute; inset:0; z-index:2;">
+        <!-- STEP 1: the cat carries the spoken intro as its aria-label. Real full-size
+             element, so focus + swipe advance cleanly; no text descendants to double-read. -->
+        <div class="scr-art" id="welCat" role="img" tabindex="-1"
+             aria-label="Welcome to Mindfulness Play. This is a game of solitaire with invitations to mindfulness sprinkled in. It's an opportunity to take a break and to bridge mindfulness into real life, away from the meditation cushion. On the screen, a soft peaceful watercolor cat sits in a meditation pose, warm pink melting into golden yellow, eyes gently closed and paws folded."></div>
+        <!-- STEP 2: the words on screen. Plain text, NOT inside a role="img", so read ONCE. -->
         <h1 class="scr-text" id="welBrand">Mindfulness Play<sup class="tm" aria-hidden="true">&trade;</sup></h1>
         <p  class="scr-text" id="welHeading">Welcome to mindful play</p>
         <p  class="scr-text" id="welSub">Mindfulness, woven into everyday moments</p>
       </div>
-      <!-- STEP 3: the Begin button. Sibling of the narration (NOT inside the role=img),
-           z-index:4 so it sits above and stays reachable. After it the screen ends and
-           VoiceOver goes quiet. -->
+      <!-- STEP 3: the Begin button. Sibling of the (now plain) narration div, z-index:4 so
+           it sits above and stays reachable. After it the screen ends and VoiceOver quiets. -->
       <button type="button" class="next-arrow" id="welNext" aria-label="Begin the game">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4.5" y1="12" x2="18" y2="12"/><polyline points="12.5 6 18.5 12 12.5 18"/></svg>
       </button>
@@ -2045,7 +2047,7 @@ function startupFlow(){
   // when VoiceOver is already on as the page opens (if it's switched on afterwards,
   // iOS starts its own cursor at the top and this can't override it). Same trick as
   // revealBoardForAT() for the board.
-  moveATCursorTo('welNarration');   // land VO on the role=img narration (reads label + words, then Begin)
+  moveATCursorTo('welCat');   // land VO on the cat (role=img, intro label); swipe → words → Begin
   // The Begin arrow fades in ~5s in — matching the old welcome auto-advance
   // timing — so the greeting is read before the arrow draws the eye.
   const cancelWelArrow = revealArrowLater('welNext', 5000);
