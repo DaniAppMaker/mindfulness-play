@@ -499,7 +499,12 @@
   }
   /* ---- Loading (spec Screen 2) ---- */
   #loadPrompt{ top:calc(440 * var(--u));  font-size:calc(52 * var(--u)); line-height:1.22; white-space:pre-line; }
-  #loadCat{    left:calc(300 * var(--u)); top:calc(780 * var(--u));  width:calc(480 * var(--u)); }
+  #loadCat{    left:calc(300 * var(--u)); top:calc(780 * var(--u));  width:calc(480 * var(--u)); aspect-ratio:1371 / 1727; background:url("assets/interface/paw-licking-cat.png") center/contain no-repeat; }
+  /* #loadPrompt and #loadCat are focused programmatically to seat the VoiceOver cursor;
+     both are non-interactive (tabindex=-1, never keyboard-tabbable), so hide the blue
+     focus ring. VoiceOver draws its own cursor, so this doesn't affect screen readers.
+     (Same as #welCat:focus on the welcome screen.) */
+  #loadPrompt:focus, #loadCat:focus{ outline:none; }
   /* (the timed loading bar + mouse were retired 2026-09-06 — the screen now
      waits for a tap, so there is nothing to "load") */
   /* ---- After winning (spec Screen 3) ---- */
@@ -614,20 +619,32 @@
     </div>
   </div>
 
-  <!-- Loading. Same one-ordered-narration approach as the welcome screen: the whole
-       screen reads start to finish wherever a VoiceOver player taps. The teaching
-       line changes each visit, so #loadNarration's label is built in runLoading()
-       (teaching line + cat + Begin step). Visible pieces are hidden from VoiceOver. -->
+  <!-- Loading. Same winning recipe as the welcome screen (Dani-approved 2026-09-10):
+       three ordered stops for VoiceOver, each read ONCE, then silence —
+         1. #loadPrompt — the changing teaching line / invitation. Visible text, read
+            once; it's the point of the pause, so the VoiceOver cursor lands here first
+            (moveATCursorTo('loadPrompt') in runLoading).
+         2. #loadCat — the cat, a role="img" whose aria-label is the cat description
+            (set in setLoadingScreenText). A real full-size element; the picture is a
+            CSS background so there is no stray "image" node.
+         3. #loadNext — the "Begin the game" button (plain sibling, always reachable).
+       #loadNarration is now a PLAIN positioning <div> (NO role="img"), so it no longer
+       "swallows" the Begin button, and nothing is nested inside a role="img", so nothing
+       is double-read. (Replaces the old one-blob role="img" narration, which on Dani's
+       iPhone double-read the line and hid the Begin button.) -->
   <div class="screen fade" id="screenLoading">
     <div class="screen-col">
-      <!-- Same fix as the welcome screen: the quote + cat live INSIDE #loadNarration
-           (role="img"), so VoiceOver reads only the label and never these pieces
-           separately. loadNarration's label is built in runLoading(). -->
-      <div id="loadNarration" role="img" tabindex="-1" style="position:absolute; inset:0; z-index:2;" aria-label="">
-        <p class="scr-text" id="loadPrompt" aria-hidden="true"></p>
-        <img class="scr-art" id="loadCat" src="assets/interface/paw-licking-cat.png" alt="" aria-hidden="true">
+      <div id="loadNarration" style="position:absolute; inset:0; z-index:2;">
+        <!-- STEP 1: the teaching line — visible AND read once. tabindex=-1 so the cursor
+             can land here first. Text set each visit in setLoadingScreenText(). -->
+        <p class="scr-text" id="loadPrompt" tabindex="-1"></p>
+        <!-- STEP 2: the cat, background image + role="img"; its aria-label (the cat
+             description) is set in setLoadingScreenText(). -->
+        <div class="scr-art" id="loadCat" role="img" tabindex="-1" aria-label=""></div>
       </div>
-      <button type="button" class="next-arrow" id="loadNext" aria-label="Begin the game">
+      <!-- STEP 3: the Begin button. Plain sibling of the (now plain) narration div. Its
+           label folds in the "you can skip the description" heads-up for new players. -->
+      <button type="button" class="next-arrow" id="loadNext" aria-label="Begin the game. When you begin, you can listen to a short description of the game, or tap anything to skip it.">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4.5" y1="12" x2="18" y2="12"/><polyline points="12.5 6 18.5 12 12.5 18"/></svg>
       </button>
     </div>
@@ -1953,28 +1970,26 @@ function revealArrowLater(id, delay){
   return ()=>{ clearTimeout(t); };
 }
 
-/* the cat on the loading screen, described for the one-narration read (the loadCat
-   img itself is hidden from VoiceOver; this text goes into #loadNarration instead) */
+/* the cat on the loading screen, spoken as the #loadCat role="img" aria-label (step 2
+   of the three ordered stops — see the #screenLoading markup note) */
 const LOAD_CAT_DESC = 'On the screen: a soft blue-green and peach watercolor cat pauses to groom — one front paw lifted, showing its little paw pads, head tilted to give it a lick, eyes closed and content — cute, and a little bit funny.';
 
-/* pick a teaching line, show it for sighted players, and build the loading screen's
-   ONE ordered narration (teaching line, then cat, then the Begin step) so a VoiceOver
-   player hears it all wherever they tap. The teaching line carries \n line-breaks for
-   the VISUAL layout; flatten them to spaces and add a full stop so it reads as a clean
-   sentence, not a run-on. Shared by runLoading() and the ?preview=loading harness. */
+/* pick a teaching line and set the loading screen's two spoken pieces:
+   • #loadPrompt — the visible teaching line, which VoiceOver reads once as step 1.
+   • #loadCat    — its aria-label (the cat description), read as step 2.
+   The Begin button (step 3) carries its own label in the markup. Shared by runLoading()
+   and the ?preview=loading harness. */
 function setLoadingScreenText(){
   const line = pickLoadingLine();
-  document.getElementById('loadPrompt').textContent = line;   // visible for sighted players
-  const spoken = line.replace(/\s+/g, ' ').trim();
-  const teaching = /[.!?]$/.test(spoken) ? spoken : spoken + '.';
-  document.getElementById('loadNarration').setAttribute('aria-label',
-    `${teaching} ${LOAD_CAT_DESC} After you tap Begin, you can listen to the game description, or tap anything to skip it. When you are ready, swipe to find the Begin button and double-tap it to continue.`);
+  document.getElementById('loadPrompt').textContent = line;          // visible AND read once
+  document.getElementById('loadCat').setAttribute('aria-label', LOAD_CAT_DESC);
 }
 
 function runLoading(finish){
   setLoadingScreenText();
-  // Jump the screen-reader cursor to that narration so it's read promptly.
-  moveATCursorTo('loadNarration');
+  // Seat the screen-reader cursor on the teaching line (step 1) so it reads promptly;
+  // swipe advances to the cat (step 2), then the Begin button (step 3).
+  moveATCursorTo('loadPrompt');
   let finished = false;
   // The arrow fades in ~10s in — matching the old loading auto-advance timing.
   const cancelArrow = revealArrowLater('loadNext', 10000);
