@@ -51,7 +51,13 @@
     --stack-down: calc(32 * var(--u));  /* face-down overlap (spec §7) */
     --stack-up:   calc(68 * var(--u));  /* face-up overlap, reveals the full rank + suit */
   }
-  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent;
+     /* No iOS long-press "Save Image"/share callout and no text selection anywhere —
+        a card must NEVER pop up as a saveable image, however it's tapped (Dani
+        2026-09-10). VoiceOver still reads everything; this only blocks the native
+        image/selection menus. */
+     -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
+  img{ -webkit-user-drag:none; user-drag:none; }   /* images can't be dragged out or long-pressed to save */
   html,body{ margin:0; height:100%; }
   body{
     font-family:"Garamond","EB Garamond","Georgia",serif;
@@ -509,7 +515,7 @@
      175u to 775u) so the mouse stops well left of the Begin arrow (whose left edge is
      ~892u) and never overlaps it. JS animates #loadFill width + #loadMouse left. */
   #loadTrack{ position:absolute; left:calc(175 * var(--u)); top:calc(1760 * var(--u));
-              width:calc(520 * var(--u)); height:calc(5 * var(--u)); border-radius:999px;
+              width:calc(730 * var(--u)); height:calc(5 * var(--u)); border-radius:999px;
               background:rgba(191,164,151,0.41); }
   #loadFill{  position:absolute; left:0; top:calc(-1 * var(--u)); height:calc(7 * var(--u));
               width:0; border-radius:999px; background:rgba(206,137,151,0.69); }
@@ -543,6 +549,11 @@
        #live can never erase a gentle invitation before it's spoken (Dani 2026-09-10:
        invitations were sometimes not read at all, and never got a beat of their own). -->
   <div id="liveInvite" class="visually-hidden" role="status" aria-live="polite"></div>
+  <!-- Parked here when the winning "cards fly home" cascade starts: the VoiceOver cursor
+       is moved onto this so it announces the win and does NOT read each card as they fly
+       (the board re-renders per card). Focusable (tabindex=-1), outside #app so the
+       cascade's re-renders never destroy it. (Dani 2026-09-10) -->
+  <p id="winStatus" class="visually-hidden" tabindex="-1"></p>
   <p id="sr-intro" class="visually-hidden" tabindex="-1">
     Listen to the game description, or tap anywhere to skip it. To hear it again
     later, tap the top of the screen with four fingers, or swipe left back to the
@@ -807,24 +818,32 @@ function applyA11y(){
   // in-app toggle. "Bigger cards" was removed — the cards already open at max size.
   if (state) render();          // left-handed changes card X positions
 }
+/* While an invitation "has the floor" (see announceInvite), move descriptions stay
+   quiet so nothing talks over it and the player gets a real beat to enact it. */
+let invitationQuietUntil = 0;
+function invitationHasFloor(){ return Date.now() < invitationQuietUntil; }
 function announce(msg){
+  if (invitationHasFloor()) return;          // an invitation is speaking — don't talk over it
   const live = document.getElementById('live');
   if (!live || !msg) return;
   live.textContent = '';
   requestAnimationFrame(()=>{ live.textContent = msg; });
 }
-/* Invitations speak through their OWN polite region (#liveInvite), so a busy stream of
-   move announcements in #live can never overwrite them (Dani: invitations were getting
-   dropped when she played fast). A short delay lets the move that triggered it finish
-   first, so the invitation arrives as its own quiet beat rather than piled onto the move
-   (Dani: "no pause for the player to enact the invitation"). */
+/* Invitations speak through their OWN polite region (#liveInvite) AND claim a quiet
+   window: for a few seconds move descriptions (announce) and the after-move cursor-follow
+   go silent, so even a player who keeps playing hears the WHOLE invitation, then a pause
+   to enact it, and only then does VoiceOver resume describing moves (Dani 2026-09-10).
+   The short delay lets the move that triggered it land first. */
 let inviteSpeakTimer = null;
 function announceInvite(msg){
   const live = document.getElementById('liveInvite');
   if (!live || !msg) return;
   clearTimeout(inviteSpeakTimer);
   live.textContent = '';
-  inviteSpeakTimer = setTimeout(()=>{ live.textContent = msg; }, 1300);
+  const DELAY = 1000;   // let the just-made move's announcement finish
+  const HOLD  = 8000;   // then the invitation owns the floor: time to read it + a beat to enact
+  invitationQuietUntil = Date.now() + DELAY + HOLD;
+  inviteSpeakTimer = setTimeout(()=>{ live.textContent = msg; }, DELAY);
 }
 const RANK_NAMES = { A:'Ace', J:'Jack', Q:'Queen', K:'King' };
 const SUIT_NAMES = { '♠':'spades', '♥':'hearts', '♦':'diamonds', '♣':'clubs' };
@@ -1261,7 +1280,15 @@ function autoCompleteStep(){
 function maybeAutoComplete(){
   if (!boardCanAutoComplete()) return;
   autoCompleting = true;
-  announce('You did it — sending the rest home.');
+  // Move the VoiceOver cursor OFF the board onto a stable win message, so it announces
+  // the win once and doesn't try to read each card as the cascade re-renders them home
+  // (Dani 2026-09-10: it kept naming every flying card until the win screen). This
+  // element lives outside #app, so the per-card re-renders never destroy it.
+  const ws = document.getElementById('winStatus');
+  if (ws){
+    ws.textContent = 'You did it! The cards are floating home on their own now. You won!';
+    try { ws.focus(); } catch(e){}
+  }
   setTimeout(autoCompleteStep, 340);
 }
 
@@ -1299,7 +1326,7 @@ function afterMove(){
   // emptying a column (the cursor got stuck over neighbouring columns and their cards
   // couldn't be selected — just beeps — until a draw forced a re-sync). Only for the
   // keyboard/screen-reader path; :focus-visible means sighted mouse players see no ring.
-  if (movedId != null && !autoCompleting){
+  if (movedId != null && !autoCompleting && !invitationHasFloor()){
     const el = document.querySelector(`.card[data-id="${movedId}"]`);
     if (el){ try { el.focus(); } catch(e){} }
   }
@@ -1424,6 +1451,14 @@ const DRAG_THRESHOLD = 5;    // px of travel before a press counts as a drag
 document.addEventListener('click', e=>{
   if (suppressClick){ e.stopPropagation(); e.preventDefault(); suppressClick = false; }
 }, true);
+
+// Belt-and-suspenders with the CSS -webkit-touch-callout:none: block the right-click /
+// long-press context menu everywhere, so a card image can never open a "Save Image"
+// pop-up, whatever the tap timing (Dani 2026-09-10).
+document.addEventListener('contextmenu', e=>{ e.preventDefault(); });
+// iOS also offers "Save Image" from a slow double-tap that lands as a drag on an <img>;
+// suppressing the native dragstart removes that path too.
+document.addEventListener('dragstart', e=>{ e.preventDefault(); });
 
 // mark a card (and the run under it) as draggable from a given source
 function makeDraggable(el, where, colIndex, cardIndex){
@@ -2086,7 +2121,7 @@ function setLoadingScreenText(){
    WAITS for the player — the walk is a gentle visual "loading" and the cue that Begin
    is ready; it never auto-advances. (Dani 2026-09-10: bring the mouse back, and the
    arrow appears once the mouse finishes.) */
-const LOAD_TRACK_START = 175, LOAD_TRACK_LEN = 520, LOAD_MOUSE_HALF = 66;   // reference units (line kept short so the mouse stops well before the Begin arrow)
+const LOAD_TRACK_START = 175, LOAD_TRACK_LEN = 730, LOAD_MOUSE_HALF = 66;   // reference units — full original length (the Begin arrow sits BELOW the line, so no overlap)
 function startMouseWalk(onArrive){
   const fill  = document.getElementById('loadFill');
   const mouse = document.getElementById('loadMouse');
