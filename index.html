@@ -462,6 +462,11 @@
   }
   /* ---- Welcome (spec Screen 1) ---- */
   #welCat{     left:calc(256 * var(--u)); top:calc(490 * var(--u));  width:calc(700 * var(--u)); aspect-ratio:1444 / 1399; background:url("assets/interface/meditating-cat.png") center/contain no-repeat; }
+  /* #welCat is focused programmatically (moveATCursorTo) to seat the VoiceOver cursor
+     on the spoken intro; it's a decorative picture with tabindex=-1 (never keyboard-
+     tabbable), so suppress the browser's blue focus ring. VoiceOver draws its own
+     cursor separately, so this does not affect screen-reader users. */
+  #welCat:focus{ outline:none; }
   #welBrand{   top:calc(1338 * var(--u)); font-size:calc(78 * var(--u)); font-weight:600; letter-spacing:.005em; }
   #welBrand .tm{ font-size:.56em; font-weight:600; vertical-align:baseline; position:relative; top:-.46em; }
   #welHeading{ top:calc(1456 * var(--u)); font-size:calc(48 * var(--u)); color:#4C4644; }
