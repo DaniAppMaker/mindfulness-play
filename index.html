@@ -2272,5 +2272,17 @@ applyA11y();
 deal();                 // deal() clears the prompt space; invitations drift in during play
 startupFlow();
 </script>
+
+<!-- Offline "memory": saves the app + all pictures onto the phone so it
+     works with no internet after the first visit. See sw.js for details. -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {
+        /* No offline mode (e.g. private browsing) — the app still works online. */
+      });
+    });
+  }
+</script>
 </body>
 </html>
