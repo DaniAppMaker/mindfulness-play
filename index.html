@@ -568,7 +568,7 @@
   <p id="winStatus" class="visually-hidden" tabindex="-1"></p>
   <p id="sr-intro" class="visually-hidden" tabindex="-1">
     Listen to the game description, or tap anywhere to skip it. To hear it again
-    later, swipe left until you reach the top of the screen. Mindfulness Play, a
+    later, find and double-tap the cat at the top of the screen. Mindfulness Play, a
     calm game of solitaire. Your goal is to send every card
     home to the four foundation piles, each built up from Ace to King. The board,
     in reading order, is: first a cat and a mouse resting together at the top, then
@@ -589,7 +589,13 @@
     <!-- prompt focal group -->
     <div id="prompt">
       <div id="promptPets">
-        <img id="promptCat" src="assets/interface/prompt-cat.png" alt="A cute cat is playfully upside down on its back, curled and gazing at you with its paws curled. It is a watercolor splotch of lilac melting into pink, and ink drawings turn the splotch into this content, playful critter.">
+        <!-- The top cat doubles as the "hear the description again" control for
+             VoiceOver players (Dani 2026-09-12): reaching #sr-intro by swiping is
+             impractical (it sits behind all 52 cards), so double-tapping this cat
+             re-reads the whole game description. Wired in JS (replayIntro). -->
+        <img id="promptCat" src="assets/interface/prompt-cat.png" role="button" tabindex="0"
+             aria-label="The resting cat: playfully upside down on its back in lilac-and-pink watercolor, paws curled, gazing at you. Double-tap to hear the game description again."
+             alt="A cute cat playfully upside down on its back, paws curled, gazing at you; a lilac-and-pink watercolor splotch turned into a playful critter with ink.">
         <img id="promptMouse" src="assets/interface/prompt-mouse.png" alt="A tiny watercolor mouse in soft blue — a round ear, a dot for an eye, whiskers, and a long curly tail — resting quietly near the cat, the two of them at ease together.">
       </div>
       <div id="promptText"></div>
@@ -689,7 +695,10 @@
            out of the VoiceOver path (teaching line -> cat -> Begin). The mouse is a
            background image (like the cat) so it's never announced as "image". The line is
            kept short so the mouse stops well before the arrow and never overlaps it. -->
-      <div id="loadTrack" aria-hidden="true"><div id="loadFill"></div></div>
+      <!-- Now a spoken VoiceOver stop BETWEEN the cat and Begin (Dani 2026-09-12):
+           cat → this loading line + mouse → Begin. The mouse stays a background
+           image folded into THIS label, so it's described once, not double-read. -->
+      <div id="loadTrack" role="img" tabindex="-1" aria-label="There is a line showing the loading progress, with a cute watercolor and ink toy mouse moving along it."><div id="loadFill"></div></div>
       <div id="loadMouse" aria-hidden="true"></div>
       <!-- STEP 3: the Begin button. Plain sibling of the (now plain) narration div. Its
            label folds in the "you can skip the description" heads-up for new players. -->
@@ -2006,6 +2015,18 @@ document.getElementById('btnPaw').onclick    = ()=> showInvitation(true);
 document.getElementById('btnHint').onclick   = showHint;
 document.getElementById('btnAppear').onclick = openSettings;
 
+/* The top cat replays the game description for VoiceOver players (Dani 2026-09-12):
+   reaching #sr-intro by swiping is impractical, so double-tapping the cat re-reads
+   it. Focusing #sr-intro re-reads the whole thing — the same mechanism used when
+   the board first appears. */
+function replayIntro(){ moveATCursorTo('sr-intro'); }
+(function(){
+  const cat = document.getElementById('promptCat');
+  if (!cat) return;
+  cat.onclick = replayIntro;
+  cat.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); replayIntro(); } };
+})();
+
 document.getElementById('menuNew').onclick   = ()=>{ closeOverlay('menu'); deal(); };
 document.getElementById('menuClose').onclick = ()=>{ closeOverlay('menu'); document.getElementById('btnMenu').focus(); };
 document.getElementById('menu').addEventListener('click', e=>{ if(e.target.id==='menu') closeOverlay('menu'); });
@@ -2354,7 +2375,7 @@ startupFlow();
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 12 · b7 (SR game screen)';
+  var BUILD_TAG = 'Sep 12 · b8 (SR loading + intro cat)';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
