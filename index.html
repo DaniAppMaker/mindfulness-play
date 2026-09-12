@@ -255,6 +255,12 @@
     animation:recyclePulse 2.6s ease-in-out infinite;
   }
   @keyframes recyclePulse{ 0%,100%{ opacity:.5; } 50%{ opacity:.82; } }
+  /* When the last card is turned, the empty draw slot (ghost deck + recycle
+     arrow) fades in gently — nothing moves or scales — then the arrow keeps its
+     subtle pulse until tapped (Dani 2026-09-12). Only added on the first render
+     after the pile empties; global reduce-motion stills it. */
+  @keyframes recycleEnter{ from{ opacity:0; } to{ opacity:1; } }
+  .slot.recycle.recycle-enter{ animation:recycleEnter .55s ease both; }
 
   /* ================= foundation / waste / draw row (spec §6) ================= */
   #topRow{
@@ -266,7 +272,13 @@
   #wasteFan{ position:absolute; inset:0; pointer-events:none; }
   .wastecard{
     transition:left .30s cubic-bezier(.22,1,.36,1), opacity .24s ease;
-    will-change:left;
+    /* Ride on the card's own GPU layer so sliding a card whose art carries a
+       drop-shadow filter doesn't leave faint vertical repaint trails on mobile
+       Safari (Dani 2026-09-12). translateZ(0) forces the layer; the filtered
+       image then repaints cleanly as the card moves, instead of smearing. */
+    transform:translateZ(0);
+    -webkit-transform:translateZ(0);
+    will-change:transform;
   }
   /* the draw pile must always sit above the waste layer, so a card sliding off
      it (or lingering after the slide) can never intercept a tap meant to turn
@@ -1350,11 +1362,10 @@ function drawStock(){
     announce('Gathered the used cards back into the draw pile.');
   }
   render();
-  // the moment the stock empties, breathe the draw pile once (the same gentle
-  // pulse a hint uses) so players see they can turn the cards again — the point
-  // where testers otherwise thought the game was over. The recycle arrow stays
-  // visible after; reduce-motion stills the breathe but keeps the arrow.
-  if (drew && state.stock.length === 0) flashDrawPile();
+  // When the stock empties we NO LONGER pulse/scale the pile (Dani 2026-09-12:
+  // the "bigger and smaller" breathe was distracting). Instead the empty draw
+  // slot's recycle arrow gently FADES IN and then keeps its own subtle flash
+  // until the player taps it — see renderTopRow (recycle-enter) + CSS.
   // turning a card is a move too — let it count toward the next invitation
   if (drew) progressInvites();
   // the reformed pile gives a soft settle so the gather reads as a gentle motion
@@ -1362,13 +1373,6 @@ function drawStock(){
     const pile = document.querySelector('.drawpile');
     if (pile){ pile.classList.add('refill'); setTimeout(()=>pile.classList.remove('refill'), 460); }
   }
-}
-
-/* one gentle "breathe" on the draw pile — the very same pulse a hint uses —
-   to show the pile can be turned again. (Global reduce-motion stills it.) */
-function flashDrawPile(){
-  const pile = document.querySelector('.drawpile');
-  if (pile){ pile.classList.add('hint'); setTimeout(()=>pile.classList.remove('hint'), 2500); }
 }
 
 /* ================= rendering ================= */
@@ -1610,6 +1614,10 @@ function render(){
   renderTableau();
 }
 
+// true once the empty-draw-pile recycle arrow has faded in, so its gentle
+// fade-in plays only on the first render after the pile empties — not on every
+// later re-render while it stays empty. Reset when the pile has cards again.
+let drawEmptyShown = false;
 function renderTopRow(){
   const row = document.getElementById('topRow');
   // keep the persistent waste fan; rebuild only the foundations + draw pile
@@ -1649,8 +1657,14 @@ function renderTopRow(){
     draw.setAttribute('aria-label', `Draw pile.`);
     draw.onclick = drawStock;
     draw.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); drawStock(); } };
+    drawEmptyShown = false;              // pile has cards again — arm the fade-in for next time it empties
   } else {
     draw = makeSlot({ recycle:true, label:'Draw pile, empty.' });
+    // Gently fade the recycle arrow in the FIRST render after the pile empties;
+    // don't replay the fade on later re-renders while it stays empty, and never
+    // pulse/scale (Dani 2026-09-12). The arrow's own subtle flash continues.
+    if (!drawEmptyShown) draw.classList.add('recycle-enter');
+    drawEmptyShown = true;
     draw.onclick = drawStock;
     draw.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); drawStock(); } };
   }
@@ -1684,12 +1698,15 @@ function updateWaste(){
     el._retired = true;                  // stop any pending entry frame from moving it
     const stillBuried = waste.some(c=>c.id===id);
     if (stillBuried){
-      // pushed out of the fan by a newer card — fade out gently IN PLACE
-      // (no drift toward the foundations), then remove
+      // Pushed out of the fan by a newer card. Do NOT fade it out — keep it
+      // fully visible right where it is, tucked UNDER the fan (z-index 0). The
+      // card sliding onto its slot has a higher z-index and glides over it, so
+      // the slot is never briefly empty. Remove it only AFTER the slide has
+      // settled (Dani 2026-09-12: the oldest card must not disappear until the
+      // others have settled over it — no jarring gap).
       el.style.zIndex = '0';
       el.style.pointerEvents = 'none';
-      el.style.opacity = '0';
-      setTimeout(()=>el.remove(), 340);
+      setTimeout(()=>el.remove(), 360);
     } else {
       el.remove();   // played to a pile, or gathered back into the stock
     }
@@ -2310,7 +2327,7 @@ startupFlow();
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 12 · b4 (pile restored)';
+  var BUILD_TAG = 'Sep 12 · b5 (pile polish)';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
