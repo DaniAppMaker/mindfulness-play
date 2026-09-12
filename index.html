@@ -568,8 +568,8 @@
   <p id="winStatus" class="visually-hidden" tabindex="-1"></p>
   <p id="sr-intro" class="visually-hidden" tabindex="-1">
     Listen to the game description, or tap anywhere to skip it. To hear it again
-    later, tap the top of the screen with four fingers, or swipe left back to the
-    top. Mindfulness Play, a calm game of solitaire. Your goal is to send every card
+    later, swipe left until you reach the top of the screen. Mindfulness Play, a
+    calm game of solitaire. Your goal is to send every card
     home to the four foundation piles, each built up from Ace to King. The board,
     in reading order, is: first a cat and a mouse resting together at the top, then
     the four foundations and the draw pile, then the seven columns of cards, then
@@ -605,7 +605,7 @@
     <div id="buttons" role="group" aria-label="Game controls">
       <button class="ctrl" id="btnMenu"   aria-label="New game"><img src="assets/buttons/button-play.png" alt=""></button>
       <button class="ctrl" id="btnUndo"   aria-label="Undo the last move"><img src="assets/buttons/button-undo.png" alt=""></button>
-      <button class="ctrl" id="btnPaw"    aria-label="A little invitation"><img src="assets/buttons/button-paw.png" alt=""></button>
+      <button class="ctrl" id="btnPaw"    aria-label="An invitation to pause"><img src="assets/buttons/button-paw.png" alt=""></button>
       <button class="ctrl" id="btnHint"   aria-label="Show me a move"><img src="assets/buttons/button-hint.png" alt=""></button>
       <button class="ctrl" id="btnAppear" aria-label="Settings"><img src="assets/buttons/button-appearance.png" alt=""></button>
     </div>
@@ -744,7 +744,7 @@
   <div id="settings" class="overlay">
     <div class="panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
       <img class="panelArt paw" src="assets/interface/foundation-paw.png" alt="" aria-hidden="true">
-      <h2 id="settingsTitle">Settings</h2>
+      <h2 id="settingsTitle" tabindex="-1">Settings</h2>
 
       <div class="setrow">
         <div><div class="setlabel">Language</div><div class="sethint">English · Español · Français · coming soon</div></div>
@@ -983,7 +983,7 @@ function showInvitation(force){
   // just the paw-button ones. It's the heart of the app; a blind player mustn't
   // miss it. Its OWN polite region (announceInvite) so a flurry of move
   // announcements can't erase it, and it arrives a beat after the move.
-  announceInvite('A gentle invitation. ' + shown.replace(/\n/g, ' '));
+  announceInvite(shown.replace(/\n/g, ' '));   // read the invitation directly — no "a gentle invitation" preamble (Dani 2026-09-12)
   promptShowing = true;
   clearTimeout(promptHoldTimer);
   promptHoldTimer = setTimeout(hideInvitation, PROMPT_HOLD);
@@ -1048,16 +1048,32 @@ function deal(){
 /* ================= undo (snapshot the whole board before each move) ========= */
 let undoStack = [];
 function snapshot(){
-  undoStack.push(JSON.stringify(state));
+  undoStack.push({ snap: JSON.stringify(state), desc: '' });
   if (undoStack.length > 50) undoStack.shift();
 }
+/* Describe the move just made so Undo can say what it took back. Attaches to the
+   snapshot taken at the START of this move (the top of the stack). (Dani 2026-09-12) */
+function noteMove(desc){ if (undoStack.length) undoStack[undoStack.length-1].desc = desc; }
+/* Before Undo speaks: silence any in-flight invitation and clear BOTH spoken
+   regions, so undoing can never make VoiceOver re-read a stale invitation or a
+   "nudge" that's no longer on screen (Dani 2026-09-12 — the "weirdest thing").
+   Dropping the invitation floor lets Undo's own message be heard. */
+function clearSpokenForUndo(){
+  clearTimeout(inviteSpeakTimer);
+  invitationQuietUntil = 0;
+  const li = document.getElementById('liveInvite'); if (li) li.textContent = '';
+  const lv = document.getElementById('live');       if (lv) lv.textContent = '';
+  if (promptShowing) hideInvitation();
+}
 function undo(){
-  if (!undoStack.length){ announce('Nothing to take back yet.'); return; }
-  state = JSON.parse(undoStack.pop());
+  if (!undoStack.length){ clearSpokenForUndo(); announce('Nothing to take back yet.'); return; }
+  const entry = undoStack.pop();
+  state = JSON.parse(entry.snap);
   clearSelection();
   justRevealed.clear();
+  clearSpokenForUndo();
   render();
-  announce('Took back the last move.');
+  announce(entry.desc ? ('Took back ' + entry.desc + '.') : 'Took back the last move.');
 }
 
 /* ================= move rules ================= */
@@ -1161,6 +1177,7 @@ function autoMove(where, colIndex, cardIndex){
         removeFromSource(where, colIndex, cardIndex);
         state.foundations[f].push(moving);
         announce(`${cardName(moving)} sent home to its foundation.`);
+        noteMove(`the ${cardName(moving)} going home to its foundation`);
         afterMove(); return;
       }
     }
@@ -1177,6 +1194,7 @@ function autoMove(where, colIndex, cardIndex){
       removeFromSource(where, colIndex, cardIndex);
       cards.forEach(c=>state.tableau[d].push(c));
       announce(`Placed ${cardName(moving)} onto ${cardName(onto)}.`);
+      noteMove(`the ${cardName(moving)} moving onto the ${cardName(onto)}`);
       afterMove(); return;
     }
   }
@@ -1196,6 +1214,7 @@ function autoMove(where, colIndex, cardIndex){
           removeFromSource(where, colIndex, cardIndex);
           cards.forEach(c=>state.tableau[d].push(c));
           announce(`Placed ${cardName(moving)} in an empty column.`);
+          noteMove(`the ${cardName(moving)} moving to an empty column`);
           afterMove(); return;
         }
       }
@@ -1357,12 +1376,14 @@ function drawStock(){
     const c = state.stock.pop(); c.faceUp = true; state.waste.push(c);
     announce(`Turned ${cardName(c)}.` + (state.stock.length === 0
       ? ' That was the last card — tap the draw pile to turn them all again.' : ''));
+    noteMove(`turning the ${cardName(c)}`);
     drew = true;
   } else {
     snapshot();
     while (state.waste.length){ const c = state.waste.pop(); c.faceUp=false; state.stock.push(c); }
     recycled = true;
     announce('Gathered the used cards back into the draw pile.');
+    noteMove('gathering the used cards back into the draw pile');
   }
   render();
   // When the stock empties we NO LONGER pulse/scale the pile (Dani 2026-09-12:
@@ -1585,12 +1606,15 @@ function performDrop(src, dest){
   if (dest.where === 'foundation'){
     state.foundations[dest.col].push(moving);
     announce(`${cardName(moving)} sent home to its foundation.`);
+    noteMove(`the ${cardName(moving)} going home to its foundation`);
   } else {
     const destPile = state.tableau[dest.col];
     const onto = destPile.length ? destPile[destPile.length-1] : null;
     cards.forEach(c=>destPile.push(c));
     announce(onto ? `Placed ${cardName(moving)} onto ${cardName(onto)}.`
                   : `Placed ${cardName(moving)} in an empty column.`);
+    noteMove(onto ? `the ${cardName(moving)} moving onto the ${cardName(onto)}`
+                  : `the ${cardName(moving)} moving to an empty column`);
   }
   afterMove();
 }
@@ -1635,7 +1659,7 @@ function renderTopRow(){
       const topCard = pile[pile.length-1];
       el = cardEl(topCard);
       el.tabIndex = 0;     // tappable: you can bring a card back down to the columns
-      el.setAttribute('aria-label', `Foundation ${f+1}, ${cardName(topCard)} on top. Activate to bring it back to the columns.`);
+      el.setAttribute('aria-label', `Foundation ${f+1}, ${cardName(topCard)} on top.`);   // no "bring it back to the columns" — it was read after every placement (Dani 2026-09-12); the card is still activatable to bring it back
       el.onclick = ()=> autoMove('foundation', f, pile.length-1);
       el.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); autoMove('foundation', f, pile.length-1); } };
       makeDraggable(el, 'foundation', f, pile.length-1);   // drag a card back down to the columns
@@ -1936,8 +1960,8 @@ function hintDrawPile(){
   const pile = document.querySelector('.drawpile');
   if (pile && anyPileCardPlayable()){
     pile.classList.add('hint');
-    announce(state.stock.length ? 'A gentle nudge: turn a card from the draw pile.'
-                                : 'A gentle nudge: tap the pile to gather the cards back.');
+    announce(state.stock.length ? 'Turn a card from the draw pile.'
+                                : 'Tap the pile to gather the cards back.');
     setTimeout(clearHints, 2500);
   } else {
     onNoMovesLeft();
@@ -1998,7 +2022,7 @@ for (const id in TOGGLES){
     saveSettings(); updateMusic(); applyA11y();
   });
 }
-function openSettings(){ syncToggles(); openOverlay('settings','settingsDone'); }
+function openSettings(){ syncToggles(); openOverlay('settings','settingsTitle'); }   // land VoiceOver on the "Settings" heading (the top), not the Done button (Dani 2026-09-12)
 function closeSettings(){ closeOverlay('settings'); document.getElementById('btnAppear').focus(); }
 document.getElementById('settingsDone').onclick = closeSettings;
 document.getElementById('settings').addEventListener('click', (e)=>{ if (e.target.id === 'settings') closeSettings(); });
@@ -2330,7 +2354,7 @@ startupFlow();
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 12 · b6 (SR cards)';
+  var BUILD_TAG = 'Sep 12 · b7 (SR game screen)';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
