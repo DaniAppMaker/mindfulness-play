@@ -1695,49 +1695,38 @@ function updateWaste(){
     }
   }
 
-  // 2) place each visible card at its FIXED slot. A card's slot is set by its
-  // place in the draw order (mod 3), NOT by where it sits among the visible
-  // three — so once a card lands it NEVER moves sideways again. The oldest just
-  // fades out in place when a newer card reuses its slot, and only the freshly
-  // drawn card animates (gliding in from the draw pile). No more sliding the
-  // whole fan one step left on every draw (Dani 2026-09-11: "the left-most card
-  // must never move; lose the skipping"). By design the newest playable card is
-  // always on top (highest z-index) but rotates through the three slots rather
-  // than always sitting on the far right — the price of nothing ever shifting.
-  const baseIndex = waste.length - visible.length;   // draw-order index of the leftmost-shown card
-  visible.forEach((card, k)=>{
-    const absIdx  = baseIndex + k;                   // this card's place in the whole draw order
-    const isTop   = (card.id === newestId);
-    const slotIdx = absIdx % WASTE_X.length;         // FIXED slot — stable for the life of the card
+  // 2) place each visible card at its slot, creating + animating in new ones.
+  // Left-anchored: cards fill the slots left→middle→right. The 1st discard lands
+  // in the left slot, the 2nd in the middle, the 3rd on the right. When a 4th
+  // arrives the visible three shift one slot left (middle→left, right→middle) and
+  // the new card enters on the right; the oldest slips away off the left edge.
+  visible.forEach((card, j)=>{
+    const isTop = (j === visible.length - 1);
+    const slotIdx = j;   // 0=left, 1=middle, 2=right — fill left→right
     const targetX = xpos(WASTE_X[slotIdx], CARD_W);
     let el = trackedWaste.get(card.id);
     if (!el){
       el = cardEl(card);
       el.classList.add('wastecard');
       el.style.top = '0';
-      if (isTop){
-        // the freshly drawn card glides in from the draw pile to its slot
-        el.style.left = xpos(DRAW_X, CARD_W);
-        el.style.opacity = '1';
-        fan.appendChild(el);
-        trackedWaste.set(card.id, el);
-        void el.offsetWidth;                         // commit start, then transition to the slot
-        el.style.left = targetX;
-      } else {
-        // an older card re-surfacing (after the top was played) appears AT its
-        // fixed slot with a soft fade — no slide, so nothing skips
-        el.style.left = targetX;
-        el.style.opacity = '0';
-        fan.appendChild(el);
-        trackedWaste.set(card.id, el);
-        void el.offsetWidth;
-        el.style.opacity = '1';
-      }
+      // where it slides in FROM: the newest comes off the draw pile; an older
+      // card re-surfacing (after the top was played) eases in from the left
+      const fromX = (card.id === newestId) ? xpos(DRAW_X, CARD_W)
+                                           : xpos(WASTE_X[0] - 44, CARD_W);
+      el.style.left = fromX;
+      el.style.opacity = (card.id === newestId) ? '1' : '0';
+      fan.appendChild(el);
+      trackedWaste.set(card.id, el);
+      // commit the start position (forced reflow), then set the slot so the CSS
+      // transition runs the slide — reliable even when rAF is throttled
+      void el.offsetWidth;
+      el.style.left = targetX;
+      el.style.opacity = '1';
     } else {
-      el.style.left = targetX;      // already at this slot — stays exactly put (no motion)
+      el.style.left = targetX;      // existing card glides to its new slot
       el.style.opacity = '1';
     }
-    el.style.zIndex = String(10 + absIdx);   // newest always on top; older peekers beneath, in draw order
+    el.style.zIndex = String(10 + j);
     if (isTop){
       el.style.pointerEvents = 'auto';
       el.tabIndex = 0;
@@ -2321,7 +2310,7 @@ startupFlow();
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 12 · b3 (offline + pile)';
+  var BUILD_TAG = 'Sep 12 · b4 (pile restored)';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
