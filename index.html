@@ -407,14 +407,14 @@
   .setlabel{ font-size:14.5px; color:var(--ink); }
   .sethint{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; line-height:1.3; }
   .setnote{ margin:15px 2px 2px; font-size:12px; color:var(--ink-soft); text-align:center; line-height:1.5; }
-  .switch{ position:relative; flex:0 0 auto; width:46px; height:26px; }
-  /* The checkbox must fill the whole switch (transparent, on top), NOT be 0×0.
-     iOS VoiceOver cannot land on a zero-size control, so width:0;height:0 made
-     VoiceOver skip every toggle and jump straight to Done (Dani 2026-09-12).
-     Full-size + opacity:0 keeps it invisible but reachable and tappable; the
-     label still toggles on a mouse click too. */
-  .switch input{ position:absolute; inset:0; width:100%; height:100%; margin:0;
-                 opacity:0; cursor:pointer; z-index:2; }
+  /* Each toggle is a real <button role="switch"> — the reliable accessible pattern.
+     The old hidden-<input> toggles were skipped/jumped-over in VoiceOver's swipe order
+     (a 0×0 control, then an absolutely-positioned transparent one — both flaky on iOS;
+     Dani 2026-09-12/13). A button is a normal swipe stop that VoiceOver announces as
+     "…, switch, on/off" and toggles on double-tap. */
+  .switch{ position:relative; flex:0 0 auto; width:46px; height:26px;
+           border:none; padding:0; background:transparent; cursor:pointer;
+           -webkit-appearance:none; appearance:none; }
   .slider{ position:absolute; inset:0; cursor:pointer; border-radius:999px;
            background:#d9d0bf; transition:background .2s ease; }
   .slider::before{ content:""; position:absolute; height:20px; width:20px; left:3px; top:3px;
@@ -422,8 +422,8 @@
                    box-shadow:0 1px 3px rgba(70,57,50,.2); }
   /* "on" state is the Done button's peach, deepened a touch (#e6b88c) so it reads
      clearly against the warm panel while staying in the same watercolor family */
-  .switch input:checked + .slider{ background:#e6b88c; }
-  .switch input:checked + .slider::before{ transform:translateX(20px); }
+  .switch[aria-checked="true"] .slider{ background:#e6b88c; }
+  .switch[aria-checked="true"] .slider::before{ transform:translateX(20px); }
 
   /* language chooser — same warm voice as the panel; "coming soon" for now, so
      it's shown but disabled (soft, non-clickable) like Music/Sounds */
@@ -440,7 +440,7 @@
     overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;
   }
   .card:focus-visible, .slot:focus-visible, .ctrl:focus-visible,
-  .btn:focus-visible, .switch input:focus-visible + .slider{
+  .btn:focus-visible, .switch:focus-visible{
     outline:3px solid var(--accent); outline-offset:2px;
   }
   @media (prefers-reduced-motion: reduce){ *{ transition:none !important; animation:none !important; } }
@@ -777,21 +777,21 @@
       </div>
       <div class="setrow">
         <div><div class="setlabel">Music</div><div class="sethint">soft background music · coming soon</div></div>
-        <label class="switch"><input type="checkbox" id="setMusic" aria-label="Music — soft background music, coming soon"><span class="slider"></span></label>
+        <button type="button" role="switch" aria-checked="false" id="setMusic" class="switch" aria-label="Music — soft background music, coming soon"><span class="slider"></span></button>
       </div>
       <div class="setrow">
         <div><div class="setlabel">Sounds</div><div class="sethint">gentle card sounds · coming soon</div></div>
-        <label class="switch"><input type="checkbox" id="setSounds" aria-label="Sounds — gentle card sounds, coming soon"><span class="slider"></span></label>
+        <button type="button" role="switch" aria-checked="false" id="setSounds" class="switch" aria-label="Sounds — gentle card sounds, coming soon"><span class="slider"></span></button>
       </div>
       <div class="setrow">
         <div><div class="setlabel">Timed invitations</div><div class="sethint">soft notes that drift in on their own, now and then</div></div>
-        <label class="switch"><input type="checkbox" id="setTimed" aria-label="Timed invitations — soft notes that drift in on their own, now and then"><span class="slider"></span></label>
+        <button type="button" role="switch" aria-checked="false" id="setTimed" class="switch" aria-label="Timed invitations — soft notes that drift in on their own, now and then"><span class="slider"></span></button>
       </div>
       <div class="setlabel" style="margin:18px 2px 2px; font-weight:650; text-align:center;">Making it yours</div>
 
       <div class="setrow">
         <div><div class="setlabel">Left-handed layout</div><div class="sethint">flip the table for a left-handed game</div></div>
-        <label class="switch"><input type="checkbox" id="setLeft" aria-label="Left-handed layout — flip the table for a left-handed game"><span class="slider"></span></label>
+        <button type="button" role="switch" aria-checked="false" id="setLeft" class="switch" aria-label="Left-handed layout — flip the table for a left-handed game"><span class="slider"></span></button>
       </div>
 
       <button class="btn bloom" id="settingsDone">Done</button>
@@ -876,6 +876,7 @@ function announce(msg){
 /* Speak NOW, interrupting: for messages (like Undo) that must cut off any polite
    speech VoiceOver has already begun. Clears both polite regions first, then speaks
    through the assertive #liveNow region (Dani 2026-09-12). */
+let liveNowClearTimer = null;
 function announceNow(msg){
   const lv = document.getElementById('live');       if (lv) lv.textContent = '';
   const li = document.getElementById('liveInvite'); if (li) li.textContent = '';
@@ -883,6 +884,11 @@ function announceNow(msg){
   if (!now || !msg) return;
   now.textContent = '';
   requestAnimationFrame(()=>{ now.textContent = msg; });
+  // Empty it again once it's been spoken, so the assertive region never holds stale
+  // text that could be re-announced later (Dani 2026-09-13). Clearing to empty is
+  // itself silent, and does not interrupt speech already in progress.
+  clearTimeout(liveNowClearTimer);
+  liveNowClearTimer = setTimeout(()=>{ now.textContent = ''; }, 4000);
 }
 /* Invitations speak through their OWN polite region (#liveInvite) AND claim a quiet
    window: for a few seconds move descriptions (announce) and the after-move cursor-follow
@@ -2068,6 +2074,7 @@ function onNoMovesLeft(){ lostScreen(); }
 function lostScreen(){
   const line = pick(LOST_LINES);
   document.getElementById('lostPrompt').textContent = line;
+  setBoardInert(true);              // trap VoiceOver in the dialog; stop it wandering into the board behind (the "c1 slash" stray read, Dani 2026-09-13)
   showScreen('screenLost', true);   // gentle fade-in over the stuck board
   // Land the VoiceOver cursor on the cat so it reads cat -> message -> New Game in order
   // (was focusing the button, which skipped the cat and the message). Same as welcome.
@@ -2078,6 +2085,7 @@ function lostScreen(){
 function winScreen(){
   const line = pick(WIN_LINES);
   document.getElementById('winPrompt').textContent = line;
+  setBoardInert(true);             // trap VoiceOver in the dialog, same as the lost screen (Dani 2026-09-13)
   showScreen('screenWin', true);   // gentle fade-in over the finished board
   // Land the cursor on the cat so VoiceOver reads cat (which opens with "You finished
   // the game") -> the message -> New Game, in order. (Was focusing the button, which
@@ -2087,13 +2095,17 @@ function winScreen(){
 }
 
 /* ================= overlays & buttons ================= */
-/* Hide the game board behind a pop-up from VoiceOver. iOS VoiceOver does NOT honor
-   aria-modal, so without this the cursor swiped straight off the Settings / New Game
-   panel and started reading the draw pile and cards behind it, and skipped panel rows
-   (Dani 2026-09-13). `inert` blocks focus + interaction + a11y; aria-hidden is the
-   belt-and-suspenders fallback for older iOS. The panel itself stays reachable. */
+/* Hide the game board behind a pop-up (or the win / lost screen) from VoiceOver. iOS
+   VoiceOver does NOT honor aria-modal, so without this the cursor swiped straight off
+   the panel and read the draw pile / cards behind it (and, on the lost screen, a stray
+   board utterance) (Dani 2026-09-13). `inert` blocks focus + interaction + a11y;
+   aria-hidden is the belt-and-suspenders fallback for older iOS.
+   IMPORTANT: only the BOARD and its overview go inert — NOT the aria-live regions.
+   Toggling aria-hidden on the assertive #liveNow made VoiceOver RE-ANNOUNCE its
+   leftover text (the "Queen returned to…" undo line) every time a pop-up opened or
+   closed (Dani 2026-09-13). They stay untouched; #liveNow also self-clears below. */
 function setBoardInert(hidden){
-  ['app','sr-intro','live','liveInvite','liveNow','winStatus'].forEach(id=>{
+  ['app','sr-intro'].forEach(id=>{
     const el = document.getElementById(id);
     if (!el) return;
     if (hidden){ el.setAttribute('aria-hidden','true'); el.inert = true; }
@@ -2136,11 +2148,15 @@ document.getElementById('menu').addEventListener('click', e=>{ if(e.target.id===
 const TOGGLES = { setMusic:'music', setSounds:'sounds', setTimed:'timedInvites',
                   setLeft:'leftHanded' };
 function syncToggles(){
-  for (const id in TOGGLES){ const el=document.getElementById(id); if(el) el.checked = !!settings[TOGGLES[id]]; }
+  // role="switch" buttons carry their state in aria-checked (Dani 2026-09-13)
+  for (const id in TOGGLES){ const el=document.getElementById(id); if(el) el.setAttribute('aria-checked', settings[TOGGLES[id]] ? 'true' : 'false'); }
 }
 for (const id in TOGGLES){
-  document.getElementById(id).addEventListener('change', (e)=>{
-    settings[TOGGLES[id]] = e.target.checked;
+  document.getElementById(id).addEventListener('click', (e)=>{
+    const el = e.currentTarget;
+    const on = el.getAttribute('aria-checked') !== 'true';   // flip it
+    el.setAttribute('aria-checked', on ? 'true' : 'false');
+    settings[TOGGLES[id]] = on;
     saveSettings(); updateMusic(); applyA11y();
   });
 }
@@ -2458,8 +2474,8 @@ document.addEventListener('keydown', (e)=>{
 });
 
 /* win + losing screens: New Game deals a fresh game through the normal game logic */
-document.getElementById('winNewBtn').onclick  = ()=>{ deal(); hideScreen('screenWin'); };
-document.getElementById('lostNewBtn').onclick = ()=>{ deal(); hideScreen('screenLost'); };
+document.getElementById('winNewBtn').onclick  = ()=>{ setBoardInert(false); deal(); hideScreen('screenWin'); };   // hand the fresh board back to VoiceOver
+document.getElementById('lostNewBtn').onclick = ()=>{ setBoardInert(false); deal(); hideScreen('screenLost'); };
 
 /* ================= start ================= */
 syncToggles();
@@ -2496,7 +2512,7 @@ startupFlow();
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 13 · b11 (popup + undo SR fixes)';
+  var BUILD_TAG = 'Sep 13 · b12 (toggles + undo-repeat fix)';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
