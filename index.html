@@ -353,9 +353,17 @@
     max-width:520px; width:100%; margin:0 auto;
     min-height:100%; box-sizing:border-box;
     background:none; border:none; border-radius:0; box-shadow:none;
-    padding:28px 22px 56px;
+    padding:26px 22px 30px;
+    display:flex; flex-direction:column;   /* head at top, options fill middle, Done at bottom */
   }
-  .panel.panel--full .setrow{ padding:16px 4px; }   /* taller bands = easier touch targets */
+  .panel.panel--full .settings-head{ flex:0 0 auto; }
+  .panel.panel--full .settings-body{
+    flex:1 1 auto; display:flex; flex-direction:column; justify-content:space-evenly;
+    gap:4px;                               /* even spread fills the screen, no dead gap at the bottom */
+  }
+  .panel.panel--full .setrow{ padding:14px 4px; }   /* taller bands = easier touch targets */
+  .panel.panel--full .setrow-divider{ margin:6px 2px 2px; font-weight:650; text-align:center; }
+  .panel.panel--full #settingsDone{ flex:0 0 auto; margin-top:16px; }
   .panel{
     /* same soft rounded voice as the invitations on the board */
     font-family:"Quicksand","Segoe UI",sans-serif;
@@ -807,34 +815,39 @@
        anywhere — same recipe as the welcome/win screens, which navigate cleanly. -->
   <div id="settings" class="overlay overlay--full">
     <div class="panel panel--full" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
-      <img class="panelArt paw" src="assets/interface/foundation-paw.png" alt="A watercolor paw print in dusty rose and soft red."><!-- described for VoiceOver, was decorative-only; wording picked by Dani 2026-09-13 -->
-      <h2 id="settingsTitle" tabindex="-1">Settings</h2>
+      <div class="settings-head">
+        <img class="panelArt paw" src="assets/interface/foundation-paw.png" alt="A watercolor paw print in dusty rose and soft red."><!-- described for VoiceOver, was decorative-only; wording picked by Dani 2026-09-13 -->
+        <h2 id="settingsTitle" tabindex="-1">Settings</h2>
+      </div>
 
-      <div class="setrow">
-        <div><div class="setlabel">Language</div><div class="sethint">English · Español · Français · coming soon</div></div>
-        <select id="setLang" class="langselect" disabled aria-label="Language">
-          <option value="en">English</option>
-          <option value="es">Español</option>
-          <option value="fr">Français</option>
-        </select>
-      </div>
-      <div class="setrow">
-        <div><div class="setlabel">Music</div><div class="sethint">soft background music · coming soon</div></div>
-        <button type="button" role="switch" aria-checked="false" id="setMusic" class="switch" aria-label="Music — soft background music, coming soon"><span class="slider"></span></button>
-      </div>
-      <div class="setrow">
-        <div><div class="setlabel">Sounds</div><div class="sethint">gentle card sounds · coming soon</div></div>
-        <button type="button" role="switch" aria-checked="false" id="setSounds" class="switch" aria-label="Sounds — gentle card sounds, coming soon"><span class="slider"></span></button>
-      </div>
-      <div class="setrow">
-        <div><div class="setlabel">Timed invitations</div><div class="sethint">soft notes that drift in on their own, now and then</div></div>
-        <button type="button" role="switch" aria-checked="false" id="setTimed" class="switch" aria-label="Timed invitations — soft notes that drift in on their own, now and then"><span class="slider"></span></button>
-      </div>
-      <div class="setlabel" style="margin:18px 2px 2px; font-weight:650; text-align:center;">Making it yours</div>
-
-      <div class="setrow">
-        <div><div class="setlabel">Left-handed layout</div><div class="sethint">flip the table for a left-handed game</div></div>
-        <button type="button" role="switch" aria-checked="false" id="setLeft" class="switch" aria-label="Left-handed layout — flip the table for a left-handed game"><span class="slider"></span></button>
+      <!-- the options grow to fill the middle of the screen (space-evenly), so there's
+           no dead gap at the bottom and it reads as one coherent full screen (Dani 2026-09-13) -->
+      <div class="settings-body">
+        <div class="setrow">
+          <div><div class="setlabel">Language</div><div class="sethint">English · Español · Français · coming soon</div></div>
+          <select id="setLang" class="langselect" disabled aria-label="Language">
+            <option value="en">English</option>
+            <option value="es">Español</option>
+            <option value="fr">Français</option>
+          </select>
+        </div>
+        <div class="setrow">
+          <div><div class="setlabel">Music</div><div class="sethint">soft background music · coming soon</div></div>
+          <button type="button" role="switch" aria-checked="false" id="setMusic" class="switch" aria-label="Music — soft background music, coming soon"><span class="slider"></span></button>
+        </div>
+        <div class="setrow">
+          <div><div class="setlabel">Sounds</div><div class="sethint">gentle card sounds · coming soon</div></div>
+          <button type="button" role="switch" aria-checked="false" id="setSounds" class="switch" aria-label="Sounds — gentle card sounds, coming soon"><span class="slider"></span></button>
+        </div>
+        <div class="setrow">
+          <div><div class="setlabel">Timed invitations</div><div class="sethint">soft notes that drift in on their own, now and then</div></div>
+          <button type="button" role="switch" aria-checked="false" id="setTimed" class="switch" aria-label="Timed invitations — soft notes that drift in on their own, now and then"><span class="slider"></span></button>
+        </div>
+        <div class="setlabel setrow-divider">Making it yours</div>
+        <div class="setrow">
+          <div><div class="setlabel">Left-handed layout</div><div class="sethint">flip the table for a left-handed game</div></div>
+          <button type="button" role="switch" aria-checked="false" id="setLeft" class="switch" aria-label="Left-handed layout — flip the table for a left-handed game"><span class="slider"></span></button>
+        </div>
       </div>
 
       <button class="btn bloom" id="settingsDone">Done</button>
@@ -2569,7 +2582,7 @@ startupFlow();
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 13 · b19 (full-screen settings, really)';
+  var BUILD_TAG = 'Sep 13 · b20 (settings layout fills screen)';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
