@@ -1088,7 +1088,7 @@ function deal(){
   justRevealed.clear();
   clearPromptState();      // empty prompt space; first invitation drifts in after ~5 moves
   render();
-  announce('A fresh game, dealt and ready. Take your time.');
+  announce('The new game is ready.');   // Dani 2026-09-13
 }
 
 /* TEST-ONLY dead-end board (open with ?test=lose): seven black, non-Ace cards that
@@ -2512,7 +2512,7 @@ startupFlow();
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 13 · b13 (paw description)';
+  var BUILD_TAG = 'Sep 13 · b14 (new-game wording)';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
