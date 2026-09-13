@@ -749,11 +749,11 @@
 
   <!-- small menu (opened by the menu button) -->
   <div id="menu" class="overlay">
-    <div class="panel" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
+    <div class="panel" role="dialog" aria-modal="true" aria-label="New game">
       <img class="panelArt cat" src="assets/interface/newgame-cat.png" alt="" aria-hidden="true">
-      <!-- kept for screen readers so the dialog still has a name, but no
-           longer shown on screen (Dani's request: nothing above the buttons) -->
-      <h2 id="menuTitle" class="visually-hidden">Cozy Cat</h2>
+      <!-- The dialog is named by aria-label="New game" above. The old visually-hidden
+           "Cozy Cat" heading was removed: VoiceOver landed on it as a stray little
+           rectangle reading "cozy cat" on the New Game / Back buttons (Dani 2026-09-13). -->
       <div class="btnrow">
         <button class="btn bloom" id="menuNew">New gentle game</button>
         <button class="btn bloom" id="menuClose">Back to the game</button>
@@ -764,7 +764,7 @@
   <!-- appearance / settings -->
   <div id="settings" class="overlay">
     <div class="panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
-      <img class="panelArt paw" src="assets/interface/foundation-paw.png" alt="" aria-hidden="true">
+      <img class="panelArt paw" src="assets/interface/foundation-paw.png" alt="A soft watercolor cat paw print in warm honey and pink tones."><!-- described for VoiceOver, was decorative-only (Dani 2026-09-13) -->
       <h2 id="settingsTitle" tabindex="-1">Settings</h2>
 
       <div class="setrow">
@@ -795,6 +795,14 @@
       </div>
 
       <button class="btn bloom" id="settingsDone">Done</button>
+
+      <!-- TEMPORARY test control (this build only): reliably reaches the losing flow
+           even when the game is launched from the home-screen icon, which drops the
+           ?test=lose URL. Remove with the build-tag block when testing is done.
+           (Dani 2026-09-13) -->
+      <button type="button" id="testLoseBtn"
+              style="margin-top:14px; font:12px 'Quicksand',sans-serif; color:#9a8f86; background:none; border:1px dashed #d9c7ab; border-radius:999px; padding:7px 12px; cursor:pointer;"
+              aria-label="Test the losing screen. Deals a board with no moves; then press Show me a move to reach the losing screen.">Test the losing screen</button>
     </div>
   </div>
 
@@ -1112,9 +1120,18 @@ function snapshot(){
   undoStack.push({ snap: JSON.stringify(state), desc: '' });
   if (undoStack.length > 50) undoStack.shift();
 }
-/* Describe the move just made so Undo can say what it took back. Attaches to the
-   snapshot taken at the START of this move (the top of the stack). (Dani 2026-09-12) */
+/* The full sentence Undo should SPEAK — phrased as where the card is being RETURNED
+   to (its origin), not the original move, e.g. "Returning the ace of spades to the
+   draw pile." (Dani 2026-09-13: describing the forward move was confusing.) Attaches
+   to the snapshot taken at the START of this move (the top of the stack). */
 function noteMove(desc){ if (undoStack.length) undoStack[undoStack.length-1].desc = desc; }
+/* Where a card came FROM, in the player's words — used to say where Undo puts it back.
+   Waste and stock are both "the draw pile" to the player. */
+function locName(where, colIndex){
+  if (where === 'tableau')    return `column ${colIndex+1}`;
+  if (where === 'foundation') return 'its foundation';
+  return 'the draw pile';   // waste (a turned card) or stock
+}
 /* Before Undo speaks: silence any in-flight invitation and clear BOTH spoken
    regions, so undoing can never make VoiceOver re-read a stale invitation or a
    "nudge" that's no longer on screen (Dani 2026-09-12 — the "weirdest thing").
@@ -1135,8 +1152,9 @@ function undo(){
   clearSpokenForUndo();
   render();
   // assertive, so it interrupts any stale move line / invitation still being spoken —
-  // the player hears ONLY what was undone, nothing before it (Dani 2026-09-12)
-  announceNow(entry.desc ? ('Took back ' + entry.desc + '.') : 'Took back the last move.');
+  // the player hears ONLY what was undone, nothing before it (Dani 2026-09-12).
+  // desc is already a full "Returning … to …" sentence (Dani 2026-09-13).
+  announceNow(entry.desc || 'Took back the last move.');
 }
 
 /* ================= move rules ================= */
@@ -1240,7 +1258,7 @@ function autoMove(where, colIndex, cardIndex){
         removeFromSource(where, colIndex, cardIndex);
         state.foundations[f].push(moving);
         announce(`${cardName(moving)} sent home to its foundation.`);
-        noteMove(`the ${cardName(moving)} going home to its foundation`);
+        noteMove(`Returning the ${cardName(moving)} to ${locName(where, colIndex)}.`);
         afterMove(); return;
       }
     }
@@ -1257,7 +1275,7 @@ function autoMove(where, colIndex, cardIndex){
       removeFromSource(where, colIndex, cardIndex);
       cards.forEach(c=>state.tableau[d].push(c));
       announce(`${cardName(moving)} is now on ${cardName(onto)}.`);   // a done-and-dusted confirmation, not a suggestion (Dani 2026-09-12)
-      noteMove(`the ${cardName(moving)} moving onto the ${cardName(onto)}`);
+      noteMove(`Returning the ${cardName(moving)} to ${locName(where, colIndex)}.`);
       afterMove(); return;
     }
   }
@@ -1277,7 +1295,7 @@ function autoMove(where, colIndex, cardIndex){
           removeFromSource(where, colIndex, cardIndex);
           cards.forEach(c=>state.tableau[d].push(c));
           announce(`${cardName(moving)} is now in an empty column.`);   // confirmation, not a suggestion (Dani 2026-09-12)
-          noteMove(`the ${cardName(moving)} moving to an empty column`);
+          noteMove(`Returning the ${cardName(moving)} to ${locName(where, colIndex)}.`);
           afterMove(); return;
         }
       }
@@ -1293,7 +1311,9 @@ function autoMove(where, colIndex, cardIndex){
     el.classList.add('shake');
     setTimeout(()=>el.classList.remove('shake'), 360);
   }
-  announce(`No spot for ${cardName(moving)} just yet.`);
+  // No spoken "no spot for this card" — the card's own label already says
+  // "This card has no moves", so repeating it on the tap was just verbose
+  // (Dani 2026-09-13). Sighted players still get the shake.
 }
 
 /* Does this card (or the run it heads) have any legal move right now? Mirrors
@@ -1438,19 +1458,20 @@ function drawStock(){
     snapshot();
     const c = state.stock.pop(); c.faceUp = true; state.waste.push(c);
     // say the card AND whether it has a move, right when it's turned — so a
-    // VoiceOver player knows immediately, without having to go find it (Dani 2026-09-12)
+    // VoiceOver player knows immediately, without having to go find it (Dani 2026-09-12).
+    // No "that was the last card" tail: the last card now reads like any other, and the
+    // recycle instruction lives on the empty draw pile itself, so a player who lands
+    // there hears how to keep going instead of skipping past it (Dani 2026-09-13).
     announce(`Turned ${cardName(c)}.` +
-      (cardHasMove('waste', 0, 0) ? ' This card has a move.' : ' This card has no moves.') +
-      (state.stock.length === 0
-        ? ' That was the last card — double-tap the draw pile to turn them all again.' : ''));
-    noteMove(`turning the ${cardName(c)}`);
+      (cardHasMove('waste', 0, 0) ? ' This card has a move.' : ' This card has no moves.'));
+    noteMove(`Returning the ${cardName(c)} to the draw pile.`);
     drew = true;
   } else {
     snapshot();
     while (state.waste.length){ const c = state.waste.pop(); c.faceUp=false; state.stock.push(c); }
     recycled = true;
     announce('Gathered the used cards back into the draw pile.');
-    noteMove('gathering the used cards back into the draw pile');
+    noteMove('Spreading the used cards back out of the draw pile.');
   }
   render();
   // When the stock empties we NO LONGER pulse/scale the pile (Dani 2026-09-12:
@@ -1673,15 +1694,14 @@ function performDrop(src, dest){
   if (dest.where === 'foundation'){
     state.foundations[dest.col].push(moving);
     announce(`${cardName(moving)} sent home to its foundation.`);
-    noteMove(`the ${cardName(moving)} going home to its foundation`);
+    noteMove(`Returning the ${cardName(moving)} to ${locName(src.where, src.colIndex)}.`);
   } else {
     const destPile = state.tableau[dest.col];
     const onto = destPile.length ? destPile[destPile.length-1] : null;
     cards.forEach(c=>destPile.push(c));
     announce(onto ? `${cardName(moving)} is now on ${cardName(onto)}.`
                   : `${cardName(moving)} is now in an empty column.`);   // confirmation, not a suggestion (Dani 2026-09-12)
-    noteMove(onto ? `the ${cardName(moving)} moving onto the ${cardName(onto)}`
-                  : `the ${cardName(moving)} moving to an empty column`);
+    noteMove(`Returning the ${cardName(moving)} to ${locName(src.where, src.colIndex)}.`);
   }
   afterMove();
 }
@@ -2067,11 +2087,28 @@ function winScreen(){
 }
 
 /* ================= overlays & buttons ================= */
+/* Hide the game board behind a pop-up from VoiceOver. iOS VoiceOver does NOT honor
+   aria-modal, so without this the cursor swiped straight off the Settings / New Game
+   panel and started reading the draw pile and cards behind it, and skipped panel rows
+   (Dani 2026-09-13). `inert` blocks focus + interaction + a11y; aria-hidden is the
+   belt-and-suspenders fallback for older iOS. The panel itself stays reachable. */
+function setBoardInert(hidden){
+  ['app','sr-intro','live','liveInvite','liveNow','winStatus'].forEach(id=>{
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (hidden){ el.setAttribute('aria-hidden','true'); el.inert = true; }
+    else       { el.removeAttribute('aria-hidden'); el.inert = false; }
+  });
+}
 function openOverlay(id, focusId){
+  setBoardInert(true);            // trap VoiceOver inside the pop-up
   document.getElementById(id).style.display='flex';
   if (focusId) document.getElementById(focusId).focus();
 }
-function closeOverlay(id){ document.getElementById(id).style.display='none'; }
+function closeOverlay(id){
+  document.getElementById(id).style.display='none';
+  setBoardInert(false);          // hand the board back to VoiceOver
+}
 
 document.getElementById('btnMenu').onclick   = ()=> openOverlay('menu','menuNew');
 document.getElementById('btnUndo').onclick   = undo;
@@ -2121,6 +2158,13 @@ function updateLangLabel(){
 function openSettings(){ syncToggles(); updateLangLabel(); openOverlay('settings','settingsTitle'); }   // land VoiceOver on the "Settings" heading (the top), not the Done button (Dani 2026-09-12)
 function closeSettings(){ closeOverlay('settings'); document.getElementById('btnAppear').focus(); }
 document.getElementById('settingsDone').onclick = closeSettings;
+/* TEMPORARY (this build only): deal the dead-end board and close Settings, so Dani can
+   reach the losing flow reliably. Then she presses "Show me a move" to see the losing
+   screen. Remove with the build-tag block when testing is done. (Dani 2026-09-13) */
+(function(){
+  const b = document.getElementById('testLoseBtn');
+  if (b) b.onclick = ()=>{ closeSettings(); dealTestLose(); };
+})();
 document.getElementById('settings').addEventListener('click', (e)=>{ if (e.target.id === 'settings') closeSettings(); });
 document.addEventListener('keydown', (e)=>{
   if (e.key==='Escape'){
@@ -2452,7 +2496,7 @@ startupFlow();
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 13 · b10 (SR fixes + lose-test)';
+  var BUILD_TAG = 'Sep 13 · b11 (popup + undo SR fixes)';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
