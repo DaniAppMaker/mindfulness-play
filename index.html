@@ -866,12 +866,24 @@ function applyA11y(){
    quiet so nothing talks over it and the player gets a real beat to enact it. */
 let invitationQuietUntil = 0;
 function invitationHasFloor(){ return Date.now() < invitationQuietUntil; }
+let liveClearTimer = null;
 function announce(msg){
   if (invitationHasFloor()) return;          // an invitation is speaking — don't talk over it
   const live = document.getElementById('live');
   if (!live || !msg) return;
   live.textContent = '';
   requestAnimationFrame(()=>{ live.textContent = msg; });
+  // Empty it after it's been spoken so the region never holds a stale move line that
+  // VoiceOver could re-read later — e.g. "ace sent to its foundation" replaying when
+  // returning from Settings (Dani 2026-09-13). Clearing to empty is silent.
+  clearTimeout(liveClearTimer);
+  liveClearTimer = setTimeout(()=>{ live.textContent = ''; }, 5000);
+}
+/* Empty ALL spoken regions now — used when opening/closing a pop-up or a full screen,
+   so nothing said on the board can be re-read once the context changes. */
+function clearLiveRegions(){
+  ['live','liveInvite','liveNow'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=''; });
+  clearTimeout(liveClearTimer); clearTimeout(liveNowClearTimer);
 }
 /* Speak NOW, interrupting: for messages (like Undo) that must cut off any polite
    speech VoiceOver has already begun. Clears both polite regions first, then speaks
@@ -2074,6 +2086,7 @@ function onNoMovesLeft(){ lostScreen(); }
 function lostScreen(){
   const line = pick(LOST_LINES);
   document.getElementById('lostPrompt').textContent = line;
+  clearLiveRegions();              // don't let a board line replay over the losing screen
   setBoardInert(true);              // trap VoiceOver in the dialog; stop it wandering into the board behind (the "c1 slash" stray read, Dani 2026-09-13)
   showScreen('screenLost', true);   // gentle fade-in over the stuck board
   // Land the VoiceOver cursor on the cat so it reads cat -> message -> New Game in order
@@ -2085,6 +2098,7 @@ function lostScreen(){
 function winScreen(){
   const line = pick(WIN_LINES);
   document.getElementById('winPrompt').textContent = line;
+  clearLiveRegions();              // don't let a board line replay over the win screen
   setBoardInert(true);             // trap VoiceOver in the dialog, same as the lost screen (Dani 2026-09-13)
   showScreen('screenWin', true);   // gentle fade-in over the finished board
   // Land the cursor on the cat so VoiceOver reads cat (which opens with "You finished
@@ -2108,11 +2122,20 @@ function setBoardInert(hidden){
   ['app','sr-intro'].forEach(id=>{
     const el = document.getElementById(id);
     if (!el) return;
-    if (hidden){ el.setAttribute('aria-hidden','true'); el.inert = true; }
-    else       { el.removeAttribute('aria-hidden'); el.inert = false; }
+    if (hidden){
+      el.setAttribute('aria-hidden','true'); el.inert = true;
+      el.style.display = 'none';   // truly REMOVE it from the tree — aria-hidden alone
+                                   // wasn't enough on iOS (swipe still wandered into the
+                                   // board / read a stray "c1 slash"); this matches the
+                                   // welcome/loading/win screens that navigate cleanly. (Dani 2026-09-13)
+    } else {
+      el.removeAttribute('aria-hidden'); el.inert = false;
+      el.style.display = '';
+    }
   });
 }
 function openOverlay(id, focusId){
+  clearLiveRegions();             // no stale board announcement should carry into the pop-up
   setBoardInert(true);            // trap VoiceOver inside the pop-up
   document.getElementById(id).style.display='flex';
   if (focusId) document.getElementById(focusId).focus();
@@ -2120,6 +2143,7 @@ function openOverlay(id, focusId){
 function closeOverlay(id){
   document.getElementById(id).style.display='none';
   setBoardInert(false);          // hand the board back to VoiceOver
+  clearLiveRegions();            // nothing said before the pop-up should replay on return (Dani 2026-09-13)
 }
 
 document.getElementById('btnMenu').onclick   = ()=> openOverlay('menu','menuNew');
@@ -2512,7 +2536,7 @@ startupFlow();
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 13 · b14 (new-game wording)';
+  var BUILD_TAG = 'Sep 13 · b15 (popup swipe + stale-voice)';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
