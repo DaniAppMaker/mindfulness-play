@@ -336,6 +336,23 @@
     transition:opacity .18s ease;
   }
   .overlay.open{ visibility:visible; opacity:1; pointer-events:auto; }
+  /* FULL-SCREEN settings: opaque, edge-to-edge, no floating card. This removes the
+     empty margins around a centered card where iOS VoiceOver mis-grabbed the nearest
+     button. The options become full-width bands. (Dani 2026-09-13) */
+  .overlay--full{ background:var(--paper); backdrop-filter:none; padding:0; align-items:stretch; }
+  .overlay--full::before{   /* the same faint watercolor wash the story screens use */
+    content:""; position:fixed; inset:0; z-index:0;
+    background:url("assets/background/background-1-600dpi.jpg") center/cover no-repeat;
+    opacity:.18; pointer-events:none;
+  }
+  .panel--full{
+    position:relative; z-index:1;
+    max-width:520px; width:100%; margin:0 auto;
+    min-height:100%; box-sizing:border-box;
+    border:none; border-radius:0; box-shadow:none;
+    padding:28px 22px 56px;
+  }
+  .panel--full .setrow{ padding:16px 4px; }   /* taller bands = easier touch targets */
   .panel{
     /* same soft rounded voice as the invitations on the board */
     font-family:"Quicksand","Segoe UI",sans-serif;
@@ -780,9 +797,13 @@
     </div>
   </div>
 
-  <!-- appearance / settings -->
-  <div id="settings" class="overlay">
-    <div class="panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+  <!-- appearance / settings — FULL-SCREEN (not a floating card). A centered card left
+       empty margins around it, and iOS VoiceOver explore-by-touch grabbed the nearest
+       button when you gestured near the card / fell off into the status bar (Dani
+       2026-09-13). Edge-to-edge, every option is a full-width band you can land on
+       anywhere — same recipe as the welcome/win screens, which navigate cleanly. -->
+  <div id="settings" class="overlay overlay--full">
+    <div class="panel panel--full" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
       <img class="panelArt paw" src="assets/interface/foundation-paw.png" alt="A watercolor paw print in dusty rose and soft red."><!-- described for VoiceOver, was decorative-only; wording picked by Dani 2026-09-13 -->
       <h2 id="settingsTitle" tabindex="-1">Settings</h2>
 
@@ -814,14 +835,6 @@
       </div>
 
       <button class="btn bloom" id="settingsDone">Done</button>
-
-      <!-- TEMPORARY test control (this build only): reliably reaches the losing flow
-           even when the game is launched from the home-screen icon, which drops the
-           ?test=lose URL. Remove with the build-tag block when testing is done.
-           (Dani 2026-09-13) -->
-      <button type="button" id="testLoseBtn"
-              style="margin-top:14px; font:12px 'Quicksand',sans-serif; color:#9a8f86; background:none; border:1px dashed #d9c7ab; border-radius:999px; padding:7px 12px; cursor:pointer;"
-              aria-label="Test the losing screen. Deals a board with no moves; then press Show me a move to reach the losing screen.">Test the losing screen</button>
     </div>
   </div>
 
@@ -2222,13 +2235,6 @@ function updateLangLabel(){
 function openSettings(){ syncToggles(); updateLangLabel(); openOverlay('settings','settingsTitle'); }   // land VoiceOver on the "Settings" heading (the top), not the Done button (Dani 2026-09-12)
 function closeSettings(){ closeOverlay('settings'); document.getElementById('btnAppear').focus(); }
 document.getElementById('settingsDone').onclick = closeSettings;
-/* TEMPORARY (this build only): deal the dead-end board and close Settings, so Dani can
-   reach the losing flow reliably. Then she presses "Show me a move" to see the losing
-   screen. Remove with the build-tag block when testing is done. (Dani 2026-09-13) */
-(function(){
-  const b = document.getElementById('testLoseBtn');
-  if (b) b.onclick = ()=>{ closeSettings(); dealTestLose(); };
-})();
 document.getElementById('settings').addEventListener('click', (e)=>{ if (e.target.id === 'settings') closeSettings(); });
 document.addEventListener('keydown', (e)=>{
   if (e.key==='Escape'){
@@ -2560,7 +2566,7 @@ startupFlow();
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 13 · b17 (settings visibility fix)';
+  var BUILD_TAG = 'Sep 13 · b18 (full-screen settings)';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
