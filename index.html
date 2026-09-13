@@ -408,7 +408,13 @@
   .sethint{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; line-height:1.3; }
   .setnote{ margin:15px 2px 2px; font-size:12px; color:var(--ink-soft); text-align:center; line-height:1.5; }
   .switch{ position:relative; flex:0 0 auto; width:46px; height:26px; }
-  .switch input{ opacity:0; width:0; height:0; }
+  /* The checkbox must fill the whole switch (transparent, on top), NOT be 0×0.
+     iOS VoiceOver cannot land on a zero-size control, so width:0;height:0 made
+     VoiceOver skip every toggle and jump straight to Done (Dani 2026-09-12).
+     Full-size + opacity:0 keeps it invisible but reachable and tappable; the
+     label still toggles on a mouse click too. */
+  .switch input{ position:absolute; inset:0; width:100%; height:100%; margin:0;
+                 opacity:0; cursor:pointer; z-index:2; }
   .slider{ position:absolute; inset:0; cursor:pointer; border-radius:999px;
            background:#d9d0bf; transition:background .2s ease; }
   .slider::before{ content:""; position:absolute; height:20px; width:20px; left:3px; top:3px;
@@ -561,6 +567,12 @@
        #live can never erase a gentle invitation before it's spoken (Dani 2026-09-10:
        invitations were sometimes not read at all, and never got a beat of their own). -->
   <div id="liveInvite" class="visually-hidden" role="status" aria-live="polite"></div>
+  <!-- An ASSERTIVE channel for messages that must be heard NOW and must cut off
+       anything still being spoken. Undo uses it: clearing the polite regions can't
+       retract speech VoiceOver has already started, so undo was heard AFTER a stale
+       move line + a lingering invitation ("take a breath"). Assertive interrupts
+       them so only "Took back…" is heard (Dani 2026-09-12). -->
+  <div id="liveNow" class="visually-hidden" role="alert" aria-live="assertive" aria-atomic="true"></div>
   <!-- Parked here when the winning "cards fly home" cascade starts: the VoiceOver cursor
        is moved onto this so it announces the win and does NOT read each card as they fly
        (the board re-renders per card). Focusable (tabindex=-1), outside #app so the
@@ -853,6 +865,17 @@ function announce(msg){
   live.textContent = '';
   requestAnimationFrame(()=>{ live.textContent = msg; });
 }
+/* Speak NOW, interrupting: for messages (like Undo) that must cut off any polite
+   speech VoiceOver has already begun. Clears both polite regions first, then speaks
+   through the assertive #liveNow region (Dani 2026-09-12). */
+function announceNow(msg){
+  const lv = document.getElementById('live');       if (lv) lv.textContent = '';
+  const li = document.getElementById('liveInvite'); if (li) li.textContent = '';
+  const now = document.getElementById('liveNow');
+  if (!now || !msg) return;
+  now.textContent = '';
+  requestAnimationFrame(()=>{ now.textContent = msg; });
+}
 /* Invitations speak through their OWN polite region (#liveInvite) AND claim a quiet
    window: for a few seconds move descriptions (announce) and the after-move cursor-follow
    go silent, so even a player who keeps playing hears the WHOLE invitation, then a pause
@@ -1054,6 +1077,35 @@ function deal(){
   announce('A fresh game, dealt and ready. Take your time.');
 }
 
+/* TEST-ONLY dead-end board (open with ?test=lose): seven black, non-Ace cards that
+   can never stack on one another (all one colour), no Ace to send home, and an empty
+   stock and waste — so there is genuinely no legal move. Press "Show me a move" and
+   the game goes straight to the "No moves left" screen, so Dani can test the real
+   losing FLOW (game screen → losing screen) without having to actually lose a game.
+   Remove this together with the temporary build-tag block when testing is done.
+   (Dani 2026-09-13) */
+function dealTestLose(){
+  const mk = (id,rank,suit,color)=>({ id, rank, suit, color, faceUp:true });
+  state = {
+    stock:[], waste:[], foundations:[[],[],[],[]],
+    tableau:[
+      [mk(0,'2','♠','black')],
+      [mk(1,'4','♠','black')],
+      [mk(2,'6','♠','black')],
+      [mk(3,'8','♣','black')],
+      [mk(4,'10','♣','black')],
+      [mk(5,'Q','♣','black')],
+      [mk(6,'9','♠','black')],
+    ],
+  };
+  selection = null;
+  undoStack = [];
+  justRevealed.clear();
+  clearPromptState();
+  render();
+  announce('Test board with no moves. Press Show me a move to reach the losing screen.');
+}
+
 /* ================= undo (snapshot the whole board before each move) ========= */
 let undoStack = [];
 function snapshot(){
@@ -1075,14 +1127,16 @@ function clearSpokenForUndo(){
   if (promptShowing) hideInvitation();
 }
 function undo(){
-  if (!undoStack.length){ clearSpokenForUndo(); announce('Nothing to take back yet.'); return; }
+  if (!undoStack.length){ clearSpokenForUndo(); announceNow('Nothing to take back yet.'); return; }
   const entry = undoStack.pop();
   state = JSON.parse(entry.snap);
   clearSelection();
   justRevealed.clear();
   clearSpokenForUndo();
   render();
-  announce(entry.desc ? ('Took back ' + entry.desc + '.') : 'Took back the last move.');
+  // assertive, so it interrupts any stale move line / invitation still being spoken —
+  // the player hears ONLY what was undone, nothing before it (Dani 2026-09-12)
+  announceNow(entry.desc ? ('Took back ' + entry.desc + '.') : 'Took back the last move.');
 }
 
 /* ================= move rules ================= */
@@ -1202,7 +1256,7 @@ function autoMove(where, colIndex, cardIndex){
       snapshot();
       removeFromSource(where, colIndex, cardIndex);
       cards.forEach(c=>state.tableau[d].push(c));
-      announce(`Placed ${cardName(moving)} onto ${cardName(onto)}.`);
+      announce(`${cardName(moving)} is now on ${cardName(onto)}.`);   // a done-and-dusted confirmation, not a suggestion (Dani 2026-09-12)
       noteMove(`the ${cardName(moving)} moving onto the ${cardName(onto)}`);
       afterMove(); return;
     }
@@ -1222,7 +1276,7 @@ function autoMove(where, colIndex, cardIndex){
           snapshot();
           removeFromSource(where, colIndex, cardIndex);
           cards.forEach(c=>state.tableau[d].push(c));
-          announce(`Placed ${cardName(moving)} in an empty column.`);
+          announce(`${cardName(moving)} is now in an empty column.`);   // confirmation, not a suggestion (Dani 2026-09-12)
           noteMove(`the ${cardName(moving)} moving to an empty column`);
           afterMove(); return;
         }
@@ -1383,8 +1437,12 @@ function drawStock(){
   if (state.stock.length){
     snapshot();
     const c = state.stock.pop(); c.faceUp = true; state.waste.push(c);
-    announce(`Turned ${cardName(c)}.` + (state.stock.length === 0
-      ? ' That was the last card — tap the draw pile to turn them all again.' : ''));
+    // say the card AND whether it has a move, right when it's turned — so a
+    // VoiceOver player knows immediately, without having to go find it (Dani 2026-09-12)
+    announce(`Turned ${cardName(c)}.` +
+      (cardHasMove('waste', 0, 0) ? ' This card has a move.' : ' This card has no moves.') +
+      (state.stock.length === 0
+        ? ' That was the last card — double-tap the draw pile to turn them all again.' : ''));
     noteMove(`turning the ${cardName(c)}`);
     drew = true;
   } else {
@@ -1620,8 +1678,8 @@ function performDrop(src, dest){
     const destPile = state.tableau[dest.col];
     const onto = destPile.length ? destPile[destPile.length-1] : null;
     cards.forEach(c=>destPile.push(c));
-    announce(onto ? `Placed ${cardName(moving)} onto ${cardName(onto)}.`
-                  : `Placed ${cardName(moving)} in an empty column.`);
+    announce(onto ? `${cardName(moving)} is now on ${cardName(onto)}.`
+                  : `${cardName(moving)} is now in an empty column.`);   // confirmation, not a suggestion (Dani 2026-09-12)
     noteMove(onto ? `the ${cardName(moving)} moving onto the ${cardName(onto)}`
                   : `the ${cardName(moving)} moving to an empty column`);
   }
@@ -1668,7 +1726,11 @@ function renderTopRow(){
       const topCard = pile[pile.length-1];
       el = cardEl(topCard);
       el.tabIndex = 0;     // tappable: you can bring a card back down to the columns
-      el.setAttribute('aria-label', `Foundation ${f+1}, ${cardName(topCard)} on top.`);   // no "bring it back to the columns" — it was read after every placement (Dani 2026-09-12); the card is still activatable to bring it back
+      // name it, then the same quick has-a-move clue every other card gives, so a
+      // foundation card also says whether it can come back down (Dani 2026-09-12).
+      // No "bring it back to the columns" — that was read after every placement; the card is still activatable.
+      el.setAttribute('aria-label', `Foundation ${f+1}, ${cardName(topCard)} on top.` +
+        (cardHasMove('foundation', f, pile.length-1) ? ' This card has a move.' : ' This card has no moves.'));
       el.onclick = ()=> autoMove('foundation', f, pile.length-1);
       el.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); autoMove('foundation', f, pile.length-1); } };
       makeDraggable(el, 'foundation', f, pile.length-1);   // drag a card back down to the columns
@@ -1695,7 +1757,9 @@ function renderTopRow(){
     draw.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); drawStock(); } };
     drawEmptyShown = false;              // pile has cards again — arm the fade-in for next time it empties
   } else {
-    draw = makeSlot({ recycle:true, label:'Draw pile, empty.' });
+    // Empty pile: tell a VoiceOver player HOW to keep playing — double-tap gathers
+    // the used cards back and turns them all again (Dani 2026-09-12).
+    draw = makeSlot({ recycle:true, label:'Draw pile, empty. Double-tap to gather the used cards and turn them all again.' });
     // Gently fade the recycle arrow in the FIRST render after the pile empties;
     // don't replay the fade on later re-renders while it stays empty, and never
     // pulse/scale (Dani 2026-09-12). The arrow's own subtle flash continues.
@@ -2043,7 +2107,18 @@ for (const id in TOGGLES){
     saveSettings(); updateMusic(); applyA11y();
   });
 }
-function openSettings(){ syncToggles(); openOverlay('settings','settingsTitle'); }   // land VoiceOver on the "Settings" heading (the top), not the Done button (Dani 2026-09-12)
+/* The language chooser is a real <select>, but disabled while translations are still
+   "coming soon". Disabled, VoiceOver said only "Language, dimmed" — confusing. Give it
+   a label that says what it is and that more are coming; and, ready for the day it's
+   enabled, the how-to-choose wording for VoiceOver (Dani 2026-09-12). */
+function updateLangLabel(){
+  const sel = document.getElementById('setLang');
+  if (!sel) return;
+  sel.setAttribute('aria-label', sel.disabled
+    ? 'Language: English. More languages — Spanish and French — are coming soon.'
+    : 'Language. Drop-down menu. Choose a language: swipe up or down to hear each one, then double-tap to choose it.');
+}
+function openSettings(){ syncToggles(); updateLangLabel(); openOverlay('settings','settingsTitle'); }   // land VoiceOver on the "Settings" heading (the top), not the Done button (Dani 2026-09-12)
 function closeSettings(){ closeOverlay('settings'); document.getElementById('btnAppear').focus(); }
 document.getElementById('settingsDone').onclick = closeSettings;
 document.getElementById('settings').addEventListener('click', (e)=>{ if (e.target.id === 'settings') closeSettings(); });
@@ -2346,7 +2421,9 @@ document.getElementById('lostNewBtn').onclick = ()=>{ deal(); hideScreen('screen
 syncToggles();
 updateMusic();
 applyA11y();
-deal();                 // deal() clears the prompt space; invitations drift in during play
+// ?test=lose deals a rigged dead-end board so Dani can test the losing flow (temporary)
+if (new URLSearchParams(location.search).get('test') === 'lose') dealTestLose();
+else deal();            // deal() clears the prompt space; invitations drift in during play
 startupFlow();
 </script>
 
@@ -2375,7 +2452,7 @@ startupFlow();
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 12 · b8 (SR loading + intro cat)';
+  var BUILD_TAG = 'Sep 13 · b10 (SR fixes + lose-test)';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
