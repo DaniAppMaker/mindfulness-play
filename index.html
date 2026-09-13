@@ -320,9 +320,14 @@
   /* ================= overlays (win / settings / menu) ================= */
   .overlay{
     position:fixed; inset:0; display:none; z-index:30;
-    align-items:center; justify-content:center; padding:24px;
+    /* flex-start + margin:auto on the panel centers it when it fits but lets a tall
+       panel scroll from the top without clipping. The panel no longer has its OWN
+       scroll — a nested scroll region is what iOS VoiceOver could not auto-scroll
+       during swipe, so it got stuck partway down Settings (Dani 2026-09-13). Now the
+       overlay is the single scroll region VoiceOver can drive top-to-bottom. */
+    align-items:flex-start; justify-content:center; padding:24px;
     background:rgba(250,247,241,.88); backdrop-filter:blur(3px);
-    overflow-y:auto;
+    overflow-y:auto; -webkit-overflow-scrolling:touch;
   }
   .panel{
     /* same soft rounded voice as the invitations on the board */
@@ -336,7 +341,7 @@
     max-width:340px; width:100%; text-align:center;
     box-shadow:0 16px 46px rgba(120,90,60,.18);
     border:1px solid #f0e2c9;
-    max-height:calc(100dvh - 48px); overflow-y:auto;
+    margin:auto;   /* scroll-safe centering; NO nested overflow (see .overlay note) */
   }
   .panel h2{ margin:8px 0 6px; font-size:23px; font-weight:600;
              letter-spacing:.01em; color:var(--ink); }
@@ -741,7 +746,14 @@
     <div class="screen-col">
       <!-- Same VoiceOver recipe as the win screen: cat as background-image role="img",
            cursor lands here first, then the prompt text, then New Game. -->
-      <div class="scr-art" id="lostCatArt" role="img" tabindex="-1" aria-label="No moves left. A soft pink watercolor splotch with black ink lines over it: a round cat flopped down on its belly for a rest, legs sprawled out, long tail trailing off to one side, eyes closed — completely relaxed."></div>
+      <!-- The cat is DECORATIVE here (aria-hidden), and its description lives in the
+           separate text line below. Reason: as a role="img" element, iOS VoiceOver ran
+           text-recognition on the hand-drawn ink strokes and appended a hallucinated
+           "c1 slash" to the description (Dani 2026-09-13 — it's the phone reading the
+           picture, not our code). A decorative image the cursor never lands on can't be
+           OCR'd; the cursor lands on #lostCatDesc instead. -->
+      <div class="scr-art" id="lostCatArt" aria-hidden="true"></div>
+      <p id="lostCatDesc" class="visually-hidden" tabindex="-1">No moves left. A soft pink watercolor splotch with black ink lines over it: a round cat flopped down on its belly for a rest, legs sprawled out, long tail trailing off to one side, eyes closed — completely relaxed.</p>
       <p class="scr-text" id="lostPrompt"></p>
       <button id="lostNewBtn">New Game</button>
     </div>
@@ -2089,9 +2101,10 @@ function lostScreen(){
   clearLiveRegions();              // don't let a board line replay over the losing screen
   setBoardInert(true);              // trap VoiceOver in the dialog; stop it wandering into the board behind (the "c1 slash" stray read, Dani 2026-09-13)
   showScreen('screenLost', true);   // gentle fade-in over the stuck board
-  // Land the VoiceOver cursor on the cat so it reads cat -> message -> New Game in order
-  // (was focusing the button, which skipped the cat and the message). Same as welcome.
-  setTimeout(()=>{ moveATCursorTo('lostCatArt'); }, reducedMotion() ? 0 : 650);
+  // Land the VoiceOver cursor on the cat DESCRIPTION text (the cat image itself is now
+  // decorative/aria-hidden to dodge VoiceOver's OCR); reads description -> message ->
+  // New Game in order. (Dani 2026-09-13)
+  setTimeout(()=>{ moveATCursorTo('lostCatDesc'); }, reducedMotion() ? 0 : 650);
 }
 
 /* ================= win ================= */
@@ -2536,7 +2549,7 @@ startupFlow();
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 13 · b15 (popup swipe + stale-voice)';
+  var BUILD_TAG = 'Sep 13 · b16 (settings scroll + cat OCR)';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
