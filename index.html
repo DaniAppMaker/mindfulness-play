@@ -319,16 +319,23 @@
 
   /* ================= overlays (win / settings / menu) ================= */
   .overlay{
-    position:fixed; inset:0; display:none; z-index:30;
+    position:fixed; inset:0; z-index:30;
     /* flex-start + margin:auto on the panel centers it when it fits but lets a tall
-       panel scroll from the top without clipping. The panel no longer has its OWN
-       scroll — a nested scroll region is what iOS VoiceOver could not auto-scroll
-       during swipe, so it got stuck partway down Settings (Dani 2026-09-13). Now the
-       overlay is the single scroll region VoiceOver can drive top-to-bottom. */
+       panel scroll from the top without clipping (single scroll region). */
     align-items:flex-start; justify-content:center; padding:24px;
     background:rgba(250,247,241,.88); backdrop-filter:blur(3px);
     overflow-y:auto; -webkit-overflow-scrolling:touch;
+    /* Show/hide with VISIBILITY, never display:none. iOS Safari + VoiceOver will not
+       move focus into — or let you SWIPE through — a dialog that was just flipped from
+       display:none to shown; swipe silently fails and only tap works. That was THE
+       Settings bug (Dani 2026-09-13; documented iOS VoiceOver behavior). Keeping the
+       dialog in the layout and toggling visibility fixes it. visibility:hidden also
+       keeps it out of the a11y tree while closed; pointer-events:none lets taps fall
+       through to the game. */
+    display:flex; visibility:hidden; opacity:0; pointer-events:none;
+    transition:opacity .18s ease;
   }
+  .overlay.open{ visibility:visible; opacity:1; pointer-events:auto; }
   .panel{
     /* same soft rounded voice as the invitations on the board */
     font-family:"Quicksand","Segoe UI",sans-serif;
@@ -1081,6 +1088,8 @@ function clearPromptState(){
 /* which overlay is currently visible (used by the Escape-key handler) */
 function isShowing(id){
   const el = document.getElementById(id);
+  // overlays now show/hide via the .open class (visibility), not display (Dani 2026-09-13)
+  if (el && el.classList.contains('overlay')) return el.classList.contains('open');
   return !!el && getComputedStyle(el).display !== 'none';
 }
 
@@ -2150,11 +2159,13 @@ function setBoardInert(hidden){
 function openOverlay(id, focusId){
   clearLiveRegions();             // no stale board announcement should carry into the pop-up
   setBoardInert(true);            // trap VoiceOver inside the pop-up
-  document.getElementById(id).style.display='flex';
-  if (focusId) document.getElementById(focusId).focus();
+  document.getElementById(id).classList.add('open');   // visibility-based show (see .overlay CSS)
+  // Focus AFTER the reveal settles — a synchronous focus right as the dialog appears is
+  // dropped by iOS VoiceOver, leaving the cursor outside so swipe can't enter (Dani 2026-09-13).
+  if (focusId) setTimeout(()=>{ try{ document.getElementById(focusId).focus(); }catch(e){} }, 60);
 }
 function closeOverlay(id){
-  document.getElementById(id).style.display='none';
+  document.getElementById(id).classList.remove('open');   // visibility-based hide (see .overlay CSS)
   setBoardInert(false);          // hand the board back to VoiceOver
   clearLiveRegions();            // nothing said before the pop-up should replay on return (Dani 2026-09-13)
 }
@@ -2549,7 +2560,7 @@ startupFlow();
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 13 · b16 (settings scroll + cat OCR)';
+  var BUILD_TAG = 'Sep 13 · b17 (settings visibility fix)';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
