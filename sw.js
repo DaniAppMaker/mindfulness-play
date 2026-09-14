@@ -19,8 +19,8 @@
      to refresh its saved pictures. Code-only changes need no bump.
    ================================================================ */
 
-/* 👉 Bump this ONLY when card/interface images change or are added. */
-const CACHE_VERSION = 'v1';
+/* 👉 Bump this ONLY when card/interface images or sound files change or are added. */
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = 'cozy-cat-' + CACHE_VERSION;
 
 /* The app shell — the few files needed to show *something* offline.
@@ -73,6 +73,12 @@ const ASSETS = [
   'assets/interface/prompt-cat.png',
   'assets/interface/prompt-mouse.png',
   'assets/interface/stretching-cat.png',
+  // soundscape (2026-09-14) — the 5 nature clips; game + UI sounds are synthesized (no files)
+  'assets/sounds/rain.mp3',
+  'assets/sounds/ocean.mp3',
+  'assets/sounds/purr.mp3',
+  'assets/sounds/stream.mp3',
+  'assets/sounds/birds.mp3',
 ];
 
 /* ---- install: save the app onto the phone ---- */

@@ -832,12 +832,23 @@
           </select>
         </div>
         <div class="setrow">
-          <div><div class="setlabel">Music</div><div class="sethint">soft background music · coming soon</div></div>
-          <button type="button" role="switch" aria-checked="false" id="setMusic" class="switch" aria-label="Music — soft background music, coming soon"><span class="slider"></span></button>
+          <div><div class="setlabel">Nature sounds</div><div class="sethint">a soft looping background sound</div></div>
+          <select id="setNature" class="langselect" aria-label="Nature sounds. Drop-down menu. Choose a soft background nature sound: swipe up or down to hear each one, then double-tap to choose it.">
+            <option value="none">None</option>
+            <option value="rain">Calming rain</option>
+            <option value="ocean">Breathing ocean waves</option>
+            <option value="purr">Cat purring</option>
+            <option value="stream">Stream babbling</option>
+            <option value="birds">Forest birds chirping</option>
+          </select>
         </div>
         <div class="setrow">
-          <div><div class="setlabel">Sounds</div><div class="sethint">gentle card sounds · coming soon</div></div>
-          <button type="button" role="switch" aria-checked="false" id="setSounds" class="switch" aria-label="Sounds — gentle card sounds, coming soon"><span class="slider"></span></button>
+          <div><div class="setlabel">Music</div><div class="sethint">soft background music</div></div>
+          <button type="button" role="switch" aria-checked="false" id="setMusic" class="switch" aria-label="Music — soft background music"><span class="slider"></span></button>
+        </div>
+        <div class="setrow">
+          <div><div class="setlabel">Game sounds</div><div class="sethint">gentle taps and card sounds as you play</div></div>
+          <button type="button" role="switch" aria-checked="false" id="setGame" class="switch" aria-label="Game sounds — gentle taps and card sounds as you play"><span class="slider"></span></button>
         </div>
         <div class="setrow">
           <div><div class="setlabel">Timed invitations</div><div class="sethint">soft notes that drift in on their own, now and then</div></div>
@@ -889,8 +900,8 @@ const CARD_BACK = 'assets/card-back/card-back2.png';
 
 /* ---------- settings (remembered on this device) ---------- */
 const SETTINGS_KEY = 'cozycat.settings';
-const DEFAULT_SETTINGS = { music:false, sounds:false, timedInvites:true,
-                           leftHanded:false };
+const DEFAULT_SETTINGS = { music:false, gameSounds:false, natureSound:'none',
+                           timedInvites:true, leftHanded:false };
 let settings = loadSettings();
 function loadSettings(){
   try{
@@ -980,8 +991,10 @@ function cardById(id){
 }
 
 /* ---------- audio (placeholders — no music/sounds designed yet) ---------- */
-function playSound(name){ if(!settings.sounds) return; }
-function updateMusic(){ }
+function playSound(name){ if(!settings.gameSounds) return; try{ Sound.game(name); }catch(e){} }
+function playPurr(){ if(settings.gameSounds){ try{ Sound.purr(); }catch(e){} } }
+function applyNature(){ try{ Sound.nature(settings.natureSound); }catch(e){} }
+function updateMusic(){ try{ Sound.music(!!settings.music); }catch(e){} }
 
 /* ================= layout helpers (reference-pixel coordinates) =================
    The board is 1080 wide; --u scales it. Left-handed play mirrors the game
@@ -1150,6 +1163,8 @@ function deal(){
   justRevealed.clear();
   clearPromptState();      // empty prompt space; first invitation drifts in after ~5 moves
   render();
+  playSound('shuffle');                 // the opening deal
+  applyNature(); updateMusic();          // start (or keep) the chosen ambient — first deal is a user gesture
   announce('The new game is ready.');   // Dani 2026-09-13
 }
 
@@ -1465,6 +1480,7 @@ function autoCompleteStep(){
 function maybeAutoComplete(){
   if (!boardCanAutoComplete()) return;
   autoCompleting = true;
+  playSound('flourish');       // the gentle cascade of cards flying home
   // Move the VoiceOver cursor OFF the board onto a stable win message, so it announces
   // the win once and doesn't try to read each card as the cascade re-renders them home
   // (Dani 2026-09-10: it kept naming every flying card until the win screen). This
@@ -1484,12 +1500,14 @@ let inviteThreshold = 5;        // first invitation after ~5 moves, then ~10 bet
    Whatever move just happened, uncover the top of every pile so a column can
    never get "locked" (fixes the rare un-flipped card after a move). */
 function ensureTopsFaceUp(){
+  let flipped = false;
   state.tableau.forEach(pile=>{
     if (pile.length){
       const top = pile[pile.length-1];
-      if (!top.faceUp){ top.faceUp = true; justRevealed.add(top.id); }
+      if (!top.faceUp){ top.faceUp = true; justRevealed.add(top.id); flipped = true; }
     }
   });
+  if (flipped) playSound('slip');   // a face-down column card turns face-up
 }
 // advance the invitation counter after any move (a tableau move OR a stock turn)
 function progressInvites(){
@@ -1499,6 +1517,7 @@ function progressInvites(){
 }
 function afterMove(){
   const movedId = pendingFlip && pendingFlip.ids && pendingFlip.ids[0];   // the card that just moved
+  playSound('tup');            // a soft "set down" for the card just placed (column or foundation)
   ensureTopsFaceUp();
   render();
   if (pendingFlip){ flipAnimate(pendingFlip.ids, pendingFlip.from); pendingFlip = null; }
@@ -1542,6 +1561,7 @@ function drawStock(){
     noteMove('Spreading the used cards back out of the draw pile.');
   }
   render();
+  if (drew) playSound('slip'); if (recycled) playSound('shuffle');   // a card turned over / the pile gathered
   // When the stock empties we NO LONGER pulse/scale the pile (Dani 2026-09-12:
   // the "bigger and smaller" breathe was distracting). Instead the empty draw
   // slot's recycle arrow gently FADES IN and then keeps its own subtle flash
@@ -2139,6 +2159,7 @@ function lostScreen(){
   clearLiveRegions();              // don't let a board line replay over the losing screen
   setBoardInert(true);              // trap VoiceOver in the dialog; stop it wandering into the board behind (the "c1 slash" stray read, Dani 2026-09-13)
   showScreen('screenLost', true);   // gentle fade-in over the stuck board
+  playPurr();                       // the SAME soft grounding purr as the win screen — breathe, re-ground
   // Land the VoiceOver cursor on the cat DESCRIPTION text (the cat image itself is now
   // decorative/aria-hidden to dodge VoiceOver's OCR); reads description -> message ->
   // New Game in order. (Dani 2026-09-13)
@@ -2152,6 +2173,7 @@ function winScreen(){
   clearLiveRegions();              // don't let a board line replay over the win screen
   setBoardInert(true);             // trap VoiceOver in the dialog, same as the lost screen (Dani 2026-09-13)
   showScreen('screenWin', true);   // gentle fade-in over the finished board
+  playPurr();                      // a soft grounding purr — a cue to breathe
   // Land the cursor on the cat so VoiceOver reads cat (which opens with "You finished
   // the game") -> the message -> New Game, in order. (Was focusing the button, which
   // skipped the cat and message.) The 650ms delay matches the fade and is known to
@@ -2205,6 +2227,14 @@ document.getElementById('btnPaw').onclick    = ()=> showInvitation(true);
 document.getElementById('btnHint').onclick   = showHint;
 document.getElementById('btnAppear').onclick = openSettings;
 
+/* A soft tap on any real <button> — the five controls, New Game, Done, Begin, menu items.
+   role="switch" toggles make their own "switch" sound, so skip those; game cards are
+   <div role="button">, not <button>, so they keep their own "tup". (Soundscape 2026-09-14) */
+document.addEventListener('click', (e)=>{
+  const b = e.target.closest && e.target.closest('button');
+  if (b && b.getAttribute('role') !== 'switch') playSound('tap');
+});
+
 /* The top cat replays the game description for VoiceOver players (Dani 2026-09-12):
    reaching #sr-intro by swiping is impractical, so double-tapping the cat re-reads
    it. Focusing #sr-intro re-reads the whole thing — the same mechanism used when
@@ -2222,19 +2252,24 @@ document.getElementById('menuClose').onclick = ()=>{ closeOverlay('menu'); docum
 document.getElementById('menu').addEventListener('click', e=>{ if(e.target.id==='menu') closeOverlay('menu'); });
 
 /* ================= settings panel wiring ================= */
-const TOGGLES = { setMusic:'music', setSounds:'sounds', setTimed:'timedInvites',
+const TOGGLES = { setMusic:'music', setGame:'gameSounds', setTimed:'timedInvites',
                   setLeft:'leftHanded' };
 function syncToggles(){
   // role="switch" buttons carry their state in aria-checked (Dani 2026-09-13)
   for (const id in TOGGLES){ const el=document.getElementById(id); if(el) el.setAttribute('aria-checked', settings[TOGGLES[id]] ? 'true' : 'false'); }
+  const nat=document.getElementById('setNature'); if(nat) nat.value = settings.natureSound || 'none';
 }
+/* Nature-sound dropdown: pick one soft looping background sound (or None). */
+(function(){ const nat=document.getElementById('setNature'); if(!nat) return;
+  nat.addEventListener('change', (e)=>{ settings.natureSound = e.currentTarget.value; saveSettings(); applyNature(); playSound('confirm'); });
+})();
 for (const id in TOGGLES){
   document.getElementById(id).addEventListener('click', (e)=>{
     const el = e.currentTarget;
     const on = el.getAttribute('aria-checked') !== 'true';   // flip it
     el.setAttribute('aria-checked', on ? 'true' : 'false');
     settings[TOGGLES[id]] = on;
-    saveSettings(); updateMusic(); applyA11y();
+    saveSettings(); updateMusic(); applyA11y(); playSound('switch');
   });
 }
 /* The language chooser is a real <select>, but disabled while translations are still
@@ -2520,6 +2555,7 @@ function startupFlow(){
   const cancelWelArrow = revealArrowLater('welNext', firstLaunch ? 5000 : 1800);
   const proceed = ()=>{
     cancelWelArrow();
+    playPurr();                                     // a soft grounding purr as the player enters (first tap = audio can start)
     const w = document.getElementById('screenWelcome');
     showScreen('screenLoading');                    // loading now covers the board
     // Set up the loading screen and move the VoiceOver cursor into it RIGHT NOW,
@@ -2557,6 +2593,82 @@ else deal();            // deal() clears the prompt space; invitations drift in 
 startupFlow();
 </script>
 
+<!-- ============================ SOUNDSCAPE ============================
+     Self-contained audio engine (window.Sound), added 2026-09-14. Nature =
+     ONE looping clip at a time with a quick gentle fade-in; music = a soft
+     synth pad; game sounds = soft synthesized one-shots; purr = a short reuse
+     of the cat clip (win / lose / welcome). Everything soft & level-matched,
+     layers freely, sits UNDER VoiceOver, and only plays while the app is open.
+     Gating is done by the callers via the `settings` object. -->
+<script>
+window.Sound = (function(){
+  var AC = window.AudioContext || window.webkitAudioContext;
+  var ctx = null, SOFT = 0.42;                 // gentle overall ceiling
+  function ensure(){ if(!AC) return null; try{ if(!ctx) ctx=new AC(); if(ctx.state==='suspended') ctx.resume(); }catch(e){ return null; } return ctx; }
+  function ramp(g, v, secs){ var t=ctx.currentTime; v=Math.max(0.0001,v); g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(Math.max(0.0001,g.gain.value),t); g.gain.linearRampToValueAtTime(v, t+secs); }
+
+  /* ---- nature: one at a time, seamless loop, quick fade-in, RMS-normalized ---- */
+  var NSRC = { rain:'assets/sounds/rain.mp3', ocean:'assets/sounds/ocean.mp3', purr:'assets/sounds/purr.mp3', stream:'assets/sounds/stream.mp3', birds:'assets/sounds/birds.mp3' };
+  var nEl={}, nGain={}, nLoud={}, current=null;
+  function normGain(ab){ var ch=ab.numberOfChannels, len=ab.length, step=Math.max(1,Math.floor(len/50000)), sum=0, n=0; for(var c=0;c<ch;c++){ var d=ab.getChannelData(c); for(var i=0;i<len;i+=step){ sum+=d[i]*d[i]; n++; } } var rms=Math.sqrt(sum/(n||1)); if(rms<1e-4) return 1; return Math.max(0.3, Math.min(3.5, 0.10/rms)); }
+  function setup(id){ var c=ensure(); if(!c) return; var a=new Audio(NSRC[id]); a.loop=true; a.preload='auto'; var node; try{ node=c.createMediaElementSource(a); }catch(e){ return; } var g=c.createGain(); g.gain.value=0.0001; node.connect(g).connect(c.destination); nEl[id]=a; nGain[id]=g; nLoud[id]=1; fetch(NSRC[id]).then(function(r){return r.arrayBuffer();}).then(function(b){return c.decodeAudioData(b);}).then(function(ab){ nLoud[id]=normGain(ab); if(current===id) ramp(g, SOFT*nLoud[id], 0.25); }).catch(function(){}); }
+  function stopNature(){ if(!current) return; var id=current; current=null; var g=nGain[id], a=nEl[id]; if(g) ramp(g,0.0001,0.8); if(a) setTimeout(function(){ try{a.pause();}catch(e){} },850); }
+  function nature(id){
+    if(!id || id==='none'){ stopNature(); return; }
+    var c=ensure(); if(!c) return;
+    if(current===id && nEl[id] && !nEl[id].paused) return;      // already playing — don't restart
+    if(current && current!==id) stopNature();
+    if(!nEl[id]) setup(id);
+    if(!nEl[id]) return;
+    current=id; var a=nEl[id], g=nGain[id];
+    try{a.currentTime=0;}catch(e){}
+    var p=a.play(); if(p&&p.catch)p.catch(function(){});
+    ramp(g, SOFT*(nLoud[id]||1), 0.9);                          // quick gentle fade-in
+  }
+
+  /* ---- music: a soft synth pad ---- */
+  var mVoice=null, mTeardown=null;
+  function buildPad(dest){ var c=ctx;
+    var master=c.createGain(); master.gain.value=0.5;
+    var lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=1050; lp.Q.value=0.4; master.connect(lp).connect(dest);
+    var swp=c.createOscillator(); swp.type='sine'; swp.frequency.value=0.05; var swg=c.createGain(); swg.gain.value=360; swp.connect(swg).connect(lp.frequency); swp.start();
+    var blfo=c.createOscillator(); blfo.type='sine'; blfo.frequency.value=0.08; var bg=c.createGain(); bg.gain.value=0.12; blfo.connect(bg).connect(master.gain); blfo.start();
+    var notes=[130.81,196.00,261.63,329.63,392.00], lv=[0.5,0.32,0.4,0.3,0.24], oscs=[swp,blfo];
+    notes.forEach(function(f,i){ var g=c.createGain(); g.gain.value=lv[i]*0.5; g.connect(master); [-5,5].forEach(function(det){ var o=c.createOscillator(); o.type='sine'; o.frequency.value=f; o.detune.value=det; o.connect(g); o.start(); oscs.push(o); }); });
+    return function(){ oscs.forEach(function(o){ try{o.stop();}catch(e){} }); };
+  }
+  function music(on){ var c=ensure(); if(!c) return;
+    if(on){ if(mVoice) return; mVoice=c.createGain(); mVoice.gain.value=0.0001; mVoice.connect(c.destination); mTeardown=buildPad(mVoice); mVoice.gain.linearRampToValueAtTime(SOFT*0.7, c.currentTime+1.2); }
+    else { if(!mVoice) return; var v=mVoice, td=mTeardown; mVoice=null; mTeardown=null; var t=c.currentTime; v.gain.cancelScheduledValues(t); v.gain.setValueAtTime(v.gain.value,t); v.gain.linearRampToValueAtTime(0.0001,t+1); setTimeout(function(){ td&&td(); },1200); }
+  }
+
+  /* ---- game sounds: soft synthesized one-shots ---- */
+  function ping(freq, dur, peak, type){ var c=ctx; var o=c.createOscillator(); o.type=type||'sine'; o.frequency.value=freq; var g=c.createGain(); g.gain.value=0.0001; o.connect(g).connect(c.destination); var t=c.currentTime; g.gain.linearRampToValueAtTime(peak, t+0.008); g.gain.exponentialRampToValueAtTime(0.0001, t+dur); o.start(t); o.stop(t+dur+0.03); }
+  function noise(dur, peak, lp, hp){ var c=ctx; var len=Math.max(1,Math.floor(c.sampleRate*dur)); var buf=c.createBuffer(1,len,c.sampleRate); var d=buf.getChannelData(0); for(var i=0;i<len;i++) d[i]=Math.random()*2-1; var s=c.createBufferSource(); s.buffer=buf; var lpf=c.createBiquadFilter(); lpf.type='lowpass'; lpf.frequency.value=lp||2200; var g=c.createGain(); g.gain.value=0.0001; s.connect(lpf); var out=lpf; if(hp){ var hpf=c.createBiquadFilter(); hpf.type='highpass'; hpf.frequency.value=hp; lpf.connect(hpf); out=hpf; } out.connect(g); g.connect(c.destination); var t=c.currentTime; g.gain.linearRampToValueAtTime(peak, t+0.01); g.gain.exponentialRampToValueAtTime(0.0001, t+dur); s.start(t); s.stop(t+dur+0.03); }
+  function game(name){ var c=ensure(); if(!c) return; switch(name){
+    case 'tup':      ping(168, 0.13, 0.09, 'sine'); noise(0.05, 0.02, 1400); break;
+    case 'slip':     noise(0.17, 0.045, 3200, 700); break;
+    case 'shuffle':  noise(0.20, 0.05, 2600, 500); setTimeout(function(){ if(ctx) noise(0.18,0.04,2600,500); }, 120); break;
+    case 'flourish': [262,330,392,523].forEach(function(f,i){ setTimeout(function(){ if(ctx) ping(f, 0.22, 0.05, 'sine'); }, i*95); }); break;
+    case 'tap':      ping(330, 0.06, 0.055, 'sine'); break;
+    case 'switch':   ping(300, 0.05, 0.05, 'sine'); setTimeout(function(){ if(ctx) ping(450, 0.05, 0.045, 'sine'); }, 55); break;
+    case 'confirm':  ping(523, 0.10, 0.055, 'sine'); break;
+    default:         ping(330, 0.05, 0.04, 'sine');
+  } }
+
+  /* ---- purr: a short, soft reuse of the cat clip ---- */
+  function purr(){ var c=ensure(); if(!c) return; var a=new Audio(NSRC.purr); a.loop=false; a.preload='auto'; var node; try{ node=c.createMediaElementSource(a); }catch(e){ node=null; } var g=c.createGain(); g.gain.value=0.0001; if(node){ node.connect(g).connect(c.destination); } var p=a.play(); if(p&&p.catch)p.catch(function(){}); ramp(g, SOFT, 0.6); setTimeout(function(){ if(!ctx) return; var t=ctx.currentTime; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(Math.max(0.0001,g.gain.value),t); g.gain.linearRampToValueAtTime(0.0001, t+1.2); setTimeout(function(){ try{a.pause();}catch(e){} },1300); }, 4200); }
+
+  /* ---- only play while the app is open ---- */
+  function hideAll(){ try{ if(ctx) ctx.suspend(); }catch(e){} for(var k in nEl){ try{ if(!nEl[k].paused){ nEl[k]._resume=true; nEl[k].pause(); } }catch(e){} } }
+  function showAll(){ try{ if(ctx) ctx.resume(); }catch(e){} for(var k in nEl){ try{ if(nEl[k]._resume){ nEl[k]._resume=false; nEl[k].play().catch(function(){}); } }catch(e){} } }
+  document.addEventListener('visibilitychange', function(){ if(document.hidden) hideAll(); else showAll(); });
+  window.addEventListener('pagehide', hideAll);
+
+  return { nature:nature, music:music, game:game, purr:purr };
+})();
+</script>
+
 <!-- Offline "memory": saves the app + all pictures onto the phone so it
      works with no internet after the first visit. See sw.js for details. -->
 <script>
@@ -2582,7 +2694,7 @@ startupFlow();
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 13 · b20 (settings layout fills screen)';
+  var BUILD_TAG = 'Sep 14 · sound1 (soundscape)';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
