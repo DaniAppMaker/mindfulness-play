@@ -20,7 +20,7 @@
    ================================================================ */
 
 /* 👉 Bump this ONLY when card/interface images or sound files change or are added. */
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const CACHE_NAME = 'cozy-cat-' + CACHE_VERSION;
 
 /* The app shell — the few files needed to show *something* offline.
@@ -79,6 +79,15 @@ const ASSETS = [
   'assets/sounds/purr.mp3',
   'assets/sounds/stream.mp3',
   'assets/sounds/birds.mp3',
+  // game sounds (Kenney casino, CC0) + music loop (Heavenly Loop, CC0), added 2026-09-14
+  'assets/sounds/g-tup.ogg',
+  'assets/sounds/g-slip.ogg',
+  'assets/sounds/g-shuffle.ogg',
+  'assets/sounds/g-flourish.ogg',
+  'assets/sounds/g-tap.ogg',
+  'assets/sounds/g-switch.ogg',
+  'assets/sounds/g-confirm.ogg',
+  'assets/sounds/music-loop.flac',
 ];
 
 /* ---- install: save the app onto the phone ---- */
