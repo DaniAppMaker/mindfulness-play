@@ -444,7 +444,7 @@
     padding:11px 2px; border-top:1px solid #efdcc0; text-align:left;
   }
   .setrow:first-of-type{ border-top:none; }
-  .setlabel{ font-size:14.5px; color:var(--ink); }
+  .setlabel{ font-size:19px; font-weight:600; color:var(--ink); }   /* bigger settings text (Dani 2026-09-14) */
   .sethint{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; line-height:1.3; }
   .setnote{ margin:15px 2px 2px; font-size:12px; color:var(--ink-soft); text-align:center; line-height:1.5; }
   /* Each toggle is a real <button role="switch"> — the reliable accessible pattern.
@@ -832,7 +832,7 @@
           </select>
         </div>
         <div class="setrow">
-          <div><div class="setlabel">Nature sounds</div><div class="sethint">a soft looping background sound</div></div>
+          <div class="setlabel">Nature sounds</div>
           <select id="setNature" class="langselect" aria-label="Nature sounds. Drop-down menu. Choose a soft background nature sound: swipe up or down to hear each one, then double-tap to choose it.">
             <option value="none">None</option>
             <option value="rain">Calming rain</option>
@@ -843,21 +843,20 @@
           </select>
         </div>
         <div class="setrow">
-          <div><div class="setlabel">Music</div><div class="sethint">soft background music</div></div>
-          <button type="button" role="switch" aria-checked="false" id="setMusic" class="switch" aria-label="Music — soft background music"><span class="slider"></span></button>
+          <div class="setlabel">Music</div>
+          <button type="button" role="switch" aria-checked="false" id="setMusic" class="switch" aria-label="Music"><span class="slider"></span></button>
         </div>
         <div class="setrow">
-          <div><div class="setlabel">Game sounds</div><div class="sethint">gentle taps and card sounds as you play</div></div>
-          <button type="button" role="switch" aria-checked="false" id="setGame" class="switch" aria-label="Game sounds — gentle taps and card sounds as you play"><span class="slider"></span></button>
+          <div class="setlabel">Game sounds</div>
+          <button type="button" role="switch" aria-checked="false" id="setGame" class="switch" aria-label="Game sounds"><span class="slider"></span></button>
         </div>
         <div class="setrow">
-          <div><div class="setlabel">Timed invitations</div><div class="sethint">soft notes that drift in on their own, now and then</div></div>
-          <button type="button" role="switch" aria-checked="false" id="setTimed" class="switch" aria-label="Timed invitations — soft notes that drift in on their own, now and then"><span class="slider"></span></button>
+          <div class="setlabel">Mindfulness invitations</div>
+          <button type="button" role="switch" aria-checked="false" id="setTimed" class="switch" aria-label="Mindfulness invitations"><span class="slider"></span></button>
         </div>
-        <div class="setlabel setrow-divider">Making it yours</div>
         <div class="setrow">
-          <div><div class="setlabel">Left-handed layout</div><div class="sethint">flip the table for a left-handed game</div></div>
-          <button type="button" role="switch" aria-checked="false" id="setLeft" class="switch" aria-label="Left-handed layout — flip the table for a left-handed game"><span class="slider"></span></button>
+          <div class="setlabel">Left-handed layout</div>
+          <button type="button" role="switch" aria-checked="false" id="setLeft" class="switch" aria-label="Left-handed layout"><span class="slider"></span></button>
         </div>
       </div>
 
@@ -1439,44 +1438,59 @@ function cardHasMove(where, colIndex, cardIndex){
    instead of making them tap out the whole finish (like Netflix Solitaire). */
 let autoCompleting = false;
 
+/* Auto-finish as soon as the game is PROVABLY won — no face-down cards remain AND a
+   foundation-only cascade (send tableau/waste tops home, drawing / recycling the stock
+   as needed) actually reaches a full win. We SIMULATE that cascade on a copy first, so it
+   only ever starts when it's guaranteed to complete — even with cards still in the draw
+   pile or waste (Dani 2026-09-14). A face-down card is unknown, so we never auto-complete
+   while one remains (we can't be sure it's solved until it's turned). */
+function _cloneState(s){ const cp = a => a.map(c => Object.assign({}, c));
+  return { stock:cp(s.stock), waste:cp(s.waste), foundations:s.foundations.map(cp), tableau:s.tableau.map(cp) }; }
+function _cascadeStep(s){   // one greedy step on state s → 'sent' | 'drew' | 'recycled' | 'stuck'
+  let best = null;
+  for (let c = 0; c < 7; c++){ const p = s.tableau[c]; if (!p.length) continue; const card = p[p.length-1];
+    for (let f = 0; f < 4; f++){ if (canStackFoundation(card, s.foundations[f])){ if (!best || rankVal(card.rank) < rankVal(best.card.rank)) best = { src:'t', col:c, f, card }; break; } } }
+  if (s.waste.length){ const w = s.waste[s.waste.length-1];
+    for (let f = 0; f < 4; f++){ if (canStackFoundation(w, s.foundations[f])){ if (!best || rankVal(w.rank) < rankVal(best.card.rank)) best = { src:'w', f, card:w }; break; } } }
+  if (best){ if (best.src === 't') s.tableau[best.col].pop(); else s.waste.pop(); s.foundations[best.f].push(best.card); return 'sent'; }
+  if (s.stock.length){ const c = s.stock.pop(); c.faceUp = true; s.waste.push(c); return 'drew'; }
+  if (s.waste.length){ while (s.waste.length){ const c = s.waste.pop(); c.faceUp = false; s.stock.push(c); } return 'recycled'; }
+  return 'stuck';
+}
 function boardCanAutoComplete(){
   if (autoCompleting) return false;
-  if (state.stock.length || state.waste.length) return false;   // still cards to turn
-  for (const pile of state.tableau)
-    for (const c of pile)
-      if (!c.faceUp) return false;                              // a hidden card remains
-  return state.tableau.some(p => p.length);                     // and there's something left to place
+  for (const pile of state.tableau) for (const c of pile) if (!c.faceUp) return false;   // an unknown (face-down) card remains
+  if (state.foundations.every(f => f.length === 13)) return false;                        // already won
+  const sim = _cloneState(state);
+  for (let guard = 0; guard < 600; guard++){
+    if (sim.foundations.every(f => f.length === 13)) return true;
+    if (_cascadeStep(sim) === 'stuck') return false;
+  }
+  return false;
 }
 
-// send the single lowest exposed card home, then schedule the next — a gentle cascade
+// send the next card home, then schedule the next — a gentle cascade that also draws /
+// recycles the stock as needed (mirrors _cascadeStep, with the fly animation)
 function autoCompleteStep(){
-  let best = null;   // the lowest-rank column-top card that has a foundation to go to
-  for (let c = 0; c < 7; c++){
-    const pile = state.tableau[c];
-    if (!pile.length) continue;
-    const card = pile[pile.length-1];
-    for (let f = 0; f < 4; f++){
-      if (canStackFoundation(card, state.foundations[f])){
-        if (!best || rankVal(card.rank) < rankVal(best.card.rank)) best = { col:c, f, card, idx: pile.length-1 };
-        break;
-      }
-    }
+  if (state.foundations.every(f => f.length === 13)){ autoCompleting = false; setTimeout(winScreen, 520); return; }
+  const gap = reducedMotion() ? 90 : 200;
+  let best = null;
+  for (let c = 0; c < 7; c++){ const pile = state.tableau[c]; if (!pile.length) continue; const card = pile[pile.length-1];
+    for (let f = 0; f < 4; f++){ if (canStackFoundation(card, state.foundations[f])){ if (!best || rankVal(card.rank) < rankVal(best.card.rank)) best = { src:'t', col:c, f, card, idx: pile.length-1 }; break; } } }
+  if (state.waste.length){ const w = state.waste[state.waste.length-1];
+    for (let f = 0; f < 4; f++){ if (canStackFoundation(w, state.foundations[f])){ if (!best || rankVal(w.rank) < rankVal(best.card.rank)) best = { src:'w', f, card:w }; break; } } }
+  if (best){
+    pendingFlip = { ids:[best.card.id], from: captureRects([best.card.id]) };
+    if (best.src === 't') state.tableau[best.col].pop(); else state.waste.pop();
+    state.foundations[best.f].push(best.card);
+    render();
+    if (pendingFlip){ flipAnimate(pendingFlip.ids, pendingFlip.from); pendingFlip = null; }
+    if (state.foundations.every(f => f.length === 13)){ autoCompleting = false; setTimeout(winScreen, 520); return; }
+    setTimeout(autoCompleteStep, gap); return;
   }
-  if (!best){ autoCompleting = false; return; }                 // safety: nothing to send
-
-  pendingFlip = { ids:[best.card.id], from: captureRects([best.card.id]) };
-  removeFromSource('tableau', best.col, best.idx);
-  state.foundations[best.f].push(best.card);
-  render();
-  if (pendingFlip){ flipAnimate(pendingFlip.ids, pendingFlip.from); pendingFlip = null; }
-
-  if (state.foundations.every(f => f.length === 13)){           // that was the last card
-    autoCompleting = false;
-    setTimeout(winScreen, 520);
-    return;
-  }
-  const gap = reducedMotion() ? 90 : 200;                       // stagger so they fly one after another
-  setTimeout(autoCompleteStep, gap);
+  if (state.stock.length){ const c = state.stock.pop(); c.faceUp = true; state.waste.push(c); render(); setTimeout(autoCompleteStep, gap); return; }
+  if (state.waste.length){ while (state.waste.length){ const c = state.waste.pop(); c.faceUp = false; state.stock.push(c); } render(); setTimeout(autoCompleteStep, gap); return; }
+  autoCompleting = false;   // safety (boardCanAutoComplete already proved this completes)
 }
 
 // call after any move: if the board is now a sure thing, start the cascade
@@ -1564,7 +1578,7 @@ function drawStock(){
     noteMove('Spreading the used cards back out of the draw pile.');
   }
   render();
-  if (drew) playSound('slip'); if (recycled) playSound('shuffle');   // a card turned over / the pile gathered
+  if (drew) playSound('tup');   // drawing a card = the same soft sound as placing (Dani 2026-09-14); recycle stays silent for now
   // When the stock empties we NO LONGER pulse/scale the pile (Dani 2026-09-12:
   // the "bigger and smaller" breathe was distracting). Instead the empty draw
   // slot's recycle arrow gently FADES IN and then keeps its own subtle flash
@@ -2616,7 +2630,7 @@ window.Sound = (function(){
      PTRIM brings the broadband clips (rain/ocean/stream) DOWN to the perceived
      level of the cat/bird clips, which RMS alone doesn't (Dani's ears 2026-09-14). */
   var NSRC = { rain:'assets/sounds/rain.mp3', ocean:'assets/sounds/ocean.mp3', purr:'assets/sounds/purr.mp3', stream:'assets/sounds/stream.mp3', birds:'assets/sounds/birds.mp3' };
-  var PTRIM = { purr:1.0, birds:1.0, stream:0.62, rain:0.5, ocean:0.34 };
+  var PTRIM = { purr:1.0, birds:1.0, stream:0.55, rain:0.4, ocean:0.22 };   // ocean/rain lowered again (Dani 2026-09-14)
   var current=null, nMaster=null, nTimers=[], CF=2.4;
   function normGain(ab){ var ch=ab.numberOfChannels, len=ab.length, step=Math.max(1,Math.floor(len/50000)), sum=0, n=0; for(var c=0;c<ch;c++){ var d=ab.getChannelData(c); for(var i=0;i<len;i+=step){ sum+=d[i]*d[i]; n++; } } var rms=Math.sqrt(sum/(n||1)); if(rms<1e-4) return 1; return Math.max(0.3, Math.min(3.5, 0.10/rms)); }
   function clearNTimers(){ nTimers.forEach(clearTimeout); nTimers=[]; }
@@ -2649,21 +2663,34 @@ window.Sound = (function(){
     }).catch(function(){});
   }
 
-  /* ---- music: a soft, SEAMLESS calm loop (Heavenly Loop, CC0) — placeholder until a musician ---- */
-  var musicEl=null, musicGain=null;
+  /* ---- music: a soft calm loop with a long CROSSFADE at the seam, so the loop is
+     unnoticeable — it plays like one endless piece (Dani 2026-09-14). Heavenly Loop, CC0. ---- */
+  var mBuf=null, mMaster=null, mTimers=[], mOn=false;
+  function mClear(){ mTimers.forEach(clearTimeout); mTimers=[]; }
+  function mSchedule(startAt){
+    if(!mOn || !mMaster || !mBuf) return;
+    var dur=mBuf.duration, cf=Math.min(3.5, dur/2-0.05);
+    var src=ctx.createBufferSource(); src.buffer=mBuf; var g=ctx.createGain(); src.connect(g).connect(mMaster);
+    g.gain.setValueAtTime(0.0001,startAt); g.gain.linearRampToValueAtTime(1,startAt+cf);
+    g.gain.setValueAtTime(1,startAt+dur-cf); g.gain.linearRampToValueAtTime(0.0001,startAt+dur);
+    try{ src.start(startAt); src.stop(startAt+dur+0.1); }catch(e){}
+    var nextAt=startAt+dur-cf;
+    mTimers.push(setTimeout(function(){ mSchedule(nextAt); }, Math.max(0,(nextAt-ctx.currentTime-0.5))*1000));
+  }
   function music(on){ var c=ensure(); if(!c) return;
-    if(on){ if(musicEl && !musicEl.paused) return;
-      if(!musicEl){ musicEl=new Audio('assets/sounds/music-loop.flac'); musicEl.loop=true; musicEl.preload='auto'; var node; try{ node=c.createMediaElementSource(musicEl); }catch(e){ node=null; } musicGain=c.createGain(); musicGain.gain.value=0.0001; if(node) node.connect(musicGain).connect(c.destination); }
-      try{musicEl.currentTime=0;}catch(e){}
-      var p=musicEl.play(); if(p&&p.catch)p.catch(function(){});
-      ramp(musicGain, SOFT*0.75, 1.2);
-    } else { if(!musicEl) return; if(musicGain) ramp(musicGain, 0.0001, 1.0); setTimeout(function(){ try{musicEl.pause();}catch(e){} }, 1100); }
+    if(on){ if(mOn) return; mOn=true;
+      mMaster=c.createGain(); mMaster.gain.value=0.0001; mMaster.connect(c.destination); ramp(mMaster, SOFT*0.75, 1.2);
+      if(mBuf){ mSchedule(c.currentTime+0.05); }
+      else { fetch('assets/sounds/music-loop.flac').then(function(r){return r.arrayBuffer();}).then(function(b){return c.decodeAudioData(b);}).then(function(buf){ mBuf=buf; if(mOn) mSchedule(ctx.currentTime+0.05); }).catch(function(){}); }
+    } else { if(!mOn) return; mOn=false; mClear(); if(mMaster){ var m=mMaster; mMaster=null; var t=c.currentTime; m.gain.cancelScheduledValues(t); m.gain.setValueAtTime(Math.max(0.0001,m.gain.value),t); m.gain.linearRampToValueAtTime(0.0001,t+0.9); setTimeout(function(){ try{m.disconnect();}catch(e){} },1000); } }
   }
 
   /* ---- game sounds: real recorded card foley (Kenney casino pack, CC0), played soft ----
      Decoded once into buffers; each play is a fresh BufferSource so they can overlap. */
-  var GSRC = { tup:'assets/sounds/g-tup.ogg', slip:'assets/sounds/g-slip.ogg', shuffle:'assets/sounds/g-shuffle.ogg', flourish:'assets/sounds/g-flourish.ogg', tap:'assets/sounds/g-tap.ogg', 'switch':'assets/sounds/g-switch.ogg', confirm:'assets/sounds/g-confirm.ogg' };
-  var GVOL = { tup:0.62, slip:0.55, shuffle:0.5, flourish:0.62, tap:0.5, 'switch':0.5, confirm:0.55 };
+  // INTERIM (Dani disliked the others 2026-09-14): only the soft "place" + the win cascade play.
+  // draw uses 'tup' too; deal/recycle/flip/buttons are silent until Dani picks satisfying sounds.
+  var GSRC = { tup:'assets/sounds/g-tup.ogg', flourish:'assets/sounds/g-flourish.ogg' };
+  var GVOL = { tup:0.4, flourish:0.55 };
   var gBuf={}, gLoaded=false;
   function loadGame(){ if(gLoaded) return; gLoaded=true; Object.keys(GSRC).forEach(function(k){ fetch(GSRC[k]).then(function(r){return r.arrayBuffer();}).then(function(b){return ctx.decodeAudioData(b);}).then(function(ab){ gBuf[k]=ab; }).catch(function(){}); }); }
   function playBuf(buf, vol){ var s=ctx.createBufferSource(); s.buffer=buf; var g=ctx.createGain(); g.gain.value=vol; s.connect(g).connect(ctx.destination); try{ s.start(); }catch(e){} }
@@ -2682,7 +2709,9 @@ window.Sound = (function(){
   function screenPurr(on){
     var c=ensure(); if(!c) return;
     if(on){
-      if(purrOn || current==='purr') return;       // already purring (screen or nature) — don't double
+      if(purrOn) return;
+      stopNature();                                  // quickly fade out nature so ONLY the purr plays on the screen
+      if(mOn) music(false);                           // fade out the music too (Dani 2026-09-14)
       if(!purrEl){ purrEl=new Audio(NSRC.purr); purrEl.loop=true; purrEl.preload='auto'; var node; try{ node=c.createMediaElementSource(purrEl); }catch(e){ node=null; } purrGain=c.createGain(); purrGain.gain.value=0.0001; if(node) node.connect(purrGain).connect(c.destination); }
       try{purrEl.currentTime=0;}catch(e){}
       var p=purrEl.play(); if(p&&p.catch)p.catch(function(){});
@@ -2695,9 +2724,9 @@ window.Sound = (function(){
   }
 
   /* ---- only play while the app is open ---- */
-  var _hiddenNature=null;
-  function hideAll(){ _hiddenNature=current; stopNature(); try{ if(purrEl && !purrEl.paused){ purrEl._resume=true; purrEl.pause(); } }catch(e){} try{ if(musicEl && !musicEl.paused){ musicEl._resume=true; musicEl.pause(); } }catch(e){} try{ if(ctx) ctx.suspend(); }catch(e){} }
-  function showAll(){ try{ if(ctx) ctx.resume(); }catch(e){} if(_hiddenNature){ var id=_hiddenNature; _hiddenNature=null; nature(id); } try{ if(purrEl && purrEl._resume){ purrEl._resume=false; purrEl.play().catch(function(){}); } }catch(e){} try{ if(musicEl && musicEl._resume){ musicEl._resume=false; musicEl.play().catch(function(){}); } }catch(e){} }
+  var _hiddenNature=null, _hiddenMusic=false;
+  function hideAll(){ _hiddenNature=current; stopNature(); _hiddenMusic=mOn; if(mOn) music(false); try{ if(purrEl && !purrEl.paused){ purrEl._resume=true; purrEl.pause(); } }catch(e){} try{ if(ctx) ctx.suspend(); }catch(e){} }
+  function showAll(){ try{ if(ctx) ctx.resume(); }catch(e){} if(_hiddenNature){ var id=_hiddenNature; _hiddenNature=null; nature(id); } if(_hiddenMusic){ _hiddenMusic=false; music(true); } try{ if(purrEl && purrEl._resume){ purrEl._resume=false; purrEl.play().catch(function(){}); } }catch(e){} }
   document.addEventListener('visibilitychange', function(){ if(document.hidden) hideAll(); else showAll(); });
   window.addEventListener('pagehide', hideAll);
 
@@ -2730,7 +2759,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 14 · sound3 (real sfx + music)';
+  var BUILD_TAG = 'Sep 14 · sound4 (fixes)';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
