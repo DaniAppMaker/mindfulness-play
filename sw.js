@@ -20,7 +20,7 @@
    ================================================================ */
 
 /* 👉 Bump this ONLY when card/interface images or sound files change or are added. */
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const CACHE_NAME = 'cozy-cat-' + CACHE_VERSION;
 
 /* The app shell — the few files needed to show *something* offline.
@@ -87,6 +87,7 @@ const ASSETS = [
   'assets/sounds/g-tap.ogg',
   'assets/sounds/g-switch.ogg',
   'assets/sounds/g-confirm.ogg',
+  'assets/sounds/g-bong.ogg',
   'assets/sounds/music-loop.flac',
 ];
 

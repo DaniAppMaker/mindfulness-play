@@ -1578,7 +1578,7 @@ function drawStock(){
     noteMove('Spreading the used cards back out of the draw pile.');
   }
   render();
-  if (drew) playSound('tup');   // drawing a card = the same soft sound as placing (Dani 2026-09-14); recycle stays silent for now
+  if (drew) playSound('tup'); if (recycled) playSound('gather');   // draw = place sound; gather = the first bit of the shuffle (Dani 2026-09-14)
   // When the stock empties we NO LONGER pulse/scale the pile (Dani 2026-09-12:
   // the "bigger and smaller" breathe was distracting). Instead the empty draw
   // slot's recycle arrow gently FADES IN and then keeps its own subtle flash
@@ -2249,7 +2249,7 @@ document.getElementById('btnAppear').onclick = openSettings;
    <div role="button">, not <button>, so they keep their own "tup". (Soundscape 2026-09-14) */
 document.addEventListener('click', (e)=>{
   const b = e.target.closest && e.target.closest('button');
-  if (b && b.getAttribute('role') !== 'switch') playSound('tap');
+  if (b && b.getAttribute('role') !== 'switch') playSound('tap');   // soft bong on any button; role=switch toggles play their own bong via the toggle handler
 });
 
 /* The top cat replays the game description for VoiceOver players (Dani 2026-09-12):
@@ -2687,16 +2687,18 @@ window.Sound = (function(){
 
   /* ---- game sounds: real recorded card foley (Kenney casino pack, CC0), played soft ----
      Decoded once into buffers; each play is a fresh BufferSource so they can overlap. */
-  // INTERIM (Dani disliked the others 2026-09-14): only the soft "place" + the win cascade play.
-  // draw uses 'tup' too; deal/recycle/flip/buttons are silent until Dani picks satisfying sounds.
-  var GSRC = { tup:'assets/sounds/g-tup.ogg', flourish:'assets/sounds/g-flourish.ogg' };
-  var GVOL = { tup:0.4, flourish:0.55 };
+  // Dani's picks 2026-09-14: place=card place, draw=place, deal=silent, gather=first bit of the
+  // shuffle, buttons/toggle/select=mellow bong, win cascade=card fan.
+  var GSRC = { tup:'assets/sounds/g-tup.ogg', flourish:'assets/sounds/g-flourish.ogg', gather:'assets/sounds/g-shuffle.ogg', tap:'assets/sounds/g-bong.ogg', 'switch':'assets/sounds/g-bong.ogg', confirm:'assets/sounds/g-bong.ogg' };
+  var GVOL = { tup:0.4, flourish:0.55, gather:0.5, tap:0.5, 'switch':0.5, confirm:0.5 };
+  // Settings toggles + dropdowns keep the mellow bong too — Dani likes them (2026-09-14).
+  var GDUR = { gather:0.75 };   // gather plays only the FIRST ~two shuffles of the clip (Dani's pick) — tune this to taste
   var gBuf={}, gLoaded=false;
   function loadGame(){ if(gLoaded) return; gLoaded=true; Object.keys(GSRC).forEach(function(k){ fetch(GSRC[k]).then(function(r){return r.arrayBuffer();}).then(function(b){return ctx.decodeAudioData(b);}).then(function(ab){ gBuf[k]=ab; }).catch(function(){}); }); }
-  function playBuf(buf, vol){ var s=ctx.createBufferSource(); s.buffer=buf; var g=ctx.createGain(); g.gain.value=vol; s.connect(g).connect(ctx.destination); try{ s.start(); }catch(e){} }
-  function game(name){ var c=ensure(); if(!c || !GSRC[name]) return; var vol=GVOL[name]||0.5;
-    if(gBuf[name]){ playBuf(gBuf[name], vol); return; }
-    fetch(GSRC[name]).then(function(r){return r.arrayBuffer();}).then(function(b){return c.decodeAudioData(b);}).then(function(ab){ gBuf[name]=ab; playBuf(ab, vol); }).catch(function(){});
+  function playBuf(buf, vol, dur){ var s=ctx.createBufferSource(); s.buffer=buf; var g=ctx.createGain(); g.gain.value=vol; s.connect(g).connect(ctx.destination); try{ if(dur) s.start(0,0,dur); else s.start(); }catch(e){} }
+  function game(name){ var c=ensure(); if(!c || !GSRC[name]) return; var vol=GVOL[name]||0.5, dur=GDUR[name];
+    if(gBuf[name]){ playBuf(gBuf[name], vol, dur); return; }
+    fetch(GSRC[name]).then(function(r){return r.arrayBuffer();}).then(function(b){return c.decodeAudioData(b);}).then(function(ab){ gBuf[name]=ab; playBuf(ab, vol, dur); }).catch(function(){});
   }
 
   /* ---- purr: a short, soft reuse of the cat clip ---- */
@@ -2759,7 +2761,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 14 · sound4 (fixes)';
+  var BUILD_TAG = 'Sep 14 · sound5 (your picks)';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
