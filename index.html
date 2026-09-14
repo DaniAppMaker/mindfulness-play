@@ -900,7 +900,10 @@ const CARD_BACK = 'assets/card-back/card-back2.png';
 
 /* ---------- settings (remembered on this device) ---------- */
 const SETTINGS_KEY = 'cozycat.settings';
-const DEFAULT_SETTINGS = { music:false, gameSounds:false, natureSound:'none',
+/* First-EVER open defaults (Dani 2026-09-14): cat purring + game sounds ON so a new
+   player hears the app come alive; music + left-handed off. After the first open the
+   player's own choices are remembered (saved to localStorage) and these no longer apply. */
+const DEFAULT_SETTINGS = { music:false, gameSounds:true, natureSound:'purr',
                            timedInvites:true, leftHanded:false };
 let settings = loadSettings();
 function loadSettings(){
@@ -2159,7 +2162,7 @@ function lostScreen(){
   clearLiveRegions();              // don't let a board line replay over the losing screen
   setBoardInert(true);              // trap VoiceOver in the dialog; stop it wandering into the board behind (the "c1 slash" stray read, Dani 2026-09-13)
   showScreen('screenLost', true);   // gentle fade-in over the stuck board
-  playPurr();                       // the SAME soft grounding purr as the win screen — breathe, re-ground
+  if (settings.gameSounds){ try{ Sound.screenPurr(true); }catch(e){} }   // start the looping purr, held until they leave (same as the win screen)
   // Land the VoiceOver cursor on the cat DESCRIPTION text (the cat image itself is now
   // decorative/aria-hidden to dodge VoiceOver's OCR); reads description -> message ->
   // New Game in order. (Dani 2026-09-13)
@@ -2173,7 +2176,7 @@ function winScreen(){
   clearLiveRegions();              // don't let a board line replay over the win screen
   setBoardInert(true);             // trap VoiceOver in the dialog, same as the lost screen (Dani 2026-09-13)
   showScreen('screenWin', true);   // gentle fade-in over the finished board
-  playPurr();                      // a soft grounding purr — a cue to breathe
+  if (settings.gameSounds){ try{ Sound.screenPurr(true); }catch(e){} }   // start the looping purr, held until they leave the win screen
   // Land the cursor on the cat so VoiceOver reads cat (which opens with "You finished
   // the game") -> the message -> New Game, in order. (Was focusing the button, which
   // skipped the cat and message.) The 650ms delay matches the fade and is known to
@@ -2580,8 +2583,8 @@ document.addEventListener('keydown', (e)=>{
 });
 
 /* win + losing screens: New Game deals a fresh game through the normal game logic */
-document.getElementById('winNewBtn').onclick  = ()=>{ setBoardInert(false); deal(); hideScreen('screenWin'); };   // hand the fresh board back to VoiceOver
-document.getElementById('lostNewBtn').onclick = ()=>{ setBoardInert(false); deal(); hideScreen('screenLost'); };
+document.getElementById('winNewBtn').onclick  = ()=>{ try{Sound.screenPurr(false);}catch(e){} setBoardInert(false); deal(); hideScreen('screenWin'); };   // stop the screen purr + hand the fresh board back to VoiceOver
+document.getElementById('lostNewBtn').onclick = ()=>{ try{Sound.screenPurr(false);}catch(e){} setBoardInert(false); deal(); hideScreen('screenLost'); };
 
 /* ================= start ================= */
 syncToggles();
@@ -2607,23 +2610,43 @@ window.Sound = (function(){
   function ensure(){ if(!AC) return null; try{ if(!ctx) ctx=new AC(); if(ctx.state==='suspended') ctx.resume(); }catch(e){ return null; } return ctx; }
   function ramp(g, v, secs){ var t=ctx.currentTime; v=Math.max(0.0001,v); g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(Math.max(0.0001,g.gain.value),t); g.gain.linearRampToValueAtTime(v, t+secs); }
 
-  /* ---- nature: one at a time, seamless loop, quick fade-in, RMS-normalized ---- */
+  /* ---- nature: one at a time, SEAMLESS crossfade loop, per-clip level-matched ----
+     Decoded to an AudioBuffer and looped by OVERLAPPING playbacks with a long
+     crossfade, so the loop seam is inaudible — it plays like one endless clip.
+     PTRIM brings the broadband clips (rain/ocean/stream) DOWN to the perceived
+     level of the cat/bird clips, which RMS alone doesn't (Dani's ears 2026-09-14). */
   var NSRC = { rain:'assets/sounds/rain.mp3', ocean:'assets/sounds/ocean.mp3', purr:'assets/sounds/purr.mp3', stream:'assets/sounds/stream.mp3', birds:'assets/sounds/birds.mp3' };
-  var nEl={}, nGain={}, nLoud={}, current=null;
+  var PTRIM = { purr:1.0, birds:1.0, stream:0.62, rain:0.5, ocean:0.34 };
+  var current=null, nMaster=null, nTimers=[], CF=2.4;
   function normGain(ab){ var ch=ab.numberOfChannels, len=ab.length, step=Math.max(1,Math.floor(len/50000)), sum=0, n=0; for(var c=0;c<ch;c++){ var d=ab.getChannelData(c); for(var i=0;i<len;i+=step){ sum+=d[i]*d[i]; n++; } } var rms=Math.sqrt(sum/(n||1)); if(rms<1e-4) return 1; return Math.max(0.3, Math.min(3.5, 0.10/rms)); }
-  function setup(id){ var c=ensure(); if(!c) return; var a=new Audio(NSRC[id]); a.loop=true; a.preload='auto'; var node; try{ node=c.createMediaElementSource(a); }catch(e){ return; } var g=c.createGain(); g.gain.value=0.0001; node.connect(g).connect(c.destination); nEl[id]=a; nGain[id]=g; nLoud[id]=1; fetch(NSRC[id]).then(function(r){return r.arrayBuffer();}).then(function(b){return c.decodeAudioData(b);}).then(function(ab){ nLoud[id]=normGain(ab); if(current===id) ramp(g, SOFT*nLoud[id], 0.25); }).catch(function(){}); }
-  function stopNature(){ if(!current) return; var id=current; current=null; var g=nGain[id], a=nEl[id]; if(g) ramp(g,0.0001,0.8); if(a) setTimeout(function(){ try{a.pause();}catch(e){} },850); }
+  function clearNTimers(){ nTimers.forEach(clearTimeout); nTimers=[]; }
+  function scheduleLoop(id, buf, startAt){
+    if(current!==id || !nMaster) return;
+    var dur=buf.duration, cf=Math.min(CF, dur/2-0.05);
+    var src=ctx.createBufferSource(); src.buffer=buf;
+    var g=ctx.createGain(); src.connect(g).connect(nMaster);
+    g.gain.setValueAtTime(0.0001, startAt);
+    g.gain.linearRampToValueAtTime(1, startAt+cf);
+    g.gain.setValueAtTime(1, startAt+dur-cf);
+    g.gain.linearRampToValueAtTime(0.0001, startAt+dur);
+    try{ src.start(startAt); src.stop(startAt+dur+0.1); }catch(e){}
+    var nextAt=startAt+dur-cf;
+    nTimers.push(setTimeout(function(){ scheduleLoop(id, buf, nextAt); }, Math.max(0,(nextAt-ctx.currentTime-0.5))*1000));
+  }
+  function stopNature(){ if(!current) return; current=null; clearNTimers(); var m=nMaster; nMaster=null; if(m){ var t=ctx.currentTime; m.gain.cancelScheduledValues(t); m.gain.setValueAtTime(Math.max(0.0001,m.gain.value),t); m.gain.linearRampToValueAtTime(0.0001,t+0.8); setTimeout(function(){ try{m.disconnect();}catch(e){} },900); } }
   function nature(id){
     if(!id || id==='none'){ stopNature(); return; }
     var c=ensure(); if(!c) return;
-    if(current===id && nEl[id] && !nEl[id].paused) return;      // already playing — don't restart
-    if(current && current!==id) stopNature();
-    if(!nEl[id]) setup(id);
-    if(!nEl[id]) return;
-    current=id; var a=nEl[id], g=nGain[id];
-    try{a.currentTime=0;}catch(e){}
-    var p=a.play(); if(p&&p.catch)p.catch(function(){});
-    ramp(g, SOFT*(nLoud[id]||1), 0.9);                          // quick gentle fade-in
+    if(current===id) return;                       // already playing this one
+    stopNature();
+    current=id;
+    nMaster=c.createGain(); nMaster.gain.value=0.0001; nMaster.connect(c.destination);
+    var myId=id;
+    fetch(NSRC[id]).then(function(r){return r.arrayBuffer();}).then(function(b){return c.decodeAudioData(b);}).then(function(buf){
+      if(current!==myId || !nMaster) return;
+      ramp(nMaster, SOFT*normGain(buf)*(PTRIM[myId]||1), 0.9);   // quick gentle fade-in, level-matched
+      scheduleLoop(myId, buf, c.currentTime+0.03);
+    }).catch(function(){});
   }
 
   /* ---- music: a soft synth pad ---- */
@@ -2659,13 +2682,33 @@ window.Sound = (function(){
   /* ---- purr: a short, soft reuse of the cat clip ---- */
   function purr(){ var c=ensure(); if(!c) return; var a=new Audio(NSRC.purr); a.loop=false; a.preload='auto'; var node; try{ node=c.createMediaElementSource(a); }catch(e){ node=null; } var g=c.createGain(); g.gain.value=0.0001; if(node){ node.connect(g).connect(c.destination); } var p=a.play(); if(p&&p.catch)p.catch(function(){}); ramp(g, SOFT, 0.6); setTimeout(function(){ if(!ctx) return; var t=ctx.currentTime; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(Math.max(0.0001,g.gain.value),t); g.gain.linearRampToValueAtTime(0.0001, t+1.2); setTimeout(function(){ try{a.pause();}catch(e){} },1300); }, 4200); }
 
+  /* ---- screen purr: a soft LOOPING purr held on the win/lose screens, layered OVER
+     whatever nature sound is playing — UNLESS the player is already on cat purring
+     (then no double). Stopped when they leave the screen. (Dani 2026-09-14) ---- */
+  var purrEl=null, purrGain=null, purrOn=false;
+  function screenPurr(on){
+    var c=ensure(); if(!c) return;
+    if(on){
+      if(purrOn || current==='purr') return;       // already purring (screen or nature) — don't double
+      if(!purrEl){ purrEl=new Audio(NSRC.purr); purrEl.loop=true; purrEl.preload='auto'; var node; try{ node=c.createMediaElementSource(purrEl); }catch(e){ node=null; } purrGain=c.createGain(); purrGain.gain.value=0.0001; if(node) node.connect(purrGain).connect(c.destination); }
+      try{purrEl.currentTime=0;}catch(e){}
+      var p=purrEl.play(); if(p&&p.catch)p.catch(function(){});
+      ramp(purrGain, SOFT*(PTRIM.purr||1), 0.6); purrOn=true;
+    } else {
+      if(!purrOn) return; purrOn=false;
+      if(purrGain) ramp(purrGain, 0.0001, 0.6);
+      if(purrEl) setTimeout(function(){ try{purrEl.pause();}catch(e){} }, 700);
+    }
+  }
+
   /* ---- only play while the app is open ---- */
-  function hideAll(){ try{ if(ctx) ctx.suspend(); }catch(e){} for(var k in nEl){ try{ if(!nEl[k].paused){ nEl[k]._resume=true; nEl[k].pause(); } }catch(e){} } }
-  function showAll(){ try{ if(ctx) ctx.resume(); }catch(e){} for(var k in nEl){ try{ if(nEl[k]._resume){ nEl[k]._resume=false; nEl[k].play().catch(function(){}); } }catch(e){} } }
+  var _hiddenNature=null;
+  function hideAll(){ _hiddenNature=current; stopNature(); try{ if(purrEl && !purrEl.paused){ purrEl._resume=true; purrEl.pause(); } }catch(e){} try{ if(ctx) ctx.suspend(); }catch(e){} }
+  function showAll(){ try{ if(ctx) ctx.resume(); }catch(e){} if(_hiddenNature){ var id=_hiddenNature; _hiddenNature=null; nature(id); } try{ if(purrEl && purrEl._resume){ purrEl._resume=false; purrEl.play().catch(function(){}); } }catch(e){} }
   document.addEventListener('visibilitychange', function(){ if(document.hidden) hideAll(); else showAll(); });
   window.addEventListener('pagehide', hideAll);
 
-  return { nature:nature, music:music, game:game, purr:purr };
+  return { nature:nature, music:music, game:game, purr:purr, screenPurr:screenPurr };
 })();
 </script>
 
@@ -2694,7 +2737,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 14 · sound1 (soundscape)';
+  var BUILD_TAG = 'Sep 14 · sound2 (loop + levels)';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
