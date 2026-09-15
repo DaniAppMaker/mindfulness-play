@@ -2859,31 +2859,44 @@ window.Sound = (function(){
   /* ---- purr: a short, soft reuse of the cat clip ---- */
   function purr(){ var c=ensure(); if(!c) return; var a=new Audio(NSRC.purr); a.loop=false; a.preload='auto'; var node; try{ node=c.createMediaElementSource(a); }catch(e){ node=null; } var g=c.createGain(); g.gain.value=0.0001; if(node){ node.connect(g).connect(c.destination); } var p=a.play(); if(p&&p.catch)p.catch(function(){}); ramp(g, SOFT, 0.6); setTimeout(function(){ if(!ctx) return; var t=ctx.currentTime; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(Math.max(0.0001,g.gain.value),t); g.gain.linearRampToValueAtTime(0.0001, t+1.2); setTimeout(function(){ try{a.pause();}catch(e){} },1300); }, 4200); }
 
-  /* ---- screen purr: a soft LOOPING purr held on the win/lose screens, layered OVER
-     whatever nature sound is playing — UNLESS the player is already on cat purring
-     (then no double). Stopped when they leave the screen. (Dani 2026-09-14) ---- */
-  var purrEl=null, purrGain=null, purrOn=false;
+  /* ---- screen purr: a soft LOOPING purr held on the win/lose screens; nature +
+     music fade out so ONLY the purr plays (Dani: win/lose = just the cat purr).
+     Uses a Web Audio BufferSource (NOT an <audio> element) so it can start on the
+     WIN screen, which appears on a TIMER (after the cascade) with no user tap —
+     iPhone blocks <audio>.play() without a gesture, which left the win purr silent
+     while the tap-triggered lose purr worked (Dani 2026-09-15). Stopped on leaving. */
+  var purrBuf=null, purrSrc=null, purrGain=null, purrOn=false;
   function screenPurr(on){
     var c=ensure(); if(!c) return;
     if(on){
       if(purrOn) return;
+      purrOn=true;
       stopNature();                                  // quickly fade out nature so ONLY the purr plays on the screen
       if(mOn) music(false);                           // fade out the music too (Dani 2026-09-14)
-      if(!purrEl){ purrEl=new Audio(NSRC.purr); purrEl.loop=true; purrEl.preload='auto'; var node; try{ node=c.createMediaElementSource(purrEl); }catch(e){ node=null; } purrGain=c.createGain(); purrGain.gain.value=0.0001; if(node) node.connect(purrGain).connect(c.destination); }
-      try{purrEl.currentTime=0;}catch(e){}
-      var p=purrEl.play(); if(p&&p.catch)p.catch(function(){});
-      ramp(purrGain, SOFT*(PTRIM.purr||1), 0.6); purrOn=true;
+      var start=function(){
+        if(!purrOn || !purrBuf) return;              // turned off before the clip finished loading
+        try{ if(purrSrc) purrSrc.stop(); }catch(e){}
+        purrGain=c.createGain(); purrGain.gain.value=0.0001; purrGain.connect(c.destination);
+        purrSrc=c.createBufferSource(); purrSrc.buffer=purrBuf; purrSrc.loop=true; purrSrc.connect(purrGain);
+        try{ purrSrc.start(); }catch(e){}
+        ramp(purrGain, SOFT*(PTRIM.purr||1), 0.6);
+      };
+      if(purrBuf) start();
+      else fetch(NSRC.purr).then(function(r){return r.arrayBuffer();}).then(function(b){return c.decodeAudioData(b);}).then(function(buf){ purrBuf=buf; start(); }).catch(function(){});
     } else {
       if(!purrOn) return; purrOn=false;
       if(purrGain) ramp(purrGain, 0.0001, 0.6);
-      if(purrEl) setTimeout(function(){ try{purrEl.pause();}catch(e){} }, 700);
+      var s=purrSrc; purrSrc=null;
+      if(s) setTimeout(function(){ try{ s.stop(); }catch(e){} }, 700);
     }
   }
 
   /* ---- only play while the app is open ---- */
   var _hiddenNature=null, _hiddenMusic=false;
-  function hideAll(){ if(cOn) cascade(false); _hiddenNature=current; stopNature(); _hiddenMusic=mOn; if(mOn) music(false); try{ if(purrEl && !purrEl.paused){ purrEl._resume=true; purrEl.pause(); } }catch(e){} try{ if(ctx) ctx.suspend(); }catch(e){} }
-  function showAll(){ try{ if(ctx) ctx.resume(); }catch(e){} if(_hiddenNature){ var id=_hiddenNature; _hiddenNature=null; nature(id); } if(_hiddenMusic){ _hiddenMusic=false; music(true); } try{ if(purrEl && purrEl._resume){ purrEl._resume=false; purrEl.play().catch(function(){}); } }catch(e){} }
+  // The screen purr is a BufferSource on the AudioContext, so suspending/resuming the
+  // context pauses and resumes it automatically — no separate handling needed.
+  function hideAll(){ if(cOn) cascade(false); _hiddenNature=current; stopNature(); _hiddenMusic=mOn; if(mOn) music(false); try{ if(ctx) ctx.suspend(); }catch(e){} }
+  function showAll(){ try{ if(ctx) ctx.resume(); }catch(e){} if(_hiddenNature){ var id=_hiddenNature; _hiddenNature=null; nature(id); } if(_hiddenMusic){ _hiddenMusic=false; music(true); } }
   document.addEventListener('visibilitychange', function(){ if(document.hidden) hideAll(); else showAll(); });
   window.addEventListener('pagehide', hideAll);
 
@@ -2916,7 +2929,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 15 · sound15';
+  var BUILD_TAG = 'Sep 15 · sound16';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
