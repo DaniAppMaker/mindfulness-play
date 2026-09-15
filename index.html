@@ -292,6 +292,14 @@
     100%{ transform:scale(1) translateY(0); opacity:1; }
   }
   .drawpile.refill{ animation:drawRefill .42s cubic-bezier(.34,1.2,.5,1); }
+  /* recycle fly-back: clones of the discard cards sweep to the draw pile and flip
+     face-down as they land, matching the shuffle sound (Dani 2026-09-15). Pure
+     transform so it stays smooth on phones. */
+  .recycle-fly{ position:fixed; z-index:70; pointer-events:none; perspective:800px; will-change:transform; }
+  .recycle-fly .rfly-inner{ position:relative; width:100%; height:100%; transform-style:preserve-3d; }
+  .recycle-fly .rfly-face{ position:absolute; inset:0; -webkit-backface-visibility:hidden; backface-visibility:hidden; }
+  .recycle-fly .rfly-face img{ width:100%; height:100%; display:block; }
+  .recycle-fly .rfly-back{ transform:rotateY(180deg); }
   /* ================= tableau (spec §7) ================= */
   #tableau{
     position:absolute; top:calc(930 * var(--u)); left:0; width:100%;
@@ -995,8 +1003,16 @@ function cardById(id){
 /* ---------- audio (placeholders — no music/sounds designed yet) ---------- */
 function playSound(name){ if(!settings.gameSounds) return; try{ Sound.game(name); }catch(e){} }
 function playPurr(){ if(settings.gameSounds){ try{ Sound.purr(); }catch(e){} } }
-function applyNature(){ try{ Sound.nature(settings.natureSound); }catch(e){} }
-function updateMusic(){ try{ Sound.music(!!settings.music); }catch(e){} }
+/* The AMBIENT sounds (nature loop + music) can only START on iPhone after the
+   player's first tap unlocks audio. The very first deal() happens on page load —
+   BEFORE any tap — so starting the purr there fails silently and never retries
+   (the 2026-09-15 "game sounds on, purr not" bug). We hold the ambient until the
+   first tap flips audioUnlocked (see proceed()); game sounds are fine because
+   they're only ever triggered by taps. Once unlocked, these run normally on every
+   later deal / settings change. */
+let audioUnlocked = false;
+function applyNature(){ if(!audioUnlocked) return; try{ Sound.nature(settings.natureSound); }catch(e){} }
+function updateMusic(){ if(!audioUnlocked) return; try{ Sound.music(!!settings.music); }catch(e){} }
 
 /* ================= layout helpers (reference-pixel coordinates) =================
    The board is 1080 wide; --u scales it. Left-handed play mirrors the game
@@ -1325,6 +1341,40 @@ function flipAnimate(ids, fromRects){
   });
 }
 
+/* Recycle fly-back: given the discard cards' start rects + face images (captured
+   before the gather), clone each as a face-up card, sweep it to the draw pile and
+   flip it face-down as it lands. Staggered so it reads as a little gather that
+   matches the shuffle sound. The real reformed pile settles underneath (.refill);
+   these clones are pure sugar and clean themselves up. (Dani 2026-09-15) */
+function animateRecycleFly(fromList){
+  const drawEl = document.querySelector('.drawpile');
+  if (!drawEl || !fromList || !fromList.length) return;
+  const to = drawEl.getBoundingClientRect();
+  fromList.forEach((item, i)=>{
+    if (!item || !item.rect) return;
+    const r = item.rect;
+    const fly = document.createElement('div');
+    fly.className = 'recycle-fly';
+    fly.style.left = r.left+'px'; fly.style.top = r.top+'px';
+    fly.style.width = r.width+'px'; fly.style.height = r.height+'px';
+    fly.innerHTML =
+      '<div class="rfly-inner">'+
+        '<div class="rfly-face rfly-front"><img alt="" src="'+item.face+'"></div>'+
+        '<div class="rfly-face rfly-back"><img alt="" src="'+CARD_BACK+'"></div>'+
+      '</div>';
+    document.body.appendChild(fly);
+    const dx = to.left - r.left, dy = to.top - r.top;
+    const delay = i*55;
+    void fly.offsetWidth;                                   // commit the start position
+    fly.style.transition = 'transform .34s cubic-bezier(.22,1,.36,1) '+delay+'ms';
+    fly.style.transform = 'translate('+dx+'px,'+dy+'px)';
+    const inner = fly.firstChild;
+    inner.style.transition = 'transform .34s ease '+delay+'ms';
+    inner.style.transform = 'rotateY(180deg)';             // face-up → face-down in flight
+    setTimeout(()=>{ try{ fly.remove(); }catch(e){} }, 340+delay+90);
+  });
+}
+
 // the heart of one-tap play: find the best destination and go there
 function autoMove(where, colIndex, cardIndex){
   if (autoCompleting) return;   // hands off while the auto-finish cascade is running
@@ -1472,7 +1522,7 @@ function boardCanAutoComplete(){
 // send the next card home, then schedule the next — a gentle cascade that also draws /
 // recycles the stock as needed (mirrors _cascadeStep, with the fly animation)
 function autoCompleteStep(){
-  if (state.foundations.every(f => f.length === 13)){ autoCompleting = false; setTimeout(winScreen, 520); return; }
+  if (state.foundations.every(f => f.length === 13)){ autoCompleting = false; try{Sound.cascade(false);}catch(e){} setTimeout(winScreen, 520); return; }
   const gap = reducedMotion() ? 90 : 200;
   let best = null;
   for (let c = 0; c < 7; c++){ const pile = state.tableau[c]; if (!pile.length) continue; const card = pile[pile.length-1];
@@ -1485,19 +1535,19 @@ function autoCompleteStep(){
     state.foundations[best.f].push(best.card);
     render();
     if (pendingFlip){ flipAnimate(pendingFlip.ids, pendingFlip.from); pendingFlip = null; }
-    if (state.foundations.every(f => f.length === 13)){ autoCompleting = false; setTimeout(winScreen, 520); return; }
+    if (state.foundations.every(f => f.length === 13)){ autoCompleting = false; try{Sound.cascade(false);}catch(e){} setTimeout(winScreen, 520); return; }
     setTimeout(autoCompleteStep, gap); return;
   }
   if (state.stock.length){ const c = state.stock.pop(); c.faceUp = true; state.waste.push(c); render(); setTimeout(autoCompleteStep, gap); return; }
   if (state.waste.length){ while (state.waste.length){ const c = state.waste.pop(); c.faceUp = false; state.stock.push(c); } render(); setTimeout(autoCompleteStep, gap); return; }
-  autoCompleting = false;   // safety (boardCanAutoComplete already proved this completes)
+  autoCompleting = false; try{Sound.cascade(false);}catch(e){}   // safety (boardCanAutoComplete already proved this completes)
 }
 
 // call after any move: if the board is now a sure thing, start the cascade
 function maybeAutoComplete(){
   if (!boardCanAutoComplete()) return;
   autoCompleting = true;
-  playSound('flourish');       // the gentle cascade of cards flying home
+  if(settings.gameSounds){ try{ Sound.cascade(true); }catch(e){} }   // seamless looping card sound for the WHOLE fly-home, stopped when the last card lands (Dani 2026-09-15)
   // Move the VoiceOver cursor OFF the board onto a stable win message, so it announces
   // the win once and doesn't try to read each card as the cascade re-renders them home
   // (Dani 2026-09-10: it kept naming every flying card until the win screen). This
@@ -1557,7 +1607,7 @@ function afterMove(){
 function drawStock(){
   if (autoCompleting) return;   // hands off while the auto-finish cascade is running
   clearSelection();
-  let drew = false, recycled = false;
+  let drew = false, recycled = false, recycleFly = null;
   if (state.stock.length){
     snapshot();
     const c = state.stock.pop(); c.faceUp = true; state.waste.push(c);
@@ -1571,6 +1621,15 @@ function drawStock(){
     noteMove(`Returning the ${cardName(c)} to the draw pile.`);
     drew = true;
   } else {
+    // snapshot the VISIBLE discard fan BEFORE gathering, so we can fly those cards
+    // back to the draw pile — render() below removes them. trackedWaste holds only
+    // the up-to-3 cards actually on show (not any mid-retire strays). (Dani 2026-09-15)
+    if (!reducedMotion()){
+      recycleFly = [...trackedWaste.values()].map(el=>{
+        const img = el.querySelector('img');
+        return { rect: el.getBoundingClientRect(), face: img ? img.src : CARD_BACK };
+      }).filter(x=>x.rect && x.rect.width);
+    }
     snapshot();
     while (state.waste.length){ const c = state.waste.pop(); c.faceUp=false; state.stock.push(c); }
     recycled = true;
@@ -1587,6 +1646,7 @@ function drawStock(){
   if (drew) progressInvites();
   // the reformed pile gives a soft settle so the gather reads as a gentle motion
   if (recycled && !reducedMotion()){
+    if (recycleFly && recycleFly.length) animateRecycleFly(recycleFly);   // sweep the gathered cards back, flipping face-down
     const pile = document.querySelector('.drawpile');
     if (pile){ pile.classList.add('refill'); setTimeout(()=>pile.classList.remove('refill'), 460); }
   }
@@ -2176,7 +2236,7 @@ function lostScreen(){
   clearLiveRegions();              // don't let a board line replay over the losing screen
   setBoardInert(true);              // trap VoiceOver in the dialog; stop it wandering into the board behind (the "c1 slash" stray read, Dani 2026-09-13)
   showScreen('screenLost', true);   // gentle fade-in over the stuck board
-  if (settings.gameSounds){ try{ Sound.screenPurr(true); }catch(e){} }   // start the looping purr, held until they leave (same as the win screen)
+  try{ Sound.screenPurr(true); }catch(e){}   // the losing-screen purr ALWAYS plays, independent of settings, while the screen is open (Dani 2026-09-15)
   // Land the VoiceOver cursor on the cat DESCRIPTION text (the cat image itself is now
   // decorative/aria-hidden to dodge VoiceOver's OCR); reads description -> message ->
   // New Game in order. (Dani 2026-09-13)
@@ -2190,7 +2250,7 @@ function winScreen(){
   clearLiveRegions();              // don't let a board line replay over the win screen
   setBoardInert(true);             // trap VoiceOver in the dialog, same as the lost screen (Dani 2026-09-13)
   showScreen('screenWin', true);   // gentle fade-in over the finished board
-  if (settings.gameSounds){ try{ Sound.screenPurr(true); }catch(e){} }   // start the looping purr, held until they leave the win screen
+  try{ Sound.screenPurr(true); }catch(e){}   // the winning-screen purr ALWAYS plays, independent of settings, while the screen is open (Dani 2026-09-15)
   // Land the cursor on the cat so VoiceOver reads cat (which opens with "You finished
   // the game") -> the message -> New Game, in order. (Was focusing the button, which
   // skipped the cat and message.) The 650ms delay matches the fade and is known to
@@ -2573,6 +2633,8 @@ function startupFlow(){
   const proceed = ()=>{
     cancelWelArrow();
     playPurr();                                     // a soft grounding purr as the player enters (first tap = audio can start)
+    audioUnlocked = true;                           // iPhone audio is now unlocked by this tap
+    applyNature(); updateMusic();                   // START the ambient (purr by default) now that it actually can play
     const w = document.getElementById('screenWelcome');
     showScreen('screenLoading');                    // loading now covers the board
     // Set up the loading screen and move the VoiceOver cursor into it RIGHT NOW,
@@ -2690,15 +2752,45 @@ window.Sound = (function(){
   // Dani's picks 2026-09-14: place=card place, draw=place, deal=silent, gather=first bit of the
   // shuffle, buttons/toggle/select=mellow bong, win cascade=card fan.
   var GSRC = { tup:'assets/sounds/g-tup.ogg', flourish:'assets/sounds/g-flourish.ogg', gather:'assets/sounds/g-shuffle.ogg', tap:'assets/sounds/g-bong.ogg', 'switch':'assets/sounds/g-bong.ogg', confirm:'assets/sounds/g-bong.ogg' };
-  var GVOL = { tup:0.4, flourish:0.55, gather:0.5, tap:0.5, 'switch':0.5, confirm:0.5 };
+  var GVOL = { tup:0.26, flourish:0.55, gather:0.5, tap:0.5, 'switch':0.5, confirm:0.5 };   // tup (card-place thump) lowered 0.4→0.26 (Dani 2026-09-15)
   // Settings toggles + dropdowns keep the mellow bong too — Dani likes them (2026-09-14).
-  var GDUR = { gather:0.75 };   // gather plays only the FIRST ~two shuffles of the clip (Dani's pick) — tune this to taste
+  var GDUR = { gather:0.4 };   // gather = ~ONE shuffle of the clip (Dani 2026-09-15, was 0.75 / two shuffles) — tune to taste
   var gBuf={}, gLoaded=false;
   function loadGame(){ if(gLoaded) return; gLoaded=true; Object.keys(GSRC).forEach(function(k){ fetch(GSRC[k]).then(function(r){return r.arrayBuffer();}).then(function(b){return ctx.decodeAudioData(b);}).then(function(ab){ gBuf[k]=ab; }).catch(function(){}); }); }
   function playBuf(buf, vol, dur){ var s=ctx.createBufferSource(); s.buffer=buf; var g=ctx.createGain(); g.gain.value=vol; s.connect(g).connect(ctx.destination); try{ if(dur) s.start(0,0,dur); else s.start(); }catch(e){} }
   function game(name){ var c=ensure(); if(!c || !GSRC[name]) return; var vol=GVOL[name]||0.5, dur=GDUR[name];
     if(gBuf[name]){ playBuf(gBuf[name], vol, dur); return; }
     fetch(GSRC[name]).then(function(r){return r.arrayBuffer();}).then(function(b){return c.decodeAudioData(b);}).then(function(ab){ gBuf[name]=ab; playBuf(ab, vol, dur); }).catch(function(){});
+  }
+
+  /* ---- cascade: a SEAMLESS looping card sound for the solved-game fly-home ----
+     The one-shot fan was over long before the cards finished arriving (Dani
+     2026-09-15: "kept flying in silence"). This loops the fan clip with an
+     overlapping crossfade so it plays as one continuous, seam-less bed for the
+     WHOLE cascade: cascade(true) on the first card, cascade(false) on the last.
+     Reuses the already-decoded flourish buffer. CVOL/CCF tunable by ear. ---- */
+  var cOn=false, cMaster=null, cTimers=[], CCF=0.35, CVOL=0.42;
+  function cClear(){ cTimers.forEach(clearTimeout); cTimers=[]; }
+  function cSchedule(buf, startAt){
+    if(!cOn || !cMaster) return;
+    var dur=buf.duration, cf=Math.min(CCF, dur/2-0.02);
+    var src=ctx.createBufferSource(); src.buffer=buf; var g=ctx.createGain(); src.connect(g).connect(cMaster);
+    g.gain.setValueAtTime(0.0001,startAt); g.gain.linearRampToValueAtTime(1,startAt+cf);
+    g.gain.setValueAtTime(1,startAt+dur-cf); g.gain.linearRampToValueAtTime(0.0001,startAt+dur);
+    try{ src.start(startAt); src.stop(startAt+dur+0.05); }catch(e){}
+    var nextAt=startAt+dur-cf;
+    cTimers.push(setTimeout(function(){ cSchedule(buf, nextAt); }, Math.max(0,(nextAt-ctx.currentTime-0.4))*1000));
+  }
+  function cascade(on){
+    var c=ensure(); if(!c) return;
+    if(on){ if(cOn) return; cOn=true;
+      cMaster=c.createGain(); cMaster.gain.value=0.0001; cMaster.connect(c.destination); ramp(cMaster, CVOL, 0.12);
+      var go=function(buf){ if(cOn && cMaster) cSchedule(buf, ctx.currentTime+0.02); };
+      if(gBuf.flourish) go(gBuf.flourish);
+      else fetch(GSRC.flourish).then(function(r){return r.arrayBuffer();}).then(function(b){return c.decodeAudioData(b);}).then(function(buf){ gBuf.flourish=buf; go(buf); }).catch(function(){});
+    } else { if(!cOn) return; cOn=false; cClear();
+      if(cMaster){ var m=cMaster; cMaster=null; var t=c.currentTime; m.gain.cancelScheduledValues(t); m.gain.setValueAtTime(Math.max(0.0001,m.gain.value),t); m.gain.linearRampToValueAtTime(0.0001,t+0.28); setTimeout(function(){ try{m.disconnect();}catch(e){} },330); }
+    }
   }
 
   /* ---- purr: a short, soft reuse of the cat clip ---- */
@@ -2727,12 +2819,12 @@ window.Sound = (function(){
 
   /* ---- only play while the app is open ---- */
   var _hiddenNature=null, _hiddenMusic=false;
-  function hideAll(){ _hiddenNature=current; stopNature(); _hiddenMusic=mOn; if(mOn) music(false); try{ if(purrEl && !purrEl.paused){ purrEl._resume=true; purrEl.pause(); } }catch(e){} try{ if(ctx) ctx.suspend(); }catch(e){} }
+  function hideAll(){ if(cOn) cascade(false); _hiddenNature=current; stopNature(); _hiddenMusic=mOn; if(mOn) music(false); try{ if(purrEl && !purrEl.paused){ purrEl._resume=true; purrEl.pause(); } }catch(e){} try{ if(ctx) ctx.suspend(); }catch(e){} }
   function showAll(){ try{ if(ctx) ctx.resume(); }catch(e){} if(_hiddenNature){ var id=_hiddenNature; _hiddenNature=null; nature(id); } if(_hiddenMusic){ _hiddenMusic=false; music(true); } try{ if(purrEl && purrEl._resume){ purrEl._resume=false; purrEl.play().catch(function(){}); } }catch(e){} }
   document.addEventListener('visibilitychange', function(){ if(document.hidden) hideAll(); else showAll(); });
   window.addEventListener('pagehide', hideAll);
 
-  return { nature:nature, music:music, game:game, purr:purr, screenPurr:screenPurr };
+  return { nature:nature, music:music, game:game, purr:purr, screenPurr:screenPurr, cascade:cascade };
 })();
 </script>
 
@@ -2761,7 +2853,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 14 · sound5 (your picks)';
+  var BUILD_TAG = 'Sep 15 · sound6';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
