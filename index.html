@@ -1943,7 +1943,11 @@ function renderTopRow(){
         under.classList.add('top-dyn');
         under.style.left = xpos(FOUND_X[f], CARD_W);
         under.style.top = '0';
-        under.style.zIndex = '1';
+        // NO explicit z-index: the under-card must stay BELOW the real top card. A
+        // flown-in top card resets to z-index:auto(0) when it lands, so an under-card
+        // at z-index:1 would paint OVER it — that left the pile showing the Queen
+        // instead of the King at the end (Dani 2026-09-15). With both at auto, DOM
+        // order wins and the top (appended after this) stays on top.
         under.setAttribute('aria-hidden', 'true');
         under.tabIndex = -1;
         under.style.pointerEvents = 'none';
@@ -2899,7 +2903,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 15 · sound10';
+  var BUILD_TAG = 'Sep 15 · sound11';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
