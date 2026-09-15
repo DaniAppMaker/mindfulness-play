@@ -1548,7 +1548,7 @@ function boardCanAutoComplete(){
 // How long the finished board lingers before the winning screen fades in, so players
 // can admire their completed game (Dani 2026-09-15: the win screen came up the instant
 // the last King landed and she didn't get to look).
-const WIN_ADMIRE_MS = 10000;
+const WIN_ADMIRE_MS = 3000;
 
 // send the next card home, then schedule the next — a gentle cascade that also draws /
 // recycles the stock as needed (mirrors _cascadeStep, with the fly animation)
@@ -2908,7 +2908,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 15 · sound12';
+  var BUILD_TAG = 'Sep 15 · sound13';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
