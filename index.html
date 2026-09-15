@@ -1215,6 +1215,32 @@ function dealTestLose(){
   announce('Test board with no moves. Press Show me a move to reach the losing screen.');
 }
 
+/* TEST-ONLY already-won board (open with ?test=win): four columns, one full suit
+   each, King at the bottom up to the Ace on top, everything face-up, empty stock +
+   waste. So the game is provably won the moment it deals — a moment after the board
+   is revealed (which is also when audio unlocks) the cards fly home on their own, so
+   Dani can test the WINNING flow (cascade -> win screen + sounds) without playing a
+   whole game. Remove this together with ?test=lose + the build-tag block before store
+   prep. (Dani 2026-09-15) */
+let pendingTestWin = false;
+function dealTestWin(){
+  const suits = [['♠','black'],['♥','red'],['♦','red'],['♣','black']];
+  const ranks = ['K','Q','J','10','9','8','7','6','5','4','3','2','A'];   // King at the bottom, Ace on top
+  let id = 0;
+  const cols = suits.map(([suit,color]) => ranks.map(rank => ({ id:id++, rank, suit, color, faceUp:true })));
+  state = {
+    stock:[], waste:[], foundations:[[],[],[],[]],
+    tableau:[ cols[0], cols[1], cols[2], cols[3], [], [], [] ],
+  };
+  selection = null;
+  undoStack = [];
+  justRevealed.clear();
+  clearPromptState();
+  pendingTestWin = true;   // fire the winning cascade once the board is revealed (see revealBoardForAT)
+  render();
+  announce('Test board ready to win. The cards will fly home in a moment.');
+}
+
 /* ================= undo (snapshot the whole board before each move) ========= */
 let undoStack = [];
 function snapshot(){
@@ -2575,6 +2601,7 @@ function revealBoardForAT(){
   const intro = document.getElementById('sr-intro');
   try { if (intro) intro.focus(); } catch(e){}
   hideScreen('screenLoading');              // fade the cover away; board is already revealed + focused
+  if (pendingTestWin){ pendingTestWin = false; setTimeout(()=>{ try{ maybeAutoComplete(); }catch(e){} }, 900); }   // ?test=win: auto-play the winning cascade now that the board is up + audio is unlocked
 }
 
 /* every open -> welcome, then loading. (Dani, 2026-08-13: the welcome screen is
@@ -2681,8 +2708,10 @@ document.getElementById('lostNewBtn').onclick = ()=>{ try{Sound.screenPurr(false
 syncToggles();
 updateMusic();
 applyA11y();
-// ?test=lose deals a rigged dead-end board so Dani can test the losing flow (temporary)
-if (new URLSearchParams(location.search).get('test') === 'lose') dealTestLose();
+// ?test=lose / ?test=win deal rigged boards so Dani can test the losing / winning flow (temporary)
+const _testMode = new URLSearchParams(location.search).get('test');
+if (_testMode === 'lose') dealTestLose();
+else if (_testMode === 'win') dealTestWin();
 else deal();            // deal() clears the prompt space; invitations drift in during play
 startupFlow();
 </script>
@@ -2870,7 +2899,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 15 · sound8';
+  var BUILD_TAG = 'Sep 15 · sound9';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
