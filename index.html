@@ -2765,11 +2765,13 @@ window.Sound = (function(){
 
   /* ---- cascade: a SEAMLESS looping card sound for the solved-game fly-home ----
      The one-shot fan was over long before the cards finished arriving (Dani
-     2026-09-15: "kept flying in silence"). This loops the fan clip with an
+     2026-09-15: "kept flying in silence"). This loops a card clip with an
      overlapping crossfade so it plays as one continuous, seam-less bed for the
      WHOLE cascade: cascade(true) on the first card, cascade(false) on the last.
-     Reuses the already-decoded flourish buffer. CVOL/CCF tunable by ear. ---- */
-  var cOn=false, cMaster=null, cTimers=[], CCF=0.35, CVOL=0.42;
+     CLIP = the shuffle RIFFLE ('gather' buffer) — the fan looped too sharp/jarring,
+     the riffle is the same continuous card sound Dani likes on the recycle
+     (Dani 2026-09-15). CVOL/CCF/CASCADE_CLIP tunable by ear. ---- */
+  var cOn=false, cMaster=null, cTimers=[], CCF=0.35, CVOL=0.34, CASCADE_CLIP='gather';
   function cClear(){ cTimers.forEach(clearTimeout); cTimers=[]; }
   function cSchedule(buf, startAt){
     if(!cOn || !cMaster) return;
@@ -2786,8 +2788,8 @@ window.Sound = (function(){
     if(on){ if(cOn) return; cOn=true;
       cMaster=c.createGain(); cMaster.gain.value=0.0001; cMaster.connect(c.destination); ramp(cMaster, CVOL, 0.12);
       var go=function(buf){ if(cOn && cMaster) cSchedule(buf, ctx.currentTime+0.02); };
-      if(gBuf.flourish) go(gBuf.flourish);
-      else fetch(GSRC.flourish).then(function(r){return r.arrayBuffer();}).then(function(b){return c.decodeAudioData(b);}).then(function(buf){ gBuf.flourish=buf; go(buf); }).catch(function(){});
+      if(gBuf[CASCADE_CLIP]) go(gBuf[CASCADE_CLIP]);
+      else fetch(GSRC[CASCADE_CLIP]).then(function(r){return r.arrayBuffer();}).then(function(b){return c.decodeAudioData(b);}).then(function(buf){ gBuf[CASCADE_CLIP]=buf; go(buf); }).catch(function(){});
     } else { if(!cOn) return; cOn=false; cClear();
       if(cMaster){ var m=cMaster; cMaster=null; var t=c.currentTime; m.gain.cancelScheduledValues(t); m.gain.setValueAtTime(Math.max(0.0001,m.gain.value),t); m.gain.linearRampToValueAtTime(0.0001,t+0.28); setTimeout(function(){ try{m.disconnect();}catch(e){} },330); }
     }
@@ -2853,7 +2855,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 15 · sound6';
+  var BUILD_TAG = 'Sep 15 · sound7';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
