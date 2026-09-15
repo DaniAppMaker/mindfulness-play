@@ -912,8 +912,15 @@ const SETTINGS_KEY = 'cozycat.settings';
    player's own choices are remembered (saved to localStorage) and these no longer apply. */
 const DEFAULT_SETTINGS = { music:false, gameSounds:true, natureSound:'purr',
                            timedInvites:true, leftHanded:false };
+/* TEMPORARY testing switch (?fresh): behave like a brand-new player — ignore this
+   device's saved settings AND don't overwrite them — so the first-open defaults
+   (cat purr + game sounds on) can be tested with VoiceOver without clearing site
+   data. Remove with the other ?test harnesses + the build tag before store prep.
+   (Dani 2026-09-15) */
+const FRESH_START = new URLSearchParams(location.search).has('fresh');
 let settings = loadSettings();
 function loadSettings(){
+  if (FRESH_START) return Object.assign({}, DEFAULT_SETTINGS);   // simulate a first-ever open
   try{
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (raw) return Object.assign({}, DEFAULT_SETTINGS, JSON.parse(raw));
@@ -921,6 +928,7 @@ function loadSettings(){
   return Object.assign({}, DEFAULT_SETTINGS);
 }
 function saveSettings(){
+  if (FRESH_START) return;   // don't clobber the real saved prefs during a fresh test
   try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }catch(e){}
 }
 
@@ -2908,7 +2916,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 15 · sound14';
+  var BUILD_TAG = 'Sep 15 · sound15';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
