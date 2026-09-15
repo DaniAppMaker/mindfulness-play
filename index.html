@@ -1549,7 +1549,7 @@ function boardCanAutoComplete(){
 // recycles the stock as needed (mirrors _cascadeStep, with the fly animation)
 function autoCompleteStep(){
   if (state.foundations.every(f => f.length === 13)){ autoCompleting = false; try{Sound.cascade(false);}catch(e){} setTimeout(winScreen, 520); return; }
-  const gap = reducedMotion() ? 90 : 200;
+  const gap = reducedMotion() ? 30 : 67;   // fast auto-finish cascade — 3x quicker than before (Dani 2026-09-15, was 90/200)
   let best = null;
   for (let c = 0; c < 7; c++){ const pile = state.tableau[c]; if (!pile.length) continue; const card = pile[pile.length-1];
     for (let f = 0; f < 4; f++){ if (canStackFoundation(card, state.foundations[f])){ if (!best || rankVal(card.rank) < rankVal(best.card.rank)) best = { src:'t', col:c, f, card, idx: pile.length-1 }; break; } } }
@@ -2815,7 +2815,7 @@ window.Sound = (function(){
      CLIP = the shuffle RIFFLE ('gather' buffer) — the fan looped too sharp/jarring,
      the riffle is the same continuous card sound Dani likes on the recycle
      (Dani 2026-09-15). CVOL/CCF/CASCADE_CLIP tunable by ear. ---- */
-  var cOn=false, cMaster=null, cTimers=[], CCF=0.35, CVOL=0.34, CASCADE_CLIP='gather', CRATE=1.3;
+  var cOn=false, cMaster=null, cTimers=[], CCF=0.35, CVOL=0.34, CASCADE_CLIP='gather', CRATE=3.9;   // riffle 3x faster to match the fast cascade (Dani 2026-09-15, was 1.3)
   function cClear(){ cTimers.forEach(clearTimeout); cTimers=[]; }
   function cSchedule(buf, startAt){
     if(!cOn || !cMaster) return;
@@ -2899,7 +2899,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 15 · sound9';
+  var BUILD_TAG = 'Sep 15 · sound10';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
