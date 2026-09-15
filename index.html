@@ -1545,10 +1545,15 @@ function boardCanAutoComplete(){
   return false;
 }
 
+// How long the finished board lingers before the winning screen fades in, so players
+// can admire their completed game (Dani 2026-09-15: the win screen came up the instant
+// the last King landed and she didn't get to look).
+const WIN_ADMIRE_MS = 10000;
+
 // send the next card home, then schedule the next — a gentle cascade that also draws /
 // recycles the stock as needed (mirrors _cascadeStep, with the fly animation)
 function autoCompleteStep(){
-  if (state.foundations.every(f => f.length === 13)){ autoCompleting = false; try{Sound.cascade(false);}catch(e){} setTimeout(winScreen, 520); return; }
+  if (state.foundations.every(f => f.length === 13)){ autoCompleting = false; try{Sound.cascade(false);}catch(e){} setTimeout(winScreen, WIN_ADMIRE_MS); return; }
   const gap = reducedMotion() ? 30 : 67;   // fast auto-finish cascade — 3x quicker than before (Dani 2026-09-15, was 90/200)
   let best = null;
   for (let c = 0; c < 7; c++){ const pile = state.tableau[c]; if (!pile.length) continue; const card = pile[pile.length-1];
@@ -1561,7 +1566,7 @@ function autoCompleteStep(){
     state.foundations[best.f].push(best.card);
     render();
     if (pendingFlip){ flipAnimate(pendingFlip.ids, pendingFlip.from); pendingFlip = null; }
-    if (state.foundations.every(f => f.length === 13)){ autoCompleting = false; try{Sound.cascade(false);}catch(e){} setTimeout(winScreen, 520); return; }
+    if (state.foundations.every(f => f.length === 13)){ autoCompleting = false; try{Sound.cascade(false);}catch(e){} setTimeout(winScreen, WIN_ADMIRE_MS); return; }
     setTimeout(autoCompleteStep, gap); return;
   }
   if (state.stock.length){ const c = state.stock.pop(); c.faceUp = true; state.waste.push(c); render(); setTimeout(autoCompleteStep, gap); return; }
@@ -1615,7 +1620,7 @@ function afterMove(){
   render();
   if (pendingFlip){ flipAnimate(pendingFlip.ids, pendingFlip.from); pendingFlip = null; }
   progressInvites();
-  if (state.foundations.every(f=>f.length===13)){ winScreen(); return; }
+  if (state.foundations.every(f=>f.length===13)){ setTimeout(winScreen, WIN_ADMIRE_MS); return; }   // let the finished board be admired first (Dani 2026-09-15)
   maybeAutoComplete();   // if the win is now guaranteed, fly the rest home automatically
   // Follow the moved card with the VoiceOver / keyboard cursor, so it lands on a real,
   // actionable element at the card's NEW home instead of being orphaned when its old
@@ -2903,7 +2908,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 15 · sound11';
+  var BUILD_TAG = 'Sep 15 · sound12';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
