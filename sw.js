@@ -20,7 +20,7 @@
    ================================================================ */
 
 /* 👉 Bump this ONLY when card/interface images or sound files change or are added. */
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const CACHE_NAME = 'cozy-cat-' + CACHE_VERSION;
 
 /* The app shell — the few files needed to show *something* offline.
@@ -66,6 +66,7 @@ const ASSETS = [
   'assets/icon/favicon-32.png',
   'assets/icon/icon-192.png',
   'assets/icon/icon-512.png',
+  'assets/icon/icon-maskable-512.png',   // cream-padded launch icon (no white circle on Android)
   'assets/interface/after-losing-cat.png',
   'assets/interface/foundation-paw.png',
   'assets/interface/newgame-cat.png',
