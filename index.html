@@ -1765,7 +1765,13 @@ function makeSlot(opts={}){
    to any empty column (the player clearly means it), where a tap is fussier. */
 let drag = null;             // the active drag session, or null
 let suppressClick = false;   // eat the click a mouse fires right after a drag
-const DRAG_THRESHOLD = 5;    // px of travel before a press counts as a drag
+// px of travel before a press counts as a drag rather than a tap. A fingertip
+// wobbles far more than a mouse, so touch/pen get a roomier slop — a slightly
+// imperfect tap still moves the card instead of dying as a tiny "drag" that snaps
+// back. (Testers 2026-09-19: cards often needed 2–3 taps with any side-to-side drift.)
+const DRAG_THRESHOLD_MOUSE = 6;
+const DRAG_THRESHOLD_TOUCH = 16;
+function dragThresholdFor(type){ return type === 'mouse' ? DRAG_THRESHOLD_MOUSE : DRAG_THRESHOLD_TOUCH; }
 
 // swallow the synthetic click that follows a mouse drag so it can't also tap-move
 document.addEventListener('click', e=>{
@@ -1790,7 +1796,8 @@ function makeDraggable(el, where, colIndex, cardIndex){
     if (autoCompleting || drag) return;            // one drag at a time
     if (!pickUpRun(where, colIndex, cardIndex)) return;   // nothing here to lift
     drag = { where, colIndex, cardIndex, grabEl: el, pointerId: e.pointerId,
-             startX: e.clientX, startY: e.clientY, moving: false, layer: null, originEls: [] };
+             pointerType: e.pointerType, startX: e.clientX, startY: e.clientY,
+             moving: false, layer: null, originEls: [] };
     try { el.setPointerCapture(e.pointerId); } catch(_){}
     el.addEventListener('pointermove', onDragMove);
     el.addEventListener('pointerup', onDragEnd);
@@ -1801,7 +1808,7 @@ function makeDraggable(el, where, colIndex, cardIndex){
 function onDragMove(e){
   if (!drag) return;
   if (!drag.moving){
-    if (Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) < DRAG_THRESHOLD) return;
+    if (Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) < dragThresholdFor(drag.pointerType)) return;
     beginDrag();
     if (!drag.moving) return;   // couldn't start (state changed) — stays a tap
   }
