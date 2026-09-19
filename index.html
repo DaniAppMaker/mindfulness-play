@@ -1173,6 +1173,52 @@ function shuffle(a){
   for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
   return a;
 }
+/* ---------- resume an in-progress game (remembered on this device) ----------
+   The whole board is saved after every move, so closing the app mid-game and
+   reopening drops the player back into THAT game instead of a fresh deal
+   (tester request 2026-09-19). Only the board is kept; the undo history starts
+   fresh after a reopen. Cleared when a game is won, lost, or a new one begins —
+   a fresh deal saves itself immediately, so resuming then gives the new game.
+   Mirrors the settings persistence: ?fresh neither reads nor writes it, and any
+   read is wrapped so a corrupt or blocked store can never wedge the launch. */
+const SAVED_GAME_KEY = 'cozycat.savedGame';
+function saveGame(){
+  if (FRESH_START) return;                       // the ?fresh test harness stays a clean slate
+  try{
+    if (state && !autoCompleting) localStorage.setItem(SAVED_GAME_KEY, JSON.stringify(state));
+  }catch(e){}
+}
+function clearSavedGame(){
+  try{ localStorage.removeItem(SAVED_GAME_KEY); }catch(e){}
+}
+function loadSavedGame(){
+  if (FRESH_START) return null;
+  try{
+    const raw = localStorage.getItem(SAVED_GAME_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    // sanity-check the shape so a corrupt / older value can never break the deal
+    if (!s || !Array.isArray(s.tableau)      || s.tableau.length !== 7 ||
+              !Array.isArray(s.foundations)  || s.foundations.length !== 4 ||
+              !Array.isArray(s.stock)        || !Array.isArray(s.waste)) return null;
+    // never resume an already-finished board
+    if (s.foundations.every(f => Array.isArray(f) && f.length === 13)) return null;
+    return s;
+  }catch(e){ return null; }
+}
+/* Put a saved board back on the table — same setup as deal(), minus the shuffle
+   (nothing was dealt) and with a gentle "picking up where you left off" line. */
+function resumeGame(s){
+  state = s;
+  selection = null;
+  undoStack = [];
+  justRevealed.clear();
+  clearPromptState();
+  render();
+  applyNature(); updateMusic();
+  announce('Picking up your game where you left off.');
+}
+
 function deal(){
   const deck = shuffle(makeDeck());
   state = { stock:[], waste:[], foundations:[[],[],[],[]], tableau:[[],[],[],[],[],[],[]] };
@@ -1192,6 +1238,7 @@ function deal(){
   playSound('shuffle');                 // the opening deal
   applyNature(); updateMusic();          // start (or keep) the chosen ambient — first deal is a user gesture
   announce('The new game is ready.');   // Dani 2026-09-13
+  saveGame();                            // remember this fresh board so a mid-game close resumes it
 }
 
 /* TEST-ONLY dead-end board (open with ?test=lose): seven black, non-Ace cards that
@@ -1290,6 +1337,7 @@ function undo(){
   // the player hears ONLY what was undone, nothing before it (Dani 2026-09-12).
   // desc is already a full "Returning … to …" sentence (Dani 2026-09-13).
   announceNow(entry.desc || 'Took back the last move.');
+  saveGame();   // persist the reverted board so a close-after-undo resumes here
 }
 
 /* ================= move rules ================= */
@@ -1640,6 +1688,7 @@ function afterMove(){
     const el = document.querySelector(`.card[data-id="${movedId}"]`);
     if (el){ try { el.focus(); } catch(e){} }
   }
+  saveGame();   // persist the board after every move, so a mid-game close resumes here
 }
 
 /* ================= stock ================= */
@@ -1689,6 +1738,7 @@ function drawStock(){
     const pile = document.querySelector('.drawpile');
     if (pile){ pile.classList.add('refill'); setTimeout(()=>pile.classList.remove('refill'), 460); }
   }
+  saveGame();   // turning / recycling the draw pile is a move too — persist it
 }
 
 /* ================= rendering ================= */
@@ -2296,6 +2346,7 @@ function hintDrawPile(){
    this only ever fires from a hint press, never as an interruption. */
 function onNoMovesLeft(){ lostScreen(); }
 function lostScreen(){
+  clearSavedGame();   // this game is over — don't resume the stuck board next launch
   const line = pick(LOST_LINES);
   document.getElementById('lostPrompt').textContent = line;
   clearLiveRegions();              // don't let a board line replay over the losing screen
@@ -2310,6 +2361,7 @@ function lostScreen(){
 
 /* ================= win ================= */
 function winScreen(){
+  clearSavedGame();   // this game is finished — don't resume the won board next launch
   const line = pick(WIN_LINES);
   document.getElementById('winPrompt').textContent = line;
   clearLiveRegions();              // don't let a board line replay over the win screen
@@ -2736,7 +2788,11 @@ applyA11y();
 const _testMode = new URLSearchParams(location.search).get('test');
 if (_testMode === 'lose') dealTestLose();
 else if (_testMode === 'win') dealTestWin();
-else deal();            // deal() clears the prompt space; invitations drift in during play
+else {
+  const _saved = loadSavedGame();          // an in-progress game from a previous visit?
+  if (_saved) resumeGame(_saved);          // yes → put it back exactly as they left it
+  else deal();                             // no → a fresh deal (which clears the prompt space; invitations drift in during play)
+}
 startupFlow();
 </script>
 
