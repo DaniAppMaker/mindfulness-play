@@ -1846,6 +1846,16 @@ const DRAG_THRESHOLD_MOUSE = 6;
 const DRAG_THRESHOLD_TOUCH = 16;
 function dragThresholdFor(type){ return type === 'mouse' ? DRAG_THRESHOLD_MOUSE : DRAG_THRESHOLD_TOUCH; }
 
+// A "tap that wobbled" travels just a little past the drag threshold. If such a
+// short drag is released with no legal pile under it, we don't want it to die as
+// a snap-back that does nothing (Testers: cards needed 2–3 taps) — we fall back to
+// the same smart auto-move a clean tap would do. Only SHORT drags qualify: a long,
+// deliberate drag that misses its target still snaps back (the player meant that
+// specific spot). The window is generous but well below a real cross-board drag.
+const TAP_FALLBACK_SLOP_MOUSE = 16;
+const TAP_FALLBACK_SLOP_TOUCH = 44;
+function tapFallbackSlopFor(type){ return type === 'mouse' ? TAP_FALLBACK_SLOP_MOUSE : TAP_FALLBACK_SLOP_TOUCH; }
+
 // swallow the synthetic click that follows a mouse drag so it can't also tap-move
 document.addEventListener('click', e=>{
   if (suppressClick){ e.stopPropagation(); e.preventDefault(); suppressClick = false; }
@@ -1870,6 +1880,7 @@ function makeDraggable(el, where, colIndex, cardIndex){
     if (!pickUpRun(where, colIndex, cardIndex)) return;   // nothing here to lift
     drag = { where, colIndex, cardIndex, grabEl: el, pointerId: e.pointerId,
              pointerType: e.pointerType, startX: e.clientX, startY: e.clientY,
+             lastX: e.clientX, lastY: e.clientY,
              moving: false, layer: null, originEls: [] };
     try { el.setPointerCapture(e.pointerId); } catch(_){}
     el.addEventListener('pointermove', onDragMove);
@@ -1880,6 +1891,7 @@ function makeDraggable(el, where, colIndex, cardIndex){
 
 function onDragMove(e){
   if (!drag) return;
+  drag.lastX = e.clientX; drag.lastY = e.clientY;   // remembered so onDragEnd can tell a wobbly tap from a real drag
   if (!drag.moving){
     if (Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) < dragThresholdFor(drag.pointerType)) return;
     beginDrag();
@@ -1926,8 +1938,19 @@ function onDragEnd(){
   const topGhost = drag.layer.querySelector('.ghost');
   const releaseRect = topGhost ? topGhost.getBoundingClientRect() : null;
   const dest = findDropTarget(releaseRect, moving, drag.cards.length, drag.where, drag.colIndex);
-  if (dest){ performDrop(drag, dest); cleanupDrag(); }
-  else { snapBack(); }
+  if (dest){ performDrop(drag, dest); cleanupDrag(); return; }
+  // No legal pile under the release. If the finger only drifted a little (a tap
+  // that wobbled just past the drag threshold), send the card home the way a clean
+  // tap would, instead of a dead snap-back — so a slightly imperfect tap still works.
+  // A genuinely long drag that missed its target still snaps back untouched.
+  const travel = Math.hypot(drag.lastX - drag.startX, drag.lastY - drag.startY);
+  if (travel <= tapFallbackSlopFor(drag.pointerType)){
+    const w = drag.where, c = drag.colIndex, i = drag.cardIndex;
+    cleanupDrag();               // clears the lift + eats the trailing click, so no double move
+    autoMove(w, c, i);
+    return;
+  }
+  snapBack();
 }
 
 function overlapArea(a, b){
