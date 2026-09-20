@@ -886,6 +886,10 @@
           <button type="button" role="switch" aria-checked="false" id="setTimed" class="switch" aria-label="Mindfulness invitations"><span class="slider"></span></button>
         </div>
         <div class="setrow">
+          <div><div class="setlabel">Draw three cards</div><div class="sethint">Off turns one card at a time (gentler); on is the classic draw of three</div></div>
+          <button type="button" role="switch" aria-checked="false" id="setDraw3" class="switch" aria-label="Draw three cards at a time. When off, the game turns one card at a time, which is gentler."><span class="slider"></span></button>
+        </div>
+        <div class="setrow">
           <div class="setlabel">Left-handed layout</div>
           <button type="button" role="switch" aria-checked="false" id="setLeft" class="switch" aria-label="Left-handed layout"><span class="slider"></span></button>
         </div>
@@ -897,7 +901,7 @@
 
 <script>
 /* =========================================================================
-   Cozy Cat Solitaire — a calm Klondike (draw 1, unlimited redeals).
+   Cozy Cat Solitaire — a calm Klondike (draw 1 or classic 3, unlimited redeals).
    The GAME ENGINE below is unchanged from the working version; only the
    presentation (render) now uses Dani's painted card art instead of text.
    ========================================================================= */
@@ -934,7 +938,7 @@ const SETTINGS_KEY = 'cozycat.settings';
    player hears the app come alive; music + left-handed off. After the first open the
    player's own choices are remembered (saved to localStorage) and these no longer apply. */
 const DEFAULT_SETTINGS = { music:false, gameSounds:true, natureSound:'purr',
-                           timedInvites:true, leftHanded:false };
+                           timedInvites:true, leftHanded:false, draw3:false };
 /* TEMPORARY testing switch (?fresh): behave like a brand-new player — ignore this
    device's saved settings AND don't overwrite them — so the first-open defaults
    (cat purr + game sounds on) can be tested with VoiceOver without clearing site
@@ -1721,15 +1725,26 @@ function drawStock(){
   let drew = false, recycled = false, recycleFly = null;
   if (state.stock.length){
     snapshot();
-    const c = state.stock.pop(); c.faceUp = true; state.waste.push(c);
+    // Draw one card at a time (gentle default) or the classic three (Settings toggle,
+    // 2026-09-20). Near the end fewer than three may remain — turn whatever is left.
+    // The waste fan already shows up to three and only the top card is playable, so
+    // three-card draw needs nothing more than turning three at once here.
+    const n = Math.min(settings.draw3 ? 3 : 1, state.stock.length);
+    let last = null;
+    for (let k = 0; k < n; k++){ const c = state.stock.pop(); c.faceUp = true; state.waste.push(c); last = c; }
     // say the card AND whether it has a move, right when it's turned — so a
     // VoiceOver player knows immediately, without having to go find it (Dani 2026-09-12).
     // No "that was the last card" tail: the last card now reads like any other, and the
     // recycle instruction lives on the empty draw pile itself, so a player who lands
     // there hears how to keep going instead of skipping past it (Dani 2026-09-13).
-    announce(`Turned ${cardName(c)}.` +
-      (cardHasMove('waste', 0, 0) ? ' This card has a move.' : ' This card has no moves.'));
-    noteMove(`Returning the ${cardName(c)} to the draw pile.`);
+    const moveTail = cardHasMove('waste', 0, 0) ? ' This card has a move.' : ' This card has no moves.';
+    if (n === 1){
+      announce(`Turned ${cardName(last)}.` + moveTail);
+      noteMove(`Returning the ${cardName(last)} to the draw pile.`);
+    } else {
+      announce(`Turned ${n} cards. The top card is ${cardName(last)}.` + moveTail);
+      noteMove(`Returning ${n} cards to the draw pile.`);
+    }
     drew = true;
   } else {
     // snapshot the VISIBLE discard fan BEFORE gathering, so we can fly those cards
@@ -2493,7 +2508,7 @@ document.getElementById('menu').addEventListener('click', e=>{ if(e.target.id===
 
 /* ================= settings panel wiring ================= */
 const TOGGLES = { setMusic:'music', setGame:'gameSounds', setTimed:'timedInvites',
-                  setLeft:'leftHanded' };
+                  setLeft:'leftHanded', setDraw3:'draw3' };
 function syncToggles(){
   // role="switch" buttons carry their state in aria-checked (Dani 2026-09-13)
   for (const id in TOGGLES){ const el=document.getElementById(id); if(el) el.setAttribute('aria-checked', settings[TOGGLES[id]] ? 'true' : 'false'); }
