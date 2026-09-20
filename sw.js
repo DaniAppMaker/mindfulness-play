@@ -20,7 +20,7 @@
    ================================================================ */
 
 /* 👉 Bump this ONLY when card/interface images or sound files change or are added. */
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v6';
 const CACHE_NAME = 'cozy-cat-' + CACHE_VERSION;
 
 /* The app shell — the few files needed to show *something* offline.
@@ -67,6 +67,14 @@ const ASSETS = [
   'assets/icon/icon-192.png',
   'assets/icon/icon-512.png',
   'assets/icon/icon-maskable-512.png',   // cream-padded launch icon (no white circle on Android)
+  // iPhone launch ("splash") screens — cat on cream, one per device (see index.html).
+  'assets/icon/splash/splash-640x1136.png','assets/icon/splash/splash-750x1334.png',
+  'assets/icon/splash/splash-1242x2208.png','assets/icon/splash/splash-1125x2436.png',
+  'assets/icon/splash/splash-828x1792.png','assets/icon/splash/splash-1242x2688.png',
+  'assets/icon/splash/splash-1080x2340.png','assets/icon/splash/splash-1170x2532.png',
+  'assets/icon/splash/splash-1179x2556.png','assets/icon/splash/splash-1206x2622.png',
+  'assets/icon/splash/splash-1284x2778.png','assets/icon/splash/splash-1290x2796.png',
+  'assets/icon/splash/splash-1320x2868.png',
   'assets/interface/after-losing-cat.png',
   'assets/interface/foundation-paw.png',
   'assets/interface/newgame-cat.png',
