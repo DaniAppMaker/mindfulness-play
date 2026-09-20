@@ -1742,7 +1742,10 @@ function drawStock(){
       announce(`Turned ${cardName(last)}.` + moveTail);
       noteMove(`Returning the ${cardName(last)} to the draw pile.`);
     } else {
-      announce(`Turned ${n} cards. The top card is ${cardName(last)}.` + moveTail);
+      // Three-card draw: name ALL the freshly-turned cards so a VoiceOver player hears
+      // every one, not just the top — then say which is the playable top (Dani 2026-09-20).
+      const drawnNames = state.waste.slice(-n).map(cardName).join(', ');
+      announce(`Turned ${n} cards: ${drawnNames}. The top card is ${cardName(last)}.` + moveTail);
       noteMove(`Returning ${n} cards to the draw pile.`);
     }
     drew = true;
@@ -2214,10 +2217,20 @@ function updateWaste(){
       el.onclick = ()=> autoMove('waste', 0, 0);
       makeDraggable(el, 'waste', 0, 0);
     } else {
-      el.style.pointerEvents = 'none';
-      el.tabIndex = -1;
-      el.setAttribute('aria-hidden', 'true');
+      el.style.pointerEvents = 'none';   // only the top card is ever tappable / draggable
       el.onclick = null;
+      if (settings.draw3){
+        // Three-card draw: the two cards behind the top are freshly turned and part of
+        // this draw, so let a VoiceOver player swipe to them and hear what they are —
+        // clearly flagged as not-yet-playable (Dani 2026-09-20). In one-card play the
+        // buried cards are old history, so they stay hidden exactly as before (locked SR).
+        el.tabIndex = 0;
+        el.removeAttribute('aria-hidden');
+        el.setAttribute('aria-label', `${cardName(card)}, in the waste pile, behind the top card. Not playable yet.`);
+      } else {
+        el.tabIndex = -1;
+        el.setAttribute('aria-hidden', 'true');
+      }
     }
   });
 }
