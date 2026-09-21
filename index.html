@@ -584,12 +584,15 @@
     display:grid; place-items:center;
     transition:opacity 1.8s ease-in;
     animation:arrowBreathe 2.6s ease-in-out infinite;
-    /* Not tappable until it has faded in: the ONLY way off the welcome / loading screen
-       is pressing the visible arrow, so an accidental touch elsewhere (or on the corner
-       before the arrow appears) can never skip the screen or its message (Dani 2026-09-20). */
+    /* Not tappable until it has FINISHED fading in: the ONLY way off the welcome /
+       loading screen is pressing the fully-visible arrow, so an accidental touch
+       elsewhere — or on the corner before/while the arrow appears — can never skip the
+       screen or its teaching message (Dani 2026-09-20). '.revealed' starts the fade;
+       '.armed' (added by JS once the fade completes) is what turns tapping on. */
     pointer-events:none;
   }
-  .next-arrow.revealed{ opacity:.5; pointer-events:auto; }
+  .next-arrow.revealed{ opacity:.5; }
+  .next-arrow.armed{ pointer-events:auto; }
   .next-arrow svg{ width:72%; height:72%; }
   .next-arrow:active{ transform:scale(.94); }
   @keyframes arrowBreathe{
@@ -923,6 +926,9 @@ let state, selection = null;
 let trackedWaste = new Map();   // card.id -> its persistent waste-fan element
 let justRevealed = new Set();    // ids of cards just flipped face-up, to ease in
 let pendingFlip = null;          // {ids, from} of cards to glide after a move
+let resumedGame = false;         // true when this launch restored a saved game (vs a fresh deal),
+                                 // so the spoken intro can welcome the player back instead of
+                                 // reading the first-time new-game description
 
 /* ---------- asset resolver: the single source of truth for card art -------
    Given {rank, suit} return the exact PNG path per ASSET-MAP.md. Never infer
@@ -1245,12 +1251,14 @@ function resumeGame(s){
   undoStack = [];
   justRevealed.clear();
   clearPromptState();
+  resumedGame = true;   // spoken intro will welcome the player back, not re-read the new-game script
   render();
   applyNature(); updateMusic();
   announce('Picking up your game where you left off.');
 }
 
 function deal(){
+  resumedGame = false;   // a fresh game — the spoken intro reads the approved new-game script
   const deck = shuffle(makeDeck());
   state = { stock:[], waste:[], foundations:[[],[],[],[]], tableau:[[],[],[],[],[],[],[]] };
   for (let col=0; col<7; col++){
@@ -2635,6 +2643,16 @@ function reducedMotion(){
 }
 let advanceScreen = null;   // the current skippable screen's "advance" fn, or null
 function fireAdvance(){ if(advanceScreen){ const fn=advanceScreen; advanceScreen=null; fn(); } }
+const ARROW_FADE_MS = 1800;   // must match the .next-arrow opacity transition; how long
+                              // after '.revealed' the arrow is fully visible and tappable ('.armed').
+// Reveal a Begin arrow, then arm it (make it tappable) only once it has FINISHED fading
+// in — under reduce-motion it appears instantly, so it arms instantly too.
+function armArrow(el){
+  el.classList.add('revealed');
+  clearTimeout(el._armT);
+  el._armT = setTimeout(()=>el.classList.add('armed'), reducedMotion() ? 0 : ARROW_FADE_MS);
+}
+function disarmArrow(el){ el.classList.remove('revealed','armed'); clearTimeout(el._armT); }
 
 function showScreen(id, fadeIn){
   const el = document.getElementById(id);
@@ -2692,9 +2710,9 @@ function moveATCursorTo(id){
 function revealArrowLater(id, delay){
   const el = document.getElementById(id);
   if (!el) return ()=>{};
-  el.classList.remove('revealed');            // reset (screens re-show each launch)
-  const t = setTimeout(()=>{ el.classList.add('revealed'); }, delay);
-  return ()=>{ clearTimeout(t); };
+  disarmArrow(el);                            // reset (screens re-show each launch)
+  const t = setTimeout(()=>{ armArrow(el); }, delay);
+  return ()=>{ clearTimeout(t); disarmArrow(el); };
 }
 
 /* the cat on the loading screen, spoken as the #loadCat role="img" aria-label (step 2
@@ -2751,9 +2769,10 @@ function runLoading(finish){
   // swipe advances to the cat (step 2), then the Begin button (step 3).
   moveATCursorTo('loadPrompt');
   let finished = false;
-  // The Begin arrow starts hidden and appears when the mouse finishes walking the line.
-  document.getElementById('loadNext').classList.remove('revealed');
-  const cancelWalk = startMouseWalk(()=> document.getElementById('loadNext').classList.add('revealed'));
+  // The Begin arrow starts hidden and appears when the mouse finishes walking the line;
+  // it only becomes tappable once it has fully faded in (armArrow).
+  disarmArrow(document.getElementById('loadNext'));
+  const cancelWalk = startMouseWalk(()=> armArrow(document.getElementById('loadNext')));
   const done = ()=>{ if(finished) return; finished = true; cancelWalk(); advanceScreen = null; finish(); };
   advanceScreen = done;
   // Advance ONLY via the Begin arrow — and only once it has faded in (it's
@@ -2769,9 +2788,26 @@ function runLoading(finish){
 // actually follow to the overview instead of falling back to the browser chrome;
 // same rule as the welcome->loading step. Focusing a tabindex=-1 element moves the
 // AT cursor on iOS Safari.
+// The approved first-time description lives in the #sr-intro markup. Capture it once so we
+// can swap in a shorter "welcome back" version when this launch RESUMED a saved game, and
+// keep the approved text for a fresh deal (Dani 2026-09-20).
+const SR_INTRO_NEW = (document.getElementById('sr-intro') || {}).innerHTML || '';
+const SR_INTRO_RETURNING =
+  'Listen to this, or tap anywhere to skip it. To hear it again later, find and double-tap ' +
+  'the cat at the top of the screen. Welcome back. You are returning to a game already in ' +
+  'progress — the board is just as you left it. Swipe right to move through it; each card tells ' +
+  'you where it sits and whether it has a move to make. To move a card, double-tap it, or press ' +
+  'Enter, and it travels on its own to the best legal spot. Double-tap the draw pile to turn a ' +
+  'card. There are no timers and no score — take all the time you like.';
+function applySrIntro(){
+  const intro = document.getElementById('sr-intro');
+  if (intro) intro.innerHTML = resumedGame ? SR_INTRO_RETURNING : SR_INTRO_NEW;
+}
+
 function revealBoardForAT(){
   setGameHiddenForAT(false);                // the board is the active screen now — let AT read it
   const intro = document.getElementById('sr-intro');
+  applySrIntro();                           // welcome-back script for a resumed game, else the approved new-game script
   try { if (intro) intro.focus(); } catch(e){}
   hideScreen('screenLoading');              // fade the cover away; board is already revealed + focused
   if (pendingTestWin){ pendingTestWin = false; setTimeout(()=>{ try{ maybeAutoComplete(); }catch(e){} }, 900); }   // ?test=win: auto-play the winning cascade now that the board is up + audio is unlocked
@@ -3089,7 +3125,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 20 · draw+tap+splash r3';
+  var BUILD_TAG = 'Sep 20 · draw+tap+splash r4';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
