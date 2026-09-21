@@ -2793,12 +2793,7 @@ function runLoading(finish){
 // keep the approved text for a fresh deal (Dani 2026-09-20).
 const SR_INTRO_NEW = (document.getElementById('sr-intro') || {}).innerHTML || '';
 const SR_INTRO_RETURNING =
-  'Listen to this, or tap anywhere to skip it. To hear it again later, find and double-tap ' +
-  'the cat at the top of the screen. Welcome back. You are returning to a game already in ' +
-  'progress — the board is just as you left it. Swipe right to move through it; each card tells ' +
-  'you where it sits and whether it has a move to make. To move a card, double-tap it, or press ' +
-  'Enter, and it travels on its own to the best legal spot. Double-tap the draw pile to turn a ' +
-  'card. There are no timers and no score — take all the time you like.';
+  'Welcome back. You are returning to a game already in progress — the board is just as you left it.';
 function applySrIntro(){
   const intro = document.getElementById('sr-intro');
   if (intro) intro.innerHTML = resumedGame ? SR_INTRO_RETURNING : SR_INTRO_NEW;
@@ -3125,7 +3120,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 20 · draw+tap+splash r4';
+  var BUILD_TAG = 'Sep 20 · draw+tap+splash r5';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
