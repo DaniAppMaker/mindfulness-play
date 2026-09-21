@@ -584,8 +584,12 @@
     display:grid; place-items:center;
     transition:opacity 1.8s ease-in;
     animation:arrowBreathe 2.6s ease-in-out infinite;
+    /* Not tappable until it has faded in: the ONLY way off the welcome / loading screen
+       is pressing the visible arrow, so an accidental touch elsewhere (or on the corner
+       before the arrow appears) can never skip the screen or its message (Dani 2026-09-20). */
+    pointer-events:none;
   }
-  .next-arrow.revealed{ opacity:.5; }
+  .next-arrow.revealed{ opacity:.5; pointer-events:auto; }
   .next-arrow svg{ width:72%; height:72%; }
   .next-arrow:active{ transform:scale(.94); }
   @keyframes arrowBreathe{
@@ -1353,6 +1357,7 @@ function clearSpokenForUndo(){
   if (promptShowing) hideInvitation();
 }
 function undo(){
+  if (drawSeqActive) return;   // don't unwind while a 3-card deal is still dealing its cards
   if (!undoStack.length){ clearSpokenForUndo(); announceNow('Nothing to take back yet.'); return; }
   const entry = undoStack.pop();
   state = JSON.parse(entry.snap);
@@ -1719,67 +1724,85 @@ function afterMove(){
 }
 
 /* ================= stock ================= */
+let drawSeqActive = false;        // true while a 3-card deal is still dealing its cards
+const DRAW_DEAL_GAP = 130;        // ms between each card of a 3-card deal — a quick cascade
+
+// Turn ONE card from the stock onto the waste and let render() animate it exactly like a
+// single-card draw (the newest card slides off the draw pile — see updateWaste). Returns it.
+function turnStockCard(){
+  const c = state.stock.pop(); c.faceUp = true; state.waste.push(c);
+  render();
+  playSound('tup');   // the same soft place sound a single draw makes
+  return c;
+}
+
+// Announce + persist once a draw has finished turning its card(s).
+function finishDraw(turned){
+  const last = turned[turned.length - 1];
+  const moveTail = cardHasMove('waste', 0, 0) ? ' This card has a move.' : ' This card has no moves.';
+  if (turned.length === 1){
+    announce(`Turned ${cardName(last)}.` + moveTail);
+    noteMove(`Returning the ${cardName(last)} to the draw pile.`);
+  } else {
+    // Name every freshly-turned card so a VoiceOver player hears them all, then the top.
+    const names = turned.map(cardName).join(', ');
+    announce(`Turned ${turned.length} cards: ${names}. The top card is ${cardName(last)}.` + moveTail);
+    noteMove(`Returning ${turned.length} cards to the draw pile.`);
+  }
+  progressInvites();   // turning a card is a move too — let it count toward the next invitation
+  saveGame();          // persist the board so a mid-game close resumes here
+}
+
 function drawStock(){
   if (autoCompleting) return;   // hands off while the auto-finish cascade is running
+  if (drawSeqActive) return;    // a 3-card deal is still dealing — ignore extra taps
   clearSelection();
-  let drew = false, recycled = false, recycleFly = null;
   if (state.stock.length){
-    snapshot();
-    // Draw one card at a time (gentle default) or the classic three (Settings toggle,
-    // 2026-09-20). Near the end fewer than three may remain — turn whatever is left.
-    // The waste fan already shows up to three and only the top card is playable, so
-    // three-card draw needs nothing more than turning three at once here.
+    // One card (gentle default) or the classic three (Settings toggle). Each card is
+    // turned and animated ONE AT A TIME with the exact single-card slide, so a 3-card
+    // draw is literally three 1-card draws in a row — first-drawn to the LEFT slot, the
+    // playable top to the RIGHT slot (Dani 2026-09-20). One snapshot = one undo for it.
     const n = Math.min(settings.draw3 ? 3 : 1, state.stock.length);
-    let last = null;
-    for (let k = 0; k < n; k++){ const c = state.stock.pop(); c.faceUp = true; state.waste.push(c); last = c; }
-    // say the card AND whether it has a move, right when it's turned — so a
-    // VoiceOver player knows immediately, without having to go find it (Dani 2026-09-12).
-    // No "that was the last card" tail: the last card now reads like any other, and the
-    // recycle instruction lives on the empty draw pile itself, so a player who lands
-    // there hears how to keep going instead of skipping past it (Dani 2026-09-13).
-    const moveTail = cardHasMove('waste', 0, 0) ? ' This card has a move.' : ' This card has no moves.';
-    if (n === 1){
-      announce(`Turned ${cardName(last)}.` + moveTail);
-      noteMove(`Returning the ${cardName(last)} to the draw pile.`);
-    } else {
-      // Three-card draw: name ALL the freshly-turned cards so a VoiceOver player hears
-      // every one, not just the top — then say which is the playable top (Dani 2026-09-20).
-      const drawnNames = state.waste.slice(-n).map(cardName).join(', ');
-      announce(`Turned ${n} cards: ${drawnNames}. The top card is ${cardName(last)}.` + moveTail);
-      noteMove(`Returning ${n} cards to the draw pile.`);
-    }
-    drew = true;
-  } else {
-    // snapshot the VISIBLE discard fan BEFORE gathering, so we can fly those cards
-    // back to the draw pile — render() below removes them. trackedWaste holds only
-    // the up-to-3 cards actually on show (not any mid-retire strays). (Dani 2026-09-15)
-    if (!reducedMotion()){
-      recycleFly = [...trackedWaste.values()].map(el=>{
-        const img = el.querySelector('img');
-        return { rect: el.getBoundingClientRect(), face: img ? img.src : CARD_BACK };
-      }).filter(x=>x.rect && x.rect.width);
-    }
     snapshot();
-    while (state.waste.length){ const c = state.waste.pop(); c.faceUp=false; state.stock.push(c); }
-    recycled = true;
-    announce('Gathered the used cards back into the draw pile.');
-    noteMove('Spreading the used cards back out of the draw pile.');
+    const turned = [ turnStockCard() ];          // first card, right now
+    if (n === 1){ finishDraw(turned); return; }
+    drawSeqActive = true;
+    const dealNext = ()=>{
+      if (turned.length < n && state.stock.length){
+        turned.push(turnStockCard());
+        setTimeout(dealNext, DRAW_DEAL_GAP);
+      } else {
+        drawSeqActive = false;
+        finishDraw(turned);
+      }
+    };
+    setTimeout(dealNext, DRAW_DEAL_GAP);
+    return;
   }
+  // ---- stock empty: recycle the used cards back into the draw pile ----
+  // snapshot the VISIBLE discard fan BEFORE gathering, so we can fly those cards
+  // back to the draw pile — render() below removes them. trackedWaste holds only
+  // the up-to-3 cards actually on show (not any mid-retire strays). (Dani 2026-09-15)
+  let recycleFly = null;
+  if (!reducedMotion()){
+    recycleFly = [...trackedWaste.values()].map(el=>{
+      const img = el.querySelector('img');
+      return { rect: el.getBoundingClientRect(), face: img ? img.src : CARD_BACK };
+    }).filter(x=>x.rect && x.rect.width);
+  }
+  snapshot();
+  while (state.waste.length){ const c = state.waste.pop(); c.faceUp=false; state.stock.push(c); }
+  announce('Gathered the used cards back into the draw pile.');
+  noteMove('Spreading the used cards back out of the draw pile.');
   render();
-  if (drew) playSound('tup'); if (recycled) playSound('gather');   // draw = place sound; gather = the first bit of the shuffle (Dani 2026-09-14)
-  // When the stock empties we NO LONGER pulse/scale the pile (Dani 2026-09-12:
-  // the "bigger and smaller" breathe was distracting). Instead the empty draw
-  // slot's recycle arrow gently FADES IN and then keeps its own subtle flash
-  // until the player taps it — see renderTopRow (recycle-enter) + CSS.
-  // turning a card is a move too — let it count toward the next invitation
-  if (drew) progressInvites();
+  playSound('gather');   // the first bit of the shuffle (Dani 2026-09-14)
   // the reformed pile gives a soft settle so the gather reads as a gentle motion
-  if (recycled && !reducedMotion()){
+  if (!reducedMotion()){
     if (recycleFly && recycleFly.length) animateRecycleFly(recycleFly);   // sweep the gathered cards back, flipping face-down
     const pile = document.querySelector('.drawpile');
     if (pile){ pile.classList.add('refill'); setTimeout(()=>pile.classList.remove('refill'), 460); }
   }
-  saveGame();   // turning / recycling the draw pile is a move too — persist it
+  saveGame();   // recycling the draw pile is a move too — persist it
 }
 
 /* ================= rendering ================= */
@@ -2733,9 +2756,9 @@ function runLoading(finish){
   const cancelWalk = startMouseWalk(()=> document.getElementById('loadNext').classList.add('revealed'));
   const done = ()=>{ if(finished) return; finished = true; cancelWalk(); advanceScreen = null; finish(); };
   advanceScreen = done;
-  // Advance ONLY via the Begin button — NOT a whole-screen tap. In VoiceOver a
-  // double-tap activates the focused item, so a whole-screen advance stole every
-  // double-tap and swept the player forward before they could explore.
+  // Advance ONLY via the Begin arrow — and only once it has faded in (it's
+  // pointer-events:none until then, see .next-arrow), so an accidental touch, or the
+  // stray second tap of a welcome double-tap, can never skip the loading screen.
   document.getElementById('loadNext').onclick = (e)=>{ e.stopPropagation(); fireAdvance(); };
 }
 
@@ -3066,7 +3089,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 20 · draw+tap+splash r2';
+  var BUILD_TAG = 'Sep 20 · draw+tap+splash r3';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
