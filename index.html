@@ -1107,7 +1107,7 @@ const INVITE_FAMILIES = {
     "notice how your hands feel",
     "notice how your body feels",
     "notice how your feet feel",
-    "feel the places where you're being held",
+    "feel the places\nwhere you're being held",
     "notice how your eyes feel",
     "notice how your breathing feels",
     "notice how your forehead feels",
@@ -1117,7 +1117,6 @@ const INVITE_FAMILIES = {
     "notice how your legs feel",
     "notice whether any part of you\nfeels at ease",
     "notice whether any part of you\nwants to move",
-    "notice how your face feels\nas you look at the game",
   ]},
   overall: { weight:2, make: t => "How does your body feel overall…\n" + t, lines:[
     "restless or still?",
@@ -1138,7 +1137,7 @@ const INVITE_FAMILIES = {
   // one body part at random, then the next invitation comes from another family (Dani 2026-09-26)
   tighten: { weight:2, make: t => "An invitation! On a long inhale,\ntighten " + t + "…\nand on a long exhale… let go.", lines:[
     "your feet", "your calves", "your thighs", "your buttocks",
-    "your abdominals", "your arms and hands", "your shoulders", "your face",
+    "your abdominals", "your arms and hands", "your shoulders", "your brow",
   ]},
   mind: { weight:2, lines:[
     "Do you notice any thoughts\narise as you play?",
@@ -1174,29 +1173,32 @@ const INVITE_FAMILIES = {
     "The cat is emotionally attached\nto this particular pile.",
     "The cat has appointed itself\nHead of Card Placement.",
     "The cat believes the game\nshould have more cats.",
-    "The cat has no idea what's happening,\nbut supports it.",
+    "The cat has no idea\nwhat's happening,\nbut supports it.",
   ]},
 };
 
-/* GAME MOMENTS — a TEST (Dani 2026-09-26): when one of these really happens, it
-   takes the place of the next regular invitation (never an extra one), with a
-   rotating lead-in. Dani is unsure whether it could feel like being watched, so
-   testers will tell us. Each moment shows at most once per game. */
+/* GAME MOMENTS — a TEST (Dani 2026-09-27): a regular family in the rotation, NOT
+   tied to the moment it happens (showing them right as it happened felt like being
+   watched). The hope: players remember, and notice more the next time it happens. */
 const MOMENT_LEADINS = [
   "How does it feel in your body", "How do you feel",
   "What are your thoughts", "Where do you feel it in your body",
 ];
-const MOMENTS = {
-  undo:       "when you realize you made a mistake?",
-  hint:       "when you ask for a hint?",
-  dry:        "when you keep turning cards\nand not seeing any moves?",
-  spot:       "when you spot a move?",
-  streak:     "when you get several\ngood cards in a row?",
-  clear:      "when the next move is clear?",
-  flip:       "when you turn over a new card?",
-  foundation: "when a card finds its place?",
-};
-const MOMENT_ORDER = Object.keys(MOMENTS);   // rarest first, when two happen at once
+INVITE_FAMILIES.moments = { weight:1.5, make: t => drawFrom('leadin', MOMENT_LEADINS) + "\n" + t, lines:[
+  "when you get several\ngood cards in a row?",
+  "when you keep turning cards\nand not seeing any moves?",
+  "when you really need one card\nbut it isn't showing up?",
+  "when you realize you made\na mistake you can't undo?",
+  "when you win the game?",
+  "when you lose the game?",
+  "when you realize\nyou missed a move?",
+  "when you ask for a hint?",
+  "when there are no more moves\nleft in the game?",
+  "when you spot a move?",
+  "when you turn over a new card?",
+  "when the next move is clear?",
+  "when a card finds its place?",
+]};
 
 /* shuffled decks, remembered across games (not under the ?fresh test harness) */
 let inviteDecks = {};
@@ -1220,47 +1222,7 @@ function drawFrom(name, arr){
 let lastFamily = null;           // never the same family twice in a row
 let firstInviteOfGame = true;    // each game opens with a Body check-in
 
-/* game-moment tracking (board facts compared move to move) */
-let momentMove = 0, freshMoments = {}, usedMoments = new Set();
-let drawsInRow = 0, playsInRow = 0, lastFaceDown = null, lastHome = null;
-function boardCounts(){
-  let fd = 0;
-  state.tableau.forEach(p => p.forEach(c => { if (!c.faceUp) fd++; }));
-  return { fd, home: state.foundations.reduce((a, f) => a + f.length, 0) };
-}
-function resetMomentBaseline(){
-  try { const b = boardCounts(); lastFaceDown = b.fd; lastHome = b.home; } catch(e){ lastFaceDown = lastHome = null; }
-  drawsInRow = 0; playsInRow = 0;
-}
-function noteMoment(k){ if (!usedMoments.has(k)) freshMoments[k] = momentMove; }
-function trackBoardMove(){
-  momentMove++;
-  const b = boardCounts();
-  if (lastHome != null && b.home > lastHome) noteMoment('foundation');
-  if (lastFaceDown != null && b.fd < lastFaceDown) noteMoment('flip');
-  lastHome = b.home; lastFaceDown = b.fd;
-  if (drawsInRow >= 4) noteMoment('spot');
-  drawsInRow = 0;
-  if (++playsInRow === 3) noteMoment('streak');
-  try { if (findAllMoves().length === 1) noteMoment('clear'); } catch(e){}
-}
-function trackDraw(){
-  momentMove++;
-  playsInRow = 0;
-  if (++drawsInRow === 6) noteMoment('dry');
-}
-// a moment that happened within the last `within` moves, if one may be shown now
-function freshMoment(within){
-  if (firstInviteOfGame || lastFamily === 'moment') return null;
-  return MOMENT_ORDER.find(k => freshMoments[k] != null && momentMove - freshMoments[k] <= within) || null;
-}
-
 function nextInvitationText(){
-  const m = freshMoment(1);
-  if (m){
-    usedMoments.add(m); freshMoments = {}; lastFamily = 'moment'; firstInviteOfGame = false;
-    return drawFrom('leadin', MOMENT_LEADINS) + "\n" + MOMENTS[m];
-  }
   let fam = 'body';
   if (!firstInviteOfGame){
     const names = Object.keys(INVITE_FAMILIES).filter(n => n !== lastFamily);
@@ -1283,13 +1245,20 @@ function setPrompt(text, opts={}){
   });
   // visible only when there are words; empty = a quiet, blank prompt space
   const has = !!text;
-  // a note whose lines don't fit the width at the normal size (a stray word would
-  // wrap onto a line of its own) steps down to the smaller size, so the longer
-  // invitations keep their line breaks and still fit between the cat and the cards
+  // a note that doesn't fit at the normal size (a stray word would wrap onto a line
+  // of its own, or it would reach the cards) shrinks only as much as it needs —
+  // the biggest size that keeps its line breaks and fits between the cat and the
+  // cards (Dani 2026-09-27: the old one-step smaller size looked far too small)
+  el.style.fontSize = '';
   if (has && !opts.long){
-    const lh = parseFloat(getComputedStyle(el).lineHeight);
     const lines = text.split('\n').length;
-    if (lh && el.getBoundingClientRect().height > lh * (lines + 0.5)) el.classList.add('long');
+    const u = parseFloat(getComputedStyle(el).fontSize) / 58;   // px per design unit
+    const fits = ()=>{
+      const lh = parseFloat(getComputedStyle(el).lineHeight);
+      const h = el.getBoundingClientRect().height;
+      return !lh || (h <= lh * (lines + 0.5) && h <= 240 * u);
+    };
+    for (let s = 56; s >= 42 && !fits(); s -= 2) el.style.fontSize = `calc(${s} * var(--u))`;
   }
   el.style.opacity = has ? '1' : '0';
   if (has) el.removeAttribute('aria-hidden'); else el.setAttribute('aria-hidden', 'true');
@@ -1339,8 +1308,6 @@ function clearPromptState(){
   inviteThreshold = 5;
   setPrompt('');
   firstInviteOfGame = true;          // each game opens with a Body check-in
-  momentMove = 0; freshMoments = {}; usedMoments = new Set();
-  resetMomentBaseline();
 }
 
 /* which overlay is currently visible (used by the Escape-key handler) */
@@ -1526,7 +1493,6 @@ function undo(){
   justRevealed.clear();
   clearSpokenForUndo();
   render();
-  resetMomentBaseline(); noteMoment('undo');   // game-moment invitations test
   // assertive, so it interrupts any stale move line / invitation still being spoken —
   // the player hears ONLY what was undone, nothing before it (Dani 2026-09-12).
   // desc is already a full "Returning … to …" sentence (Dani 2026-09-13).
@@ -1861,9 +1827,7 @@ function ensureTopsFaceUp(){
 function progressInvites(){
   movesSinceInvite++;
   // one invitation at a time: don't start another while one is holding on screen
-  // a real game moment that JUST happened may come up to 3 moves early (it replaces this invitation)
-  const due = movesSinceInvite >= inviteThreshold || (movesSinceInvite >= inviteThreshold - 3 && freshMoment(0));
-  if (settings.timedInvites && !promptShowing && due){ showInvitation(); }
+  if (settings.timedInvites && !promptShowing && movesSinceInvite >= inviteThreshold){ showInvitation(); }
 }
 function afterMove(){
   const movedId = pendingFlip && pendingFlip.ids && pendingFlip.ids[0];   // the card that just moved
@@ -1871,7 +1835,6 @@ function afterMove(){
   ensureTopsFaceUp();
   render();
   if (pendingFlip){ flipAnimate(pendingFlip.ids, pendingFlip.from); pendingFlip = null; }
-  if (!autoCompleting) trackBoardMove();   // notice game moments (board facts) for the invitations test
   progressInvites();
   if (state.foundations.every(f=>f.length===13)){ setTimeout(winScreen, WIN_ADMIRE_MS); return; }   // let the finished board be admired first (Dani 2026-09-15)
   maybeAutoComplete();   // if the win is now guaranteed, fly the rest home automatically
@@ -1914,7 +1877,6 @@ function finishDraw(turned){
     announce(`Turned ${turned.length} cards: ${names}. The top card is ${cardName(last)}.` + moveTail);
     noteMove(`Returning ${turned.length} cards to the draw pile.`);
   }
-  trackDraw();         // notice game moments (board facts) for the invitations test
   progressInvites();   // turning a card is a move too — let it count toward the next invitation
   saveGame();          // persist the board so a mid-game close resumes here
 }
@@ -2572,7 +2534,6 @@ function anyPileCardPlayable(){
 function clearHints(){ document.querySelectorAll('.hint').forEach(c=>c.classList.remove('hint')); }
 function showHint(){
   clearHints();
-  noteMoment('hint');   // game-moment invitations test
   const moves = findAllMoves();
   if (!moves.length){ hintDrawPile(); return; }
   // Speak EVERY available move and where each one goes, so a blind player hears
@@ -3308,7 +3269,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 27 · invitations i2';
+  var BUILD_TAG = 'Sep 27 · invitations i3';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
