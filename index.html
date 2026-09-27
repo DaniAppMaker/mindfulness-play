@@ -1086,51 +1086,191 @@ const COL_X   = [2, 156, 310, 464, 618, 772, 926];
 /* ---------- prompt / invitations ----------
    The invitation is now the strongest visual feature: it lives in the prompt
    group at the top. Short two-line notes lean toward noticing the BODY. */
-// Dani's invitations. Most open with "Take a moment…" (Dani's preferred voice,
-// 2026-08-25). The five near-identical "notice how your ___ feels" body-scan
-// lines are a family; showInvitation() never shows two of THOSE in a row so the
-// scan doesn't feel repetitive (see isBodyScan). Other "Take a moment…" notes
-// may follow each other freely.
-const PROMPTS = [
-  "Take a moment…\nnotice how your jaw feels",
-  "Take a moment…\nnotice how your shoulders feel",
-  "Take a moment…\nnotice how your neck feels",
-  "Take a moment…\nnotice how your hands feel",
-  "Take a moment…\nnotice how your body feels",
-  "Breathe out,\nand let every muscle flop like a wet noodle",
-  "Do you notice any thoughts\narise as you play?",
-  "Do you notice any feelings\narise as you play?",
-  "Your focus right now…\ntense, calm, or something else?",
-  "Take a moment…\nfeel your feet on the floor",
-  "Take a moment…\nfeel where you're held by the chair",
-];
-const isBodyScan = t => t.includes("notice how your");
-let lastPrompt = 3;   // the default is the "hands" moment line, so the first rotation avoids another moment
-
-/* Rotating openers (Dani, 2026-08-25): every invitation stored as "Take a moment…"
-   picks a fresh gentle opener each time it appears, so the pause-and-drop-in
-   framing never wears out. All say the same thing — settle in and stay a beat.
-   The plainer notes (questions, the wet-noodle line) keep their own words. */
+/* Dani's invitations, sorted into FAMILIES (Dani 2026-09-26; master copy in
+   INVITATIONS-BY-FAMILY.md). The rotation rules:
+     1. each family is a shuffled deck: every line once before any repeats,
+        remembered across games (localStorage cozycat.inviteDecks);
+     2. never the same family twice in a row;
+     3. every game opens with a Body check-in;
+     4. the openers and the game-moment lead-ins rotate on decks of their own;
+     5. the body families come up most (weights); the cat's commentary is rare. */
 const OPENERS = [
-  "Take a moment",
-  "A little pause",
-  "A quiet moment",
-  "Just for a breath",
-  "Drop into the moment",
-  "Settle into the moment",
+  "Take a moment", "Take a break", "A pause", "A quiet moment",
+  "Drop into the moment", "Settle into the moment", "A moment for you",
+  "A pause for you", "A break for you", "A quiet moment for you",
 ];
-let lastOpener = -1;
-// swap the stored "Take a moment…" lead-in for a random opener (never twice in a row)
-function withOpener(text){
-  const nl = text.indexOf('\n');
-  if (nl < 0) return text;
-  if (!text.slice(0, nl).startsWith("Take a moment")) return text;   // only pausable notes rotate
-  const body = text.slice(nl + 1);
-  let o;
-  do { o = Math.floor(Math.random() * OPENERS.length); }
-  while (OPENERS.length > 1 && o === lastOpener);
-  lastOpener = o;
-  return OPENERS[o] + "…\n" + body;
+const INVITE_FAMILIES = {
+  body: { weight:5, make: t => drawFrom('opener', OPENERS) + "…\n" + t, lines:[
+    "notice how your jaw feels",
+    "notice how your shoulders feel",
+    "notice how your neck feels",
+    "notice how your hands feel",
+    "notice how your body feels",
+    "notice how your feet feel",
+    "feel the places where you're being held",
+    "notice how your eyes feel",
+    "notice how your breathing feels",
+    "notice how your forehead feels",
+    "notice how your tongue feels",
+    "notice how your back feels",
+    "notice how your arms feel",
+    "notice how your legs feel",
+    "notice whether any part of you\nfeels at ease",
+    "notice whether any part of you\nwants to move",
+    "notice how your face feels\nas you look at the game",
+  ]},
+  overall: { weight:2, make: t => "How does your body feel overall…\n" + t, lines:[
+    "restless or still?",
+    "heavy or light?",
+    "comfortable or uncomfortable?",
+    "tight or loose?",
+    "slow or fast?",
+    "constricted or flowing?",
+  ]},
+  breath: { weight:2, lines:[
+    "Breathe out,\nand let every muscle\nflop like a wet noodle",
+    "On the exhale…\nyou can soften your muscles",
+    "On the exhale…\nyou can let go",
+    "On the exhale…\nyou can flop like a relaxed cat",
+    "Where do you feel your breath\nwhen you inhale?",
+    "Where do you feel your breath\nwhen you exhale?",
+  ]},
+  // one body part at random, then the next invitation comes from another family (Dani 2026-09-26)
+  tighten: { weight:2, make: t => "An invitation! On a long inhale,\ntighten " + t + "…\nand on a long exhale… let go.", lines:[
+    "your feet", "your calves", "your thighs", "your buttocks",
+    "your abdominals", "your arms and hands", "your shoulders", "your face",
+  ]},
+  mind: { weight:2, lines:[
+    "Do you notice any thoughts\narise as you play?",
+    "Do you notice any feelings\narise as you play?",
+    "Your focus right now…\ntense, calm, or something else?",
+    "Is your mind busy, quiet,\nor somewhere in between?",
+    "Are you feeling drawn\nto play quickly or slowly?",
+  ]},
+  becat: { weight:1.5, lines:[
+    "What would a curious cat\nnotice about this moment?",
+    "What if you felt\nlike a playful cat?",
+    "What if you felt\nlike a relaxed cat?",
+    "How would a cat stretch feel?",
+  ]},
+  care: { weight:1.5, lines:[
+    "Would it feel good\nto shift your position?",
+    "Would your eyes like a moment\naway from the screen?",
+    "Does your body need anything\nright now? Thirsty, maybe?",
+  ]},
+  catsays: { weight:1, lines:[
+    "The cat has no advice,\nbut remains deeply invested.",
+    "The cat would help,\nbut has important curling to do.",
+    "The cat is supervising.\nQualifications remain unclear.",
+    "The cat has chosen a favourite card\nand refuses to explain why.",
+    "The cat is quietly\nrooting for the queen.",
+    "The cat has mistaken the deck\nfor a very small mattress.",
+    "The cat is confident\nthe next card will be a card.",
+    "The cat thinks the jack\nis being a little dramatic.",
+    "The cat has developed a theory\nabout the missing seven.\nIt is incorrect.",
+    "The cat would like\ncredit for that move.",
+    "The cat is pleased with your work.\nThe cat did most of it.",
+    "The cat has reviewed the situation\nand recommends a nap.",
+    "The cat is emotionally attached\nto this particular pile.",
+    "The cat has appointed itself\nHead of Card Placement.",
+    "The cat believes the game\nshould have more cats.",
+    "The cat has no idea what's happening,\nbut supports it.",
+  ]},
+};
+
+/* GAME MOMENTS — a TEST (Dani 2026-09-26): when one of these really happens, it
+   takes the place of the next regular invitation (never an extra one), with a
+   rotating lead-in. Dani is unsure whether it could feel like being watched, so
+   testers will tell us. Each moment shows at most once per game. */
+const MOMENT_LEADINS = [
+  "How does it feel in your body", "How do you feel",
+  "What are your thoughts", "Where do you feel it in your body",
+];
+const MOMENTS = {
+  undo:       "when you realize you made a mistake?",
+  hint:       "when you ask for a hint?",
+  dry:        "when you keep turning cards\nand not seeing any moves?",
+  spot:       "when you spot a move?",
+  streak:     "when you get several\ngood cards in a row?",
+  clear:      "when the next move is clear?",
+  flip:       "when you turn over a new card?",
+  foundation: "when a card finds its place?",
+};
+const MOMENT_ORDER = Object.keys(MOMENTS);   // rarest first, when two happen at once
+
+/* shuffled decks, remembered across games (not under the ?fresh test harness) */
+let inviteDecks = {};
+try { if (!FRESH_START) inviteDecks = JSON.parse(localStorage.getItem('cozycat.inviteDecks')) || {}; } catch(e){ inviteDecks = {}; }
+function drawFrom(name, arr){
+  let d = inviteDecks[name];
+  if (!d || !Array.isArray(d.left) || !d.left.length || d.left.some(i => i >= arr.length)){
+    const left = arr.map((_, i) => i);
+    for (let i = left.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [left[i], left[j]] = [left[j], left[i]]; }
+    // a fresh deck never opens with the line that closed the last one
+    if (d && left.length > 1 && left[left.length - 1] === d.last){ [left[0], left[left.length - 1]] = [left[left.length - 1], left[0]]; }
+    d = { left, last: d ? d.last : -1 };
+  }
+  const i = d.left.pop();
+  d.last = i;
+  inviteDecks[name] = d;
+  if (!FRESH_START){ try { localStorage.setItem('cozycat.inviteDecks', JSON.stringify(inviteDecks)); } catch(e){} }
+  return arr[i];
+}
+
+let lastFamily = null;           // never the same family twice in a row
+let firstInviteOfGame = true;    // each game opens with a Body check-in
+
+/* game-moment tracking (board facts compared move to move) */
+let momentMove = 0, freshMoments = {}, usedMoments = new Set();
+let drawsInRow = 0, playsInRow = 0, lastFaceDown = null, lastHome = null;
+function boardCounts(){
+  let fd = 0;
+  state.tableau.forEach(p => p.forEach(c => { if (!c.faceUp) fd++; }));
+  return { fd, home: state.foundations.reduce((a, f) => a + f.length, 0) };
+}
+function resetMomentBaseline(){
+  try { const b = boardCounts(); lastFaceDown = b.fd; lastHome = b.home; } catch(e){ lastFaceDown = lastHome = null; }
+  drawsInRow = 0; playsInRow = 0;
+}
+function noteMoment(k){ if (!usedMoments.has(k)) freshMoments[k] = momentMove; }
+function trackBoardMove(){
+  momentMove++;
+  const b = boardCounts();
+  if (lastHome != null && b.home > lastHome) noteMoment('foundation');
+  if (lastFaceDown != null && b.fd < lastFaceDown) noteMoment('flip');
+  lastHome = b.home; lastFaceDown = b.fd;
+  if (drawsInRow >= 4) noteMoment('spot');
+  drawsInRow = 0;
+  if (++playsInRow === 3) noteMoment('streak');
+  try { if (findAllMoves().length === 1) noteMoment('clear'); } catch(e){}
+}
+function trackDraw(){
+  momentMove++;
+  playsInRow = 0;
+  if (++drawsInRow === 6) noteMoment('dry');
+}
+// a moment that happened within the last `within` moves, if one may be shown now
+function freshMoment(within){
+  if (firstInviteOfGame || lastFamily === 'moment') return null;
+  return MOMENT_ORDER.find(k => freshMoments[k] != null && momentMove - freshMoments[k] <= within) || null;
+}
+
+function nextInvitationText(){
+  const m = freshMoment(1);
+  if (m){
+    usedMoments.add(m); freshMoments = {}; lastFamily = 'moment'; firstInviteOfGame = false;
+    return drawFrom('leadin', MOMENT_LEADINS) + "\n" + MOMENTS[m];
+  }
+  let fam = 'body';
+  if (!firstInviteOfGame){
+    const names = Object.keys(INVITE_FAMILIES).filter(n => n !== lastFamily);
+    let r = Math.random() * names.reduce((a, n) => a + INVITE_FAMILIES[n].weight, 0);
+    fam = names.find(n => (r -= INVITE_FAMILIES[n].weight) < 0) || names[names.length - 1];
+  }
+  lastFamily = fam; firstInviteOfGame = false;
+  const F = INVITE_FAMILIES[fam];
+  const line = drawFrom(fam, F.lines);
+  return F.make ? F.make(line) : line;
 }
 const promptTextEl = ()=> document.getElementById('promptText');
 function setPrompt(text, opts={}){
@@ -1143,6 +1283,14 @@ function setPrompt(text, opts={}){
   });
   // visible only when there are words; empty = a quiet, blank prompt space
   const has = !!text;
+  // a note whose lines don't fit the width at the normal size (a stray word would
+  // wrap onto a line of its own) steps down to the smaller size, so the longer
+  // invitations keep their line breaks and still fit between the cat and the cards
+  if (has && !opts.long){
+    const lh = parseFloat(getComputedStyle(el).lineHeight);
+    const lines = text.split('\n').length;
+    if (lh && el.getBoundingClientRect().height > lh * (lines + 0.5)) el.classList.add('long');
+  }
   el.style.opacity = has ? '1' : '0';
   if (has) el.removeAttribute('aria-hidden'); else el.setAttribute('aria-hidden', 'true');
 }
@@ -1161,14 +1309,7 @@ function fadeInPrompt(text){
   el.style.opacity = '0'; void el.offsetWidth; el.style.opacity = '1';   // animate 0 -> 1
 }
 function showInvitation(force){
-  let i;
-  // never repeat the exact prompt, and never follow a body-scan "notice how your
-  // ___ feels" line with another (they'd feel repetitive back-to-back)
-  do { i = Math.floor(Math.random()*PROMPTS.length); }
-  while (PROMPTS.length>1 && ( i===lastPrompt ||
-         (isBodyScan(PROMPTS[i]) && isBodyScan(PROMPTS[lastPrompt])) ));
-  lastPrompt = i;
-  const shown = withOpener(PROMPTS[i]);   // rotate the gentle opener on "Take a moment…" notes
+  const shown = nextInvitationText();   // families + decks (see INVITE_FAMILIES)
   fadeInPrompt(shown);
   // Speak every invitation for screen-reader players — the timed ones too, not
   // just the paw-button ones. It's the heart of the app; a blind player mustn't
@@ -1197,6 +1338,9 @@ function clearPromptState(){
   movesSinceInvite = 0;
   inviteThreshold = 5;
   setPrompt('');
+  firstInviteOfGame = true;          // each game opens with a Body check-in
+  momentMove = 0; freshMoments = {}; usedMoments = new Set();
+  resetMomentBaseline();
 }
 
 /* which overlay is currently visible (used by the Escape-key handler) */
@@ -1382,6 +1526,7 @@ function undo(){
   justRevealed.clear();
   clearSpokenForUndo();
   render();
+  resetMomentBaseline(); noteMoment('undo');   // game-moment invitations test
   // assertive, so it interrupts any stale move line / invitation still being spoken —
   // the player hears ONLY what was undone, nothing before it (Dani 2026-09-12).
   // desc is already a full "Returning … to …" sentence (Dani 2026-09-13).
@@ -1716,7 +1861,9 @@ function ensureTopsFaceUp(){
 function progressInvites(){
   movesSinceInvite++;
   // one invitation at a time: don't start another while one is holding on screen
-  if (settings.timedInvites && !promptShowing && movesSinceInvite >= inviteThreshold){ showInvitation(); }
+  // a real game moment that JUST happened may come up to 3 moves early (it replaces this invitation)
+  const due = movesSinceInvite >= inviteThreshold || (movesSinceInvite >= inviteThreshold - 3 && freshMoment(0));
+  if (settings.timedInvites && !promptShowing && due){ showInvitation(); }
 }
 function afterMove(){
   const movedId = pendingFlip && pendingFlip.ids && pendingFlip.ids[0];   // the card that just moved
@@ -1724,6 +1871,7 @@ function afterMove(){
   ensureTopsFaceUp();
   render();
   if (pendingFlip){ flipAnimate(pendingFlip.ids, pendingFlip.from); pendingFlip = null; }
+  if (!autoCompleting) trackBoardMove();   // notice game moments (board facts) for the invitations test
   progressInvites();
   if (state.foundations.every(f=>f.length===13)){ setTimeout(winScreen, WIN_ADMIRE_MS); return; }   // let the finished board be admired first (Dani 2026-09-15)
   maybeAutoComplete();   // if the win is now guaranteed, fly the rest home automatically
@@ -1766,6 +1914,7 @@ function finishDraw(turned){
     announce(`Turned ${turned.length} cards: ${names}. The top card is ${cardName(last)}.` + moveTail);
     noteMove(`Returning ${turned.length} cards to the draw pile.`);
   }
+  trackDraw();         // notice game moments (board facts) for the invitations test
   progressInvites();   // turning a card is a move too — let it count toward the next invitation
   saveGame();          // persist the board so a mid-game close resumes here
 }
@@ -2423,6 +2572,7 @@ function anyPileCardPlayable(){
 function clearHints(){ document.querySelectorAll('.hint').forEach(c=>c.classList.remove('hint')); }
 function showHint(){
   clearHints();
+  noteMoment('hint');   // game-moment invitations test
   const moves = findAllMoves();
   if (!moves.length){ hintDrawPile(); return; }
   // Speak EVERY available move and where each one goes, so a blind player hears
@@ -2606,13 +2756,34 @@ document.addEventListener('keydown', (e)=>{
    Full-screen story screens layered over the game. The loading line and the
    win invitation are PLACEHOLDERS (the mockups' preview text) until Dani writes
    the real words — kept as arrays so a gentle rotation drops straight in. */
-const LOADING_LINES = [                                     // Dani's words, 2026-08-15
+const LOADING_LINES = [                                     // Dani's words (2026-09-26 list; master copy INVITATIONS-BY-FAMILY.md)
   "As you breathe in, you take in oxygen —\na gift from your kin, the plants.\nAs you breathe out, you gift\ncarbon dioxide back to them.",
-  "A yawn can be your nervous system\nsettling into rest-and-digest.",
-  "Tense muscles can be a sign\nour nervous system is often\nin survival mode",
-  "What helps your nervous system\nsettle to rest-and-digest?",   // moved here from the in-game invitations (Dani 2026-09-10)
+  "A yawn could be your nervous system\nsettling into rest-and-digest.",
+  "Feeling present and grounded\ncould mean your nervous system\nis in rest-and-digest.",
+  "Tense muscles could be a sign\nour nervous system is often\nin fight-or-flight.",
+  "Fast breathing could be a sign\nour nervous system\nis in fight-or-flight.",
+  "Anxiety or overwhelm could be a sign\nour nervous system\nis in fight-or-flight.",
+  "What helps your nervous system\nsettle into rest-and-digest?",
   "If our thoughts are clouds,\nwe are the sky.",
-  "We are the ocean, not the waves."
+  "We are the ocean, not the waves.",
+  "How does playfulness\nfeel in your body?",
+  "Mindfulness is awareness\nof the present moment\nwith curiosity, not judgement.",
+  "Mindfulness includes noticing\nhow the body feels\nwith curiosity, not judgement.",
+  "How does curiosity\nfeel in your body?",
+  "We already have an inner peace\nwe can always drop into.",
+  "Feeling playful can help us\nswitch out of fight-or-flight.",
+  "Feeling curious can help us\nswitch out of fight-or-flight.",
+  "Laughing and silliness\ncould help our system\nreturn to rest-and-digest.",
+  "You don't have to feel calm\nto be mindful.\nYou can notice what's here.",
+  "What does a moment of ease\nfeel like for you?",
+  "Your attention may wander.\nNoticing that is\na moment of awareness, too.",
+  "What helps this moment\nfeel a little more comfortable?",
+  "Can play be a place to notice,\nas well as a place to rest?",
+  "You can notice a thought\nwithout having to follow it.",
+  "What changes in your body\nwhen you become interested\nin something?",
+  "You can be curious about your body\nwithout needing to change\nhow it feels.",
+  "Mindfulness has deep roots\nin Buddhist traditions\nthat are still practiced\nand taught today.",
+  "The practice of mindfulness\nhas been taught and cared for\nacross generations.\nWe're grateful to the teachers\nwho keep those traditions alive."
 ];
 const WIN_LINES = [
   "Stretching can feel yummyyy"                             // Dani's words, 2026-08-15
@@ -2621,9 +2792,10 @@ const LOST_LINES = [                                        // Dani's chosen wor
   "No moves left! Start a new game?"
 ];
 const pick = arr => arr[Math.floor(Math.random()*arr.length)];
-// loading teaching: never the same one twice in a row, even across app reloads.
-// The very first loading screen a brand-new player ever sees opens with a
-// "nervous system" teaching (never the longer plants one) — that framing is the
+// loading teaching: a shuffled deck — every line once before any repeats, remembered
+// across app reloads (cozycat.loadDeck), and never the same one twice in a row.
+// (Dani 2026-09-26.) The very first loading screen a brand-new player ever sees opens
+// with a "nervous system" teaching (never the longer plants one) — that framing is the
 // hook, and it keeps the first impression short. (Dani, 2026-09-03)
 function pickLoadingLine(){
   let firstLoad = true;
@@ -2637,12 +2809,19 @@ function pickLoadingLine(){
       return LOADING_LINES[i];
     }
   }
-  let last = -1;
+  let last = -1, deck = null;
   try { last = parseInt(localStorage.getItem('cozycat.lastLoadLine'), 10); } catch(e){}
-  let i;
-  do { i = Math.floor(Math.random()*LOADING_LINES.length); }
-  while (LOADING_LINES.length > 1 && i === last);
-  try { localStorage.setItem('cozycat.lastLoadLine', String(i)); } catch(e){}
+  try { deck = JSON.parse(localStorage.getItem('cozycat.loadDeck')); } catch(e){}
+  if (!Array.isArray(deck)) deck = [];
+  deck = deck.filter(i => Number.isInteger(i) && i >= 0 && i < LOADING_LINES.length && i !== last);
+  if (!deck.length){
+    deck = LOADING_LINES.map((_, i) => i);
+    for (let k = deck.length - 1; k > 0; k--){ const j = Math.floor(Math.random() * (k + 1)); [deck[k], deck[j]] = [deck[j], deck[k]]; }
+    // a fresh deck never opens with the line just shown
+    if (deck.length > 1 && deck[deck.length - 1] === last){ [deck[0], deck[deck.length - 1]] = [deck[deck.length - 1], deck[0]]; }
+  }
+  const i = deck.pop();
+  try { localStorage.setItem('cozycat.lastLoadLine', String(i)); localStorage.setItem('cozycat.loadDeck', JSON.stringify(deck)); } catch(e){}
   return LOADING_LINES[i];
 }
 
@@ -3129,7 +3308,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 24 · contact email c1';
+  var BUILD_TAG = 'Sep 27 · invitations i2';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
