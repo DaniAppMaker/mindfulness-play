@@ -2776,6 +2776,8 @@ const pick = arr => arr[Math.floor(Math.random()*arr.length)];
 // twice in a row, and not on a set beat. The roots take turns on their own
 // shuffled deck (cozycat.rootsDeck), all six before any repeats.
 function pickLoadingLine(){
+  const _tr = new URLSearchParams(location.search).get("roots");   // TEST-ONLY: ?roots=N shows roots line N (0-5) without touching the shuffle; remove with the other ?test harnesses
+  if (_tr !== null && ROOTS_LINES[+_tr]) return ROOTS_LINES[+_tr];
   let opens = 0;
   try { opens = (parseInt(localStorage.getItem('cozycat.opens'), 10) || 0) + 1; localStorage.setItem('cozycat.opens', String(opens)); } catch(e){}
   let firstLoad = true;
@@ -3311,7 +3313,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 30 · loading l1';
+  var BUILD_TAG = 'Sep 30 · roots test l2';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
