@@ -1161,7 +1161,7 @@ const INVITE_FAMILIES = {
     "The cat has no advice,\nbut remains deeply invested.",
     "The cat would help,\nbut has important curling to do.",
     "The cat is supervising.\nQualifications remain unclear.",
-    "The cat has chosen a favourite card\nand refuses to explain why.",
+    "The cat has chosen a favorite card\nand refuses to explain why.",
     "The cat is quietly\nrooting for the queen.",
     "The cat has mistaken the deck\nfor a very small mattress.",
     "The cat is confident\nthe next card will be a card.",
@@ -2717,24 +2717,26 @@ document.addEventListener('keydown', (e)=>{
    Full-screen story screens layered over the game. The loading line and the
    win invitation are PLACEHOLDERS (the mockups' preview text) until Dani writes
    the real words — kept as arrays so a gentle rotation drops straight in. */
-const LOADING_LINES = [                                     // Dani's words (2026-09-26 list; master copy INVITATIONS-BY-FAMILY.md)
+const LOADING_LINES = [                                     // Dani's words (2026-09-29 list; master copy INVITATIONS-BY-FAMILY.md)
   "As you breathe in, you take in oxygen —\na gift from your kin, the plants.\nAs you breathe out, you gift\ncarbon dioxide back to them.",
   "A yawn could be your nervous system\nsettling into rest-and-digest.",
   "Feeling present and grounded\ncould mean your nervous system\nis in rest-and-digest.",
-  "Tense muscles could be a sign\nour nervous system is often\nin fight-or-flight.",
-  "Fast breathing could be a sign\nour nervous system\nis in fight-or-flight.",
-  "Anxiety or overwhelm could be a sign\nour nervous system\nis in fight-or-flight.",
+  "A long, easy sigh could be\nyour nervous system settling\ninto rest-and-digest.",
+  "Soft, relaxed muscles could be a sign\nyour nervous system\nis in rest-and-digest.",
+  "Tense muscles could be a sign\nyour nervous system\nis in fight-or-flight.",
+  "Fast breathing could be a sign\nyour nervous system\nis in fight-or-flight.",
+  "Anxiety or overwhelm could be a sign\nyour nervous system\nis in fight-or-flight.",
   "What helps your nervous system\nsettle into rest-and-digest?",
-  "If our thoughts are clouds,\nwe are the sky.",
-  "We are the ocean, not the waves.",
+  "If your thoughts are clouds,\nyou are the sky.",
+  "You are the ocean, not the waves.",
   "How does playfulness\nfeel in your body?",
-  "Mindfulness is awareness\nof the present moment\nwith curiosity, not judgement.",
-  "Mindfulness includes noticing\nhow the body feels\nwith curiosity, not judgement.",
+  "Mindfulness is awareness\nof the present moment\nwith curiosity, not judgment.",
+  "Mindfulness includes noticing\nhow the body feels\nwith curiosity, not judgment.",
   "How does curiosity\nfeel in your body?",
-  "We already have an inner peace\nwe can always drop into.",
-  "Feeling playful can help us\nswitch out of fight-or-flight.",
-  "Feeling curious can help us\nswitch out of fight-or-flight.",
-  "Laughing and silliness\ncould help our system\nreturn to rest-and-digest.",
+  "You already have an inner peace\nyou can always drop into.",
+  "Feeling playful can help you\nswitch out of fight-or-flight.",
+  "Feeling curious can help you\nswitch out of fight-or-flight.",
+  "Laughing and silliness\ncould help your nervous system\nreturn to rest-and-digest.",
   "You don't have to feel calm\nto be mindful.\nYou can notice what's here.",
   "What does a moment of ease\nfeel like for you?",
   "Your attention may wander.\nNoticing that is\na moment of awareness, too.",
@@ -2742,10 +2744,19 @@ const LOADING_LINES = [                                     // Dani's words (202
   "Can play be a place to notice,\nas well as a place to rest?",
   "You can notice a thought\nwithout having to follow it.",
   "What changes in your body\nwhen you become interested\nin something?",
-  "You can be curious about your body\nwithout needing to change\nhow it feels.",
-  "Mindfulness has deep roots\nin Buddhist traditions\nthat are still practiced\nand taught today.",
-  "The practice of mindfulness\nhas been taught and cared for\nacross generations.\nWe're grateful to the teachers\nwho keep those traditions alive."
+  "You can be curious about your body\nwithout needing to change\nhow it feels."
 ];
+// Roots lines — where these practices come from (Dani 2026-09-29). They join the
+// shuffle only from the player's 5th app open, so the game feels familiar first.
+const ROOTS_LINES = [
+  "Mindfulness has roots:\nteachers across Asia cared for it\nfor thousands of years\nbefore it reached this little screen.",
+  "Thich Nhat Hanh taught about\nbridging mindfulness\ninto everyday life, for example\nwhen washing dishes.",
+  "Thich Nhat Hanh taught\nthat we can find peace\nin every breath.",
+  "Mindfulness practices come from\ndeep and ancient\nspiritual traditions in Asia.",
+  "Yoga began in India\nas much more than stretching:\na whole practice for\nbody, mind and spirit.",
+  "Yoga and Buddhism both grew up\nin ancient South Asia,\nand both teach ways\nof paying close attention."
+];
+const ROOTS_FROM_OPEN = 5, ROOTS_GAP_MIN = 5, ROOTS_GAP_MAX = 8;   // first roots line on open 5, then every 5–8 opens at random
 const WIN_LINES = [
   "Stretching can feel yummyyy"                             // Dani's words, 2026-08-15
 ];
@@ -2758,7 +2769,15 @@ const pick = arr => arr[Math.floor(Math.random()*arr.length)];
 // (Dani 2026-09-26.) The very first loading screen a brand-new player ever sees opens
 // with a "nervous system" teaching (never the longer plants one) — that framing is the
 // hook, and it keeps the first impression short. (Dani, 2026-09-03)
+// Each call is one app open (the loading screen shows once per open). The ROOTS
+// family (Dani 2026-09-29) is kept apart from the everyday deck: its first line
+// shows on open ROOTS_FROM_OPEN, then the next one comes after a random gap of
+// ROOTS_GAP_MIN–ROOTS_GAP_MAX opens (cozycat.nextRootsOpen) — so it's rarer, never
+// twice in a row, and not on a set beat. The roots take turns on their own
+// shuffled deck (cozycat.rootsDeck), all six before any repeats.
 function pickLoadingLine(){
+  let opens = 0;
+  try { opens = (parseInt(localStorage.getItem('cozycat.opens'), 10) || 0) + 1; localStorage.setItem('cozycat.opens', String(opens)); } catch(e){}
   let firstLoad = true;
   try { firstLoad = !localStorage.getItem('cozycat.seenLoading'); } catch(e){}
   if (firstLoad){
@@ -2770,6 +2789,9 @@ function pickLoadingLine(){
       return LOADING_LINES[i];
     }
   }
+  let nextRoots = ROOTS_FROM_OPEN;
+  try { nextRoots = parseInt(localStorage.getItem('cozycat.nextRootsOpen'), 10) || ROOTS_FROM_OPEN; } catch(e){}
+  if (opens >= nextRoots) return pickRootsLine(opens);
   let last = -1, deck = null;
   try { last = parseInt(localStorage.getItem('cozycat.lastLoadLine'), 10); } catch(e){}
   try { deck = JSON.parse(localStorage.getItem('cozycat.loadDeck')); } catch(e){}
@@ -2784,6 +2806,26 @@ function pickLoadingLine(){
   const i = deck.pop();
   try { localStorage.setItem('cozycat.lastLoadLine', String(i)); localStorage.setItem('cozycat.loadDeck', JSON.stringify(deck)); } catch(e){}
   return LOADING_LINES[i];
+}
+function pickRootsLine(opens){
+  const gap = ROOTS_GAP_MIN + Math.floor(Math.random() * (ROOTS_GAP_MAX - ROOTS_GAP_MIN + 1));
+  let last = -1, deck = null;
+  try { last = parseInt(localStorage.getItem('cozycat.lastRootsLine'), 10); } catch(e){}
+  try { deck = JSON.parse(localStorage.getItem('cozycat.rootsDeck')); } catch(e){}
+  if (!Array.isArray(deck)) deck = [];
+  deck = deck.filter(i => Number.isInteger(i) && i >= 0 && i < ROOTS_LINES.length && i !== last);
+  if (!deck.length){
+    deck = ROOTS_LINES.map((_, i) => i);
+    for (let k = deck.length - 1; k > 0; k--){ const j = Math.floor(Math.random() * (k + 1)); [deck[k], deck[j]] = [deck[j], deck[k]]; }
+    if (deck.length > 1 && deck[deck.length - 1] === last){ [deck[0], deck[deck.length - 1]] = [deck[deck.length - 1], deck[0]]; }
+  }
+  const i = deck.pop();
+  try {
+    localStorage.setItem('cozycat.lastRootsLine', String(i));
+    localStorage.setItem('cozycat.rootsDeck', JSON.stringify(deck));
+    localStorage.setItem('cozycat.nextRootsOpen', String(opens + gap));
+  } catch(e){}
+  return ROOTS_LINES[i];
 }
 
 function reducedMotion(){
