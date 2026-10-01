@@ -2919,15 +2919,7 @@ const LOAD_CAT_DESC = 'On the screen: a soft blue-green and peach watercolor cat
    and the ?preview=loading harness. */
 function setLoadingScreenText(){
   const line = pickLoadingLine();
-  const lp = document.getElementById("loadPrompt");
-  lp.textContent = line;                                              // visible AND read once
-  // VoiceOver says "Tick nat han"; hide the printed name from it and read a respelling instead (Dani 2026-09-30)
-  const nm = "Thich Nhat Hanh", at = line.indexOf(nm);
-  if (at >= 0){
-    const vis = document.createElement("span"); vis.setAttribute("aria-hidden","true"); vis.textContent = nm;
-    const say = document.createElement("span"); say.className = "visually-hidden"; say.textContent = "Tik Nyat Hahn";
-    lp.textContent = line.slice(0, at); lp.append(vis, say, line.slice(at + nm.length));
-  }
+  document.getElementById('loadPrompt').textContent = line;          // visible AND read once
   document.getElementById('loadCat').setAttribute('aria-label', LOAD_CAT_DESC);
 }
 
@@ -3321,7 +3313,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 30 · name l3';
+  var BUILD_TAG = 'Sep 30 · roots test l2';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
