@@ -566,8 +566,7 @@
   #welCat:focus{ outline:none; }
   #welBrand{   top:calc(1338 * var(--u)); font-size:calc(78 * var(--u)); font-weight:600; letter-spacing:.005em; }
   #welBrand .tm{ font-size:.56em; font-weight:600; vertical-align:baseline; position:relative; top:-.46em; }
-  #welHeading{ top:calc(1456 * var(--u)); font-size:calc(48 * var(--u)); color:#4C4644; }
-  #welSub{     top:calc(1530 * var(--u)); font-size:calc(40 * var(--u)); color:#4C4644; }
+  #welSub{     top:calc(1456 * var(--u)); font-size:calc(40 * var(--u)); color:#4C4644; }
   /* the "next / begin" arrow, bottom-right of the welcome + loading screens.
      Same hand-drawn ink stroke as the recycle arrow; breathes gently (scale
      only — no opacity pulse) so it hints without competing with the text/cat.
@@ -723,7 +722,7 @@
             intro + cat scene. It's a REAL, full-size element (not a 1px hidden <p>), so
             focusing it and swiping advances cleanly. It has NO text descendants, so
             nothing here can be read twice.
-         2. #welBrand / #welHeading / #welSub — "the words on screen." Now PLAIN text
+         2. #welBrand / #welSub — "the words on screen." Now PLAIN text
             (NOT nested inside any role="img"), so VoiceOver reads them exactly ONCE.
          3. #welNext — the "Begin the game" button. #welNarration is now a PLAIN
             positioning <div> (no role="img"), so it no longer "swallows" the region and
@@ -748,7 +747,6 @@
              aria-label="Welcome to Mindfulness Play. This is a game of solitaire with invitations to mindfulness sprinkled in. It's an opportunity to take a break and to bridge mindfulness into real life, away from the meditation cushion. On the screen, a soft peaceful watercolor cat sits in a meditation pose, warm pink melting into golden yellow, eyes gently closed and paws folded."></div>
         <!-- STEP 2: the words on screen. Plain text, NOT inside a role="img", so read ONCE. -->
         <h1 class="scr-text" id="welBrand">Mindfulness Play<sup class="tm" aria-hidden="true">&trade;</sup></h1>
-        <p  class="scr-text" id="welHeading">Welcome to mindful play</p>
         <p  class="scr-text" id="welSub">Mindfulness, woven into everyday moments</p>
       </div>
       <!-- STEP 3: the Begin button. Sibling of the (now plain) narration div, z-index:4 so
@@ -3313,7 +3311,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 30 · roots test l2';
+  var BUILD_TAG = 'Sep 30 · welcome l4';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
