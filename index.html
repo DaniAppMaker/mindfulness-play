@@ -588,7 +588,7 @@
   #welCat:focus{ outline:none; }
   #welBrand{   top:calc(1338 * var(--u)); font-size:calc(78 * var(--u)); font-weight:600; letter-spacing:.005em; }
   #welBrand .tm{ font-size:.56em; font-weight:600; vertical-align:baseline; position:relative; top:-.46em; }
-  #welKind{    top:calc(1568 * var(--u)); font-family:"Caveat","Segoe Print","Bradley Hand",cursive; font-size:calc(96 * var(--u)); font-weight:600; letter-spacing:.01em; line-height:1.05; color:#4C4644; }
+  #welKind{    top:calc(1456 * var(--u)); font-family:"Caveat","Segoe Print","Bradley Hand",cursive; font-size:calc(125 * var(--u)); font-weight:600; letter-spacing:.01em; line-height:1.05; color:#4C4644; }
   #welSub{     top:calc(1456 * var(--u)); font-size:calc(46 * var(--u)); color:#4C4644; }
   /* the "next / begin" arrow, bottom-right of the welcome + loading screens.
      Same hand-drawn ink stroke as the recycle arrow; breathes gently (scale
@@ -770,7 +770,7 @@
              aria-label="Welcome to Mindfulness Play. This is a game of solitaire with invitations to mindfulness sprinkled in. It's an opportunity to take a break and to bridge mindfulness into real life, away from the meditation cushion. On the screen, a soft peaceful watercolor cat sits in a meditation pose, warm pink melting into golden yellow, eyes gently closed and paws folded."></div>
         <!-- STEP 2: the words on screen. Plain text, NOT inside a role="img", so read ONCE. -->
         <h1 class="scr-text" id="welBrand">Mindfulness Play<sup class="tm" aria-hidden="true">&trade;</sup></h1>
-        <p  class="scr-text" id="welSub">Mindfulness, woven into everyday moments</p>
+        <!-- the tagline "Mindfulness, woven into everyday moments" is no longer on this screen (Dani, 2026-10-04); kept for the store page / website -->
         <p  class="scr-text" id="welKind">Solitaire</p>
       </div>
       <!-- STEP 3: the Begin button. Sibling of the (now plain) narration div, z-index:4 so
@@ -3345,7 +3345,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 4 · names n3';
+  var BUILD_TAG = 'Oct 4 · names n4';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
