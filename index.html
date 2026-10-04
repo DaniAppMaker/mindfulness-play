@@ -5,12 +5,24 @@
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Mindfulness Play™</title>
+<title>Mindfulness Play: Solitaire</title>
 <!-- Home-screen ("Add to Home Screen") name + icon = the cropped welcome-screen cat.
      These live here (not just in the live folder) so a publish can never strip them
-     again — see the 2026-09-08 regression note. -->
-<meta name="application-name" content="Mindfulness Play" />
-<meta name="apple-mobile-web-app-title" content="Mindfulness Play" />
+     again — see the 2026-09-08 regression note.
+     NAMES (Dani, 2026-10-01 → built 2026-10-04): "Mindfulness Play" is the BRAND; this
+     app is "Mindfulness Play: Solitaire" (page title, link preview, stores) and
+     "Mindful Solitaire" on the home screen. -->
+<meta name="application-name" content="Mindful Solitaire" />
+<meta name="apple-mobile-web-app-title" content="Mindful Solitaire" />
+<meta name="description" content="Solitaire with a twist: designed to take the pressure off, to bring some ease. Watercolor cats invite you into mindfulness. No streaks, no scores, no guilt." />
+<!-- Link preview (iMessage, WhatsApp, social): what a shared link shows. -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Mindfulness Play" />
+<meta property="og:title" content="Mindfulness Play: Solitaire" />
+<meta property="og:description" content="Solitaire with a twist: designed to take the pressure off, to bring some ease. Watercolor cats invite you into mindfulness. No streaks, no scores, no guilt." />
+<meta property="og:url" content="https://daniappmaker.github.io/mindfulness-play/" />
+<meta property="og:image" content="https://daniappmaker.github.io/mindfulness-play/assets/icon/apple-touch-icon.png" />
+<meta name="twitter:card" content="summary" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="theme-color" content="#f7ede3" />
 <link rel="icon" type="image/png" sizes="32x32" href="assets/icon/favicon-32.png" />
@@ -566,7 +578,8 @@
   #welCat:focus{ outline:none; }
   #welBrand{   top:calc(1338 * var(--u)); font-size:calc(78 * var(--u)); font-weight:600; letter-spacing:.005em; }
   #welBrand .tm{ font-size:.56em; font-weight:600; vertical-align:baseline; position:relative; top:-.46em; }
-  #welSub{     top:calc(1456 * var(--u)); font-size:calc(46 * var(--u)); color:#4C4644; }
+  #welKind{    top:calc(1430 * var(--u)); font-size:calc(54 * var(--u)); font-weight:500; letter-spacing:.04em; color:#4C4644; }
+  #welSub{     top:calc(1534 * var(--u)); font-size:calc(46 * var(--u)); color:#4C4644; }
   /* the "next / begin" arrow, bottom-right of the welcome + loading screens.
      Same hand-drawn ink stroke as the recycle arrow; breathes gently (scale
      only — no opacity pulse) so it hints without competing with the text/cat.
@@ -747,6 +760,7 @@
              aria-label="Welcome to Mindfulness Play. This is a game of solitaire with invitations to mindfulness sprinkled in. It's an opportunity to take a break and to bridge mindfulness into real life, away from the meditation cushion. On the screen, a soft peaceful watercolor cat sits in a meditation pose, warm pink melting into golden yellow, eyes gently closed and paws folded."></div>
         <!-- STEP 2: the words on screen. Plain text, NOT inside a role="img", so read ONCE. -->
         <h1 class="scr-text" id="welBrand">Mindfulness Play<sup class="tm" aria-hidden="true">&trade;</sup></h1>
+        <p  class="scr-text" id="welKind">Solitaire</p>
         <p  class="scr-text" id="welSub">Mindfulness, woven into everyday moments</p>
       </div>
       <!-- STEP 3: the Begin button. Sibling of the (now plain) narration div, z-index:4 so
@@ -3321,7 +3335,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 4 · invites i4';
+  var BUILD_TAG = 'Oct 4 · names n1';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
