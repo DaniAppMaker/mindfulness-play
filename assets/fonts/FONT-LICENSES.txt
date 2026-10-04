@@ -1,0 +1,5 @@
+Fonts bundled with Mindfulness Play (both under the SIL Open Font License 1.1, which allows use and
+redistribution in apps; full text: https://openfontlicense.org):
+- Quicksand — Copyright The Quicksand Project Authors (https://github.com/andrewepost/quicksand)
+- Caveat — Copyright 2014 The Caveat Project Authors (https://github.com/googlefonts/caveat)
+Files: quicksand-latin.woff2, caveat-latin.woff2 (Latin subsets from Google Fonts).

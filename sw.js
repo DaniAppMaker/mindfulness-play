@@ -20,7 +20,7 @@
    ================================================================ */
 
 /* 👉 Bump this ONLY when card/interface images or sound files change or are added. */
-const CACHE_VERSION = 'v7';
+const CACHE_VERSION = 'v8';
 const CACHE_NAME = 'cozy-cat-' + CACHE_VERSION;
 
 /* The app shell — the few files needed to show *something* offline.
@@ -31,6 +31,7 @@ const APP_SHELL = [
   'index.html',
   'manifest.webmanifest',
   'assets/fonts/quicksand-latin.woff2',
+  'assets/fonts/caveat-latin.woff2',
   'assets/interface/meditating-cat.png',   // welcome screen
   'assets/interface/loading-mouse.png',    // loading screen
   'assets/background/background-1-600dpi.jpg',

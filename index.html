@@ -64,6 +64,16 @@
     font-display:swap;
     src:url("assets/fonts/quicksand-latin.woff2") format("woff2");
   }
+  /* "Solitaire" on the welcome screen is in Caveat — a handwritten face that sits
+     with the ink-and-watercolor cats (Dani chose it, 2026-10-04). SIL Open Font
+     License, bundled so it works offline. Latin subset (covers Spanish + French accents). */
+  @font-face{
+    font-family:"Caveat";
+    font-style:normal;
+    font-weight:600;
+    font-display:swap;
+    src:url("assets/fonts/caveat-latin.woff2") format("woff2");
+  }
   /* =======================================================================
      Cozy Cat Solitaire — watercolor visual redesign.
      The look is driven ENTIRELY by Dani's approved artwork in /assets.
@@ -578,8 +588,8 @@
   #welCat:focus{ outline:none; }
   #welBrand{   top:calc(1338 * var(--u)); font-size:calc(78 * var(--u)); font-weight:600; letter-spacing:.005em; }
   #welBrand .tm{ font-size:.56em; font-weight:600; vertical-align:baseline; position:relative; top:-.46em; }
-  #welKind{    top:calc(1430 * var(--u)); font-size:calc(54 * var(--u)); font-weight:500; letter-spacing:.04em; color:#4C4644; }
-  #welSub{     top:calc(1534 * var(--u)); font-size:calc(46 * var(--u)); color:#4C4644; }
+  #welKind{    top:calc(1436 * var(--u)); font-family:"Caveat","Segoe Print","Bradley Hand",cursive; font-size:calc(96 * var(--u)); font-weight:600; letter-spacing:.01em; line-height:1.05; color:#4C4644; }
+  #welSub{     top:calc(1566 * var(--u)); font-size:calc(46 * var(--u)); color:#4C4644; }
   /* the "next / begin" arrow, bottom-right of the welcome + loading screens.
      Same hand-drawn ink stroke as the recycle arrow; breathes gently (scale
      only — no opacity pulse) so it hints without competing with the text/cat.
@@ -3335,7 +3345,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 4 · names n1';
+  var BUILD_TAG = 'Oct 4 · names n2';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
