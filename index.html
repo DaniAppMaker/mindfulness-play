@@ -3347,8 +3347,10 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 4 · names n6';
+  var BUILD_TAG = 'Oct 4 · names n7';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
+  // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
+  try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
 </script>
 </body>
 </html>
