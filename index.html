@@ -1097,29 +1097,44 @@ const OPENERS = [
   "Drop into the moment", "Settle into the moment", "A moment for you",
   "A pause for you", "A break for you", "A quiet moment for you",
 ];
+/* BODY CHECK-INS (Dani's edits 2026-09-27, put in the game 2026-10-04): five ways of
+   asking × sixteen body parts, plus four lines that stand alone. Plural parts take
+   "feel" / "do" ("How do your hands feel?"); singular take "feels" / "does". The parts
+   run on a shuffled deck like every other line; "Notice how…" comes up most often. */
+const BODY_PARTS = [
+  ["jaw",false], ["shoulders",true], ["neck",false], ["hands",true],
+  ["body",false], ["feet",true], ["eyes",true], ["forehead",false],
+  ["tongue",false], ["back",false], ["arms",true], ["legs",true],
+  ["buttocks",true], ["pelvis",false], ["belly",false], ["hips",true],
+];
+const BODY_STANDALONE = [
+  "feel the places\nwhere you're being held",
+  "notice how your breathing feels",
+  "does any part of you\nfeel at ease?",
+  "does any part of you\nwant to move?",
+];
+const BODY_PHRASINGS = [      // [weight, builder]
+  [40, (n, p) => "notice how your " + n + (p ? " feel" : " feels")],
+  [15, (n, p) => "sense how your " + n + (p ? " feel" : " feels")],
+  [15, (n, p) => "how " + (p ? "do" : "does") + " your " + n + " feel?"],
+  [15, (n, p) => "observe how your " + n + (p ? " feel" : " feels")],
+  [15, (n, p) => "perceive how your " + n + (p ? " feel" : " feels")],
+];
+function bodyLine(item){
+  if (typeof item === 'string') return item;           // a stand-alone line
+  let r = Math.random() * BODY_PHRASINGS.reduce((a, x) => a + x[0], 0);
+  const ph = BODY_PHRASINGS.find(x => (r -= x[0]) < 0) || BODY_PHRASINGS[0];
+  return ph[1](item[0], item[1]);
+}
 const INVITE_FAMILIES = {
-  body: { weight:5, make: t => drawFrom('opener', OPENERS) + "…\n" + t, lines:[
-    "notice how your jaw feels",
-    "notice how your shoulders feel",
-    "notice how your neck feels",
-    "notice how your hands feel",
-    "notice how your body feels",
-    "notice how your feet feel",
-    "feel the places\nwhere you're being held",
-    "notice how your eyes feel",
-    "notice how your breathing feels",
-    "notice how your forehead feels",
-    "notice how your tongue feels",
-    "notice how your back feels",
-    "notice how your arms feel",
-    "notice how your legs feel",
-    "notice whether any part of you\nfeels at ease",
-    "notice whether any part of you\nwants to move",
+  body: { weight:5, make: t => drawFrom('opener', OPENERS) + "…\n" + bodyLine(t), lines:[
+    ...BODY_PARTS,
+    ...BODY_STANDALONE,
   ]},
   overall: { weight:2, make: t => "How does your body feel overall…\n" + t, lines:[
     "restless or still?",
     "heavy or light?",
-    "comfortable or uncomfortable?",
+    "comfortable or not?",
     "tight or loose?",
     "slow or fast?",
     "constricted or flowing?",
@@ -1133,27 +1148,26 @@ const INVITE_FAMILIES = {
     "Where do you feel your breath\nwhen you exhale?",
   ]},
   // one body part at random, then the next invitation comes from another family (Dani 2026-09-26)
-  tighten: { weight:2, make: t => "An invitation! On a long inhale,\ntighten " + t + "…\nand on a long exhale… let go.", lines:[
+  tighten: { weight:2, make: t => "Inhale, and tighten\n" + t + "…\nexhale and let go.", lines:[
     "your feet", "your calves", "your thighs", "your buttocks",
-    "your abdominals", "your arms and hands", "your shoulders", "your brow",
+    "your abdominals", "your arms", "your shoulders", "your brow",
   ]},
   mind: { weight:2, lines:[
-    "Do you notice any thoughts\narise as you play?",
-    "Do you notice any feelings\narise as you play?",
-    "Your focus right now…\ntense, calm, or something else?",
-    "Is your mind busy, quiet,\nor somewhere in between?",
+    "Any thoughts\narise as you play?",
+    "Any feelings\narise as you play?",
+    "Your focus:\ntense, calm, or…?",
+    "Is your mind busy,\nquiet, or…?",
     "Are you feeling drawn\nto play quickly or slowly?",
   ]},
   becat: { weight:1.5, lines:[
-    "What would a curious cat\nnotice about this moment?",
     "What if you felt\nlike a playful cat?",
     "What if you felt\nlike a relaxed cat?",
     "How would a cat stretch feel?",
   ]},
   care: { weight:1.5, lines:[
     "Would it feel good\nto shift your position?",
-    "Would your eyes like a moment\naway from the screen?",
-    "Does your body need anything\nright now? Thirsty, maybe?",
+    "Would your eyes like a rest?",
+    "Does your body need anything?\nThirsty, maybe?",
   ]},
   catsays: { weight:1, lines:[
     "The cat has no advice,\nbut remains deeply invested.",
@@ -1164,7 +1178,6 @@ const INVITE_FAMILIES = {
     "The cat has mistaken the deck\nfor a very small mattress.",
     "The cat is confident\nthe next card will be a card.",
     "The cat thinks the jack\nis being a little dramatic.",
-    "The cat has developed a theory\nabout the missing seven.\nIt is incorrect.",
     "The cat would like\ncredit for that move.",
     "The cat is pleased with your work.\nThe cat did most of it.",
     "The cat has reviewed the situation\nand recommends a nap.",
@@ -1184,14 +1197,11 @@ const MOMENT_LEADINS = [
 ];
 INVITE_FAMILIES.moments = { weight:1.5, make: t => drawFrom('leadin', MOMENT_LEADINS) + "\n" + t, lines:[
   "when you get several\ngood cards in a row?",
-  "when you keep turning cards\nand not seeing any moves?",
-  "when you really need one card\nbut it isn't showing up?",
-  "when you realize you made\na mistake you can't undo?",
+  "when you are not seeing\nany moves?",
   "when you win the game?",
   "when you lose the game?",
   "when you realize\nyou missed a move?",
-  "when you ask for a hint?",
-  "when there are no more moves\nleft in the game?",
+  "when there are\nno more moves left?",
   "when you spot a move?",
   "when you turn over a new card?",
   "when the next move is clear?",
@@ -3311,7 +3321,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Sep 30 · welcome l5';
+  var BUILD_TAG = 'Oct 4 · invites i4';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
