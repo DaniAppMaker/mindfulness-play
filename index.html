@@ -587,8 +587,10 @@
      cursor separately, so this does not affect screen-reader users. */
   #welCat:focus{ outline:none; }
   #welBrand{   top:calc(1338 * var(--u)); font-size:calc(78 * var(--u)); font-weight:600; letter-spacing:.005em; }
-  #welBrand .tm{ font-size:.56em; font-weight:600; vertical-align:baseline; position:relative; top:-.46em; }
-  #welKind{    top:calc(1456 * var(--u)); font-family:"Caveat","Segoe Print","Bradley Hand",cursive; font-size:calc(125 * var(--u)); font-weight:600; letter-spacing:.01em; line-height:1.05; color:#4C4644; }
+  /* the ™ hangs off the right edge WITHOUT counting toward the centering, so the words
+     "Mindfulness Play" sit exactly on the screen center, like "Solitaire" under them */
+  #welBrand .tm{ font-size:.56em; font-weight:600; vertical-align:baseline; position:relative; top:-.46em; display:inline-block; width:0; overflow:visible; }
+  #welKind{    top:calc(1518 * var(--u)); font-family:"Caveat","Segoe Print","Bradley Hand",cursive; font-size:calc(150 * var(--u)); padding-right:.34em; font-weight:600; letter-spacing:.01em; line-height:1.05; color:#4C4644; }
   #welSub{     top:calc(1456 * var(--u)); font-size:calc(46 * var(--u)); color:#4C4644; }
   /* the "next / begin" arrow, bottom-right of the welcome + loading screens.
      Same hand-drawn ink stroke as the recycle arrow; breathes gently (scale
@@ -3345,7 +3347,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 4 · names n4';
+  var BUILD_TAG = 'Oct 4 · names n5';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
 </script>
 </body>
