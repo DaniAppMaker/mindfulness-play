@@ -480,16 +480,18 @@
   .btn.bloom:active{ box-shadow:none; }
   #menuNew.bloom{     background-image:url("assets/buttons/popup-new-game.png"); }
   #menuClose.bloom{   background-image:url("assets/buttons/popup-return.png"); }
-  #settingsDone.bloom{ background-image:url("assets/buttons/popup-done.png"); }
+  #settingsDone.bloom{ background-image:url("assets/buttons/popup-done.png");
+    height:54px; font-size:17px; }   /* Dani's bordered pill: smaller shape, bigger word, so "Done" isn't lost inside a huge button (2026-10-08) */
   /* the win button "Play again" deals a fresh game, the same action as
      "New gentle game", so it reuses the pink new-game bloom to match */
   #winAgain.bloom{     background-image:url("assets/buttons/popup-new-game.png"); }
   /* the New Game pop-up's two actions sit side by side on one row */
-  .btnrow{ display:flex; gap:10px; margin-top:8px; }
+  .btnrow{ display:flex; gap:4px; margin:8px -12px 0; }
   .btnrow .btn{ width:auto; flex:1 1 0; min-width:0; margin-top:0; }
   .btnrow .btn.bloom{ font-size:12px; padding:0 4px; height:66px; white-space:nowrap;
-    /* blooms enlarged so the text has generous painted room around it, not on the edge */
-    background-size:calc(100% + 28px); }
+    /* Dani's bordered pills (2026-10-08): the WHOLE painted shape + its thin border must show, so the
+       picture fills the button's width exactly (no overflow = no clipped ends); the row is a little wider instead. */
+    background-size:100% auto; }
 
   /* settings rows (kept from the original, now opened by the appearance button) */
   .setrow{
@@ -3347,7 +3349,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 5 · ambient a1';
+  var BUILD_TAG = 'Oct 8 · new art a2';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
