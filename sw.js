@@ -20,7 +20,7 @@
    ================================================================ */
 
 /* 👉 Bump this ONLY when card/interface images or sound files change or are added. */
-const CACHE_VERSION = 'v9';
+const CACHE_VERSION = 'v10';
 const CACHE_NAME = 'cozy-cat-' + CACHE_VERSION;
 
 /* The app shell — the few files needed to show *something* offline.
@@ -105,10 +105,17 @@ const ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
+    // Always ask the SERVER for a fresh copy ({cache:'reload'}) - never the browser's own
+    // short-term saved copy, which once kept old button pictures alive after an update (2026-10-08).
+    const addFresh = async (url) => {
+      const res = await fetch(new Request(url, { cache: 'reload' }));
+      if (!res.ok) throw new Error('bad response: ' + url);
+      await cache.put(url, res);
+    };
     // Essential shell must all succeed.
-    await cache.addAll(APP_SHELL);
+    await Promise.all(APP_SHELL.map(addFresh));
     // The rest is best-effort: never let one missing file abort install.
-    await Promise.allSettled(ASSETS.map((url) => cache.add(url)));
+    await Promise.allSettled(ASSETS.map(addFresh));
     // Take over as soon as we're ready.
     self.skipWaiting();
   })());
