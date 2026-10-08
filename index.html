@@ -649,19 +649,19 @@
      waits for a tap, so there is nothing to "load") */
   /* ---- After winning (spec Screen 3) ---- */
   #winCatArt{  left:calc(195 * var(--u)); top:calc(460 * var(--u));  width:calc(650 * var(--u)); aspect-ratio:1823 / 1640; background:url("assets/interface/stretching-cat.png") center/contain no-repeat; }
-  #winPrompt{  top:calc(1275 * var(--u)); font-size:calc(52 * var(--u)); line-height:1.28; white-space:pre-line; }
+  #winPrompt{  top:calc(1275 * var(--u)); font-size:calc(60 * var(--u)); line-height:1.28; white-space:pre-line; }
   /* ---- No moves left (after-losing, ClaudeHandoff-AfterLosingScreen-v1) ---- */
   #lostCatArt{ left:calc(249 * var(--u)); top:calc(500 * var(--u));  width:calc(760 * var(--u)); aspect-ratio:2102 / 1057; background:url("assets/interface/after-losing-cat.png") center/contain no-repeat; }
   #winCatArt:focus, #lostCatArt:focus{ outline:none; }   /* focused only to seat the VoiceOver cursor */
-  #lostPrompt{ top:calc(1344 * var(--u)); font-size:calc(52 * var(--u)); line-height:1.28; white-space:pre-line; }
+  #lostPrompt{ top:calc(1344 * var(--u)); font-size:calc(60 * var(--u)); line-height:1.28; white-space:pre-line; }
   /* the New Game bloom is identical on the win and losing screens (same spec bbox) */
   #winNewBtn, #lostNewBtn{
-    position:absolute; left:calc(260 * var(--u)); top:calc(1805 * var(--u));
-    width:calc(560 * var(--u)); height:calc(199 * var(--u));
+    position:absolute; left:calc(350 * var(--u)); top:calc(1837 * var(--u));
+    width:calc(380 * var(--u)); height:calc(135 * var(--u));   /* was 560x199 at left 260 / top 1805: ~32% smaller, same centre; message text 52->60 (Dani 2026-10-08) */
     background:url("assets/buttons/new-game-blank-watercolor.png") center/contain no-repeat;
     border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;
     font-family:"Quicksand","Segoe UI",sans-serif; font-weight:500; color:var(--ink);
-    font-size:calc(54 * var(--u));
+    font-size:calc(46 * var(--u));   /* smaller than the message text (60) - Dani 2026-10-08 */
   }
   #winNewBtn:active, #lostNewBtn:active{ transform:translateY(calc(1 * var(--u))); }
 </style>
@@ -3349,7 +3349,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 8 · new art a2';
+  var BUILD_TAG = 'Oct 8 · new art a3';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
