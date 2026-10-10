@@ -423,7 +423,8 @@
   button.setrow.sethow .chev{ font-size:26px; line-height:1; color:var(--ink-soft); }
   /* the About screen (Dani 2026-10-10) */
   .aboutbrand{ margin:6px 0 2px; text-align:center; font-weight:600; color:var(--ink-soft); font-size:15px; letter-spacing:.02em; }
-  .abouttext .abouth{ margin:22px 0 6px; font-size:19px; font-weight:650; color:var(--ink); }
+  .abouttext p{ text-align:left; }   /* long paragraphs read better left-aligned (Dani 2026-10-10); headings stay centred */
+  .abouttext .abouth{ margin:22px 0 6px; font-size:19px; font-weight:650; color:var(--ink); text-align:center; }
   .abouttext .aboutcontact{ margin-top:22px; }
   .abouttext .aboutsign{ margin-top:6px; font-weight:600; }
   .panel.panel--full #aboutDone{ flex:0 0 auto; margin-top:16px; }
@@ -1051,8 +1052,8 @@
         <!-- HIDDEN until Dani chooses the two organizations (not shown, not read by screen readers) -->
         <section id="aboutGiving" hidden>
           <h3 class="abouth">Giving back</h3>
-          <p>As a way of giving back, as a small gesture in gratitude to the deep spiritual and cultural traditions from which this work draws, 5% of what this game earns goes to [organization], which helps people in need in Vietnam.</p>
-          <p>I built this game with the help of AI for the coding. The watercolor cats, the invitations and the words are mine. Because I used the help of AI, another 5% goes to [organization], which works to protect people and the environment from the potential harms of AI and to make sure it is used well.</p>
+          <p>As a way of giving back, as a small gesture in gratitude to the deep spiritual and cultural traditions from which this work draws, 5% of what this game earns goes to an organization that helps people in need in Vietnam.</p>
+          <p>The concept, ideas, direction, art, wording and everything are mine, and I got the help of AI for the coding. Because I used the help of AI, another 5% goes to an organization that works to protect people and the environment from the potential harms of AI and to make sure it is used well.</p>
           <p>As the game grows, I hope to give more to both.</p>
         </section>
 
@@ -3111,8 +3112,8 @@ const ABOUT_TESTERS = ['Daniel Angus MacDonald'];   // early testers who agreed 
 })();
 function openAbout(){ closeOverlay('settings'); openOverlay('about', 'aboutTitle'); }
 function closeAbout(){ closeOverlay('about'); openSettings(); }
-/* The "About" row stays PRIVATE until Dani has seen the screen and approved it: add ?about to the game's address to see it (2026-10-10) */
-const ABOUT_ON = /[?&]about(&|=|$)/.test(location.search);
+/* The "About" row in Settings (Dani 2026-10-10: yes to this place) */
+const ABOUT_ON = !/[?&]about=(0|off|no)(&|$)/.test(location.search);   // ON for everyone since Dani said yes to the Settings row (2026-10-10); ?about=off hides it
 if (!ABOUT_ON) document.getElementById('setAbout').style.display = 'none';
 document.getElementById('setAbout').onclick = openAbout;
 document.getElementById('aboutDone').onclick = closeAbout;
@@ -3817,7 +3818,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 10 · musicians a10';
+  var BUILD_TAG = 'Oct 10 · about a11';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
