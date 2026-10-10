@@ -427,6 +427,28 @@
   .howtext ul{ margin:0 0 14px; padding-left:22px; }
   .howtext li{ margin-bottom:8px; }
   .howtext .howsub{ font-weight:650; margin:4px 0 6px; }
+  /* the Music dropdown row: label on top, a WIDE full-width dropdown below (rows read "Track name - Musician") */
+  .setrow.setrow--stack{ flex-direction:column; align-items:stretch; gap:8px; }
+  .setrow.setrow--stack select.wideselect{ width:100%; max-width:none; font-size:15px; padding:11px 36px 11px 14px; text-overflow:ellipsis; }
+  /* a musician's page */
+  .musback{ align-self:flex-start; flex:0 0 auto; width:48px; height:48px; border-radius:50%; border:1px solid var(--line, #e8dccb);
+    background:rgba(255,253,249,.9); color:var(--ink); font-size:26px; line-height:1; cursor:pointer; margin:0 0 6px -6px; }
+  .mus-head{ flex:0 0 auto; text-align:center; display:flex; flex-direction:column; align-items:center; gap:6px; margin-bottom:10px; }
+  .musphoto{ width:150px; height:150px; border-radius:50%; overflow:hidden; display:grid; place-items:center;
+    background:radial-gradient(120% 120% at 30% 20%, #fbe3ea 0%, #f2c4d2 60%, #ecb2c4 100%);
+    border:1px solid rgba(40,43,42,.35); box-shadow:0 6px 16px rgba(214,150,165,.28); }
+  .musphoto img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .musphoto .musinit{ font-family:"Quicksand","Segoe UI",sans-serif; font-weight:600; font-size:46px; color:var(--ink); letter-spacing:.02em; }
+  #musTitle{ margin:6px 0 0; }
+  .mustrack{ margin:0; color:var(--ink-soft); font-size:15px; }
+  .muslinks{ list-style:none; margin:4px 0 16px; padding:0; display:flex; flex-direction:column; gap:8px; }
+  .muslinks a{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; border-radius:16px;
+    border:1px solid var(--line, #e8dccb); background:rgba(255,253,249,.8); color:var(--ink); text-decoration:none; font-weight:600; font-size:16px; min-height:48px; }
+  .muslinks a .chev{ font-size:24px; color:var(--ink-soft); }
+  .panel.panel--full #musPlay{ flex:0 0 auto; margin:16px auto 0; }
+  #musPlay.bloom{ background-image:url("assets/buttons/popup-new-game.png"); background-size:100% 100%; background-repeat:no-repeat;
+    width:min(100%, 330px); height:auto; aspect-ratio:900 / 320; padding:0 36px; white-space:normal; text-align:center;
+    font-size:19px; line-height:1.25; }
   .panel{
     /* same soft rounded voice as the invitations on the board */
     font-family:"Quicksand","Segoe UI",sans-serif;
@@ -984,6 +1006,23 @@
     </div>
   </div>
 
+  <!-- A musician's page (private ?musicians switch; placeholders for now): photo, name, short bio, links,
+       then a big button that returns to the game and starts the chosen track. The back arrow returns to the
+       Music dropdown in Settings. (Dani 2026-10-10) -->
+  <div id="musician" class="overlay overlay--full">
+    <div class="panel panel--full" role="dialog" aria-modal="true" aria-labelledby="musTitle">
+      <button type="button" class="musback" id="musBack" aria-label="Back to the music list"><span aria-hidden="true">&larr;</span></button>
+      <div class="mus-head">
+        <div id="musPhoto" class="musphoto"></div>
+        <h2 id="musTitle" tabindex="-1"></h2>
+        <p id="musTrack" class="mustrack"></p>
+      </div>
+      <div class="howtext"><p id="musBio"></p></div>
+      <ul class="muslinks" id="musLinks"></ul>
+      <button class="btn bloom" id="musPlay">Back to the game, with this music</button>
+    </div>
+  </div>
+
 <script>
 /* =========================================================================
    Cozy Cat Solitaire — a calm Klondike (draw 1 or classic 3, unlimited redeals).
@@ -1026,8 +1065,35 @@ const SETTINGS_KEY = 'cozycat.settings';
 /* First-EVER open defaults (Dani 2026-09-14): cat purring + game sounds ON so a new
    player hears the app come alive; music + left-handed off. After the first open the
    player's own choices are remembered (saved to localStorage) and these no longer apply. */
-const DEFAULT_SETTINGS = { music:false, gameSounds:true, natureSound:'purr',
+const DEFAULT_SETTINGS = { music:false, musicTrack:'none', gameSounds:true, natureSound:'purr',
                            timedInvites:true, leftHanded:false, draw3:false };
+
+/* ---------- the MUSICIANS (Dani 2026-10-10) ----------
+   ON for everyone since 2026-10-10 (add ?musicians=off to the address to see the old Music switch).
+   Settings then shows a wide dropdown "Track name - Musician"; choosing a track opens that musician's
+   page (photo, name, short bio, links) with a big button that returns to the game and starts the music.
+   PLACEHOLDERS: names/bios/links/photos and ALL the track files below are stand-ins (the files all point
+   at the existing soft loop) until the real tracks arrive. mp3, 128 kbps, ~5 MB max each. */
+const MUSICIANS_ON = !/[?&]musicians=(0|off|no)(&|$)/.test(location.search);   // ON for everyone (Dani 2026-10-10: testers should see the musicians being added); ?musicians=off hides it for comparison
+const PLACEHOLDER_TRACK = 'assets/sounds/music-loop.flac';
+const MUSICIANS = [
+  { id:'cassie', name:'Cassie Emmott', photo:null, photoAlt:'A photo of Cassie Emmott. (Description to come.)',
+    bio:'This is where Cassie’s short bio will go: a few warm sentences about her and her music, in her own words.',
+    links:[ {label:'Website', url:'#'}, {label:'Instagram', url:'#'}, {label:'Spotify', url:'#'} ],
+    tracks:[ {id:'cassie-1', title:'Track name', file:PLACEHOLDER_TRACK}, {id:'cassie-2', title:'Longer track name', file:PLACEHOLDER_TRACK} ] },
+  { id:'erin', name:'Erin Flory Robertson', photo:null, photoAlt:'A photo of Erin Flory Robertson. (Description to come.)',
+    bio:'This is where Erin’s short bio will go, in her own words.',
+    links:[ {label:'Website', url:'#'}, {label:'Spotify', url:'#'} ],
+    tracks:[ {id:'erin-1', title:'Track name', file:PLACEHOLDER_TRACK} ] },
+  { id:'christian', name:'Christian Hardy', photo:null, photoAlt:'A photo of Christian Hardy. (Description to come.)',
+    bio:'This is where Christian’s short bio will go, in his own words.',
+    links:[ {label:'Website', url:'#'}, {label:'Spotify', url:'#'} ],
+    tracks:[ {id:'christian-1', title:'Track name', file:PLACEHOLDER_TRACK} ] }
+];
+function findTrack(id){
+  for (const m of MUSICIANS) for (const t of m.tracks) if (t.id === id) return { musician:m, track:t };
+  return null;
+}
 /* TEMPORARY testing switch (?fresh): behave like a brand-new player — ignore this
    device's saved settings AND don't overwrite them — so the first-open defaults
    (cat purr + game sounds on) can be tested with VoiceOver without clearing site
@@ -1136,7 +1202,10 @@ function playPurr(){ if(settings.gameSounds){ try{ Sound.purr(); }catch(e){} } }
    later deal / settings change. */
 let audioUnlocked = false;
 function applyNature(){ if(!audioUnlocked) return; try{ Sound.nature(settings.natureSound); }catch(e){} }
-function updateMusic(){ if(!audioUnlocked) return; try{ Sound.music(!!settings.music); }catch(e){} }
+function updateMusic(){ if(!audioUnlocked) return; try{
+  if (MUSICIANS_ON){ const f = findTrack(settings.musicTrack); Sound.musicTrack(f ? f.track.file : null); }   // musician tracks (private ?musicians switch)
+  else Sound.music(!!settings.music);
+}catch(e){} }
 
 /* ================= layout helpers (reference-pixel coordinates) =================
    The board is 1080 wide; --u scales it. Left-handed play mirrors the game
@@ -2380,7 +2449,7 @@ document.addEventListener('click', e=>{
    board item and no pop-up or screen is open. */
 function boardIdle(){
   return !autoCompleting && !advanceScreen && !drawSeqActive && !drag
-      && !isShowing('settings') && !isShowing('menu') && !isShowing('howto') && !document.querySelector('.screen.show');
+      && !isShowing('settings') && !isShowing('menu') && !isShowing('howto') && !isShowing('musician') && !document.querySelector('.screen.show');
 }
 function boardFocusables(){
   return [...document.querySelectorAll('#topRow [tabindex="0"], #tableau [tabindex="0"], #promptCat, .ctrl')]
@@ -2414,7 +2483,7 @@ document.addEventListener('keydown', e=>{
     if (boardIdle()){ e.preventDefault(); undo(); }
     return;
   }
-  if (e.key === 'F1' && !mod && !e.altKey && !document.querySelector('.screen.show') && !isShowing('menu')){   // F1 = How to play (again closes it)
+  if (e.key === 'F1' && !mod && !e.altKey && !document.querySelector('.screen.show') && !isShowing('menu') && !isShowing('musician')){   // F1 = How to play (again closes it)
     e.preventDefault();
     if (isShowing('howto')) closeHowTo(); else openHowTo(isShowing('settings'));
     return;
@@ -2910,6 +2979,7 @@ function syncToggles(){
   // role="switch" buttons carry their state in aria-checked (Dani 2026-09-13)
   for (const id in TOGGLES){ const el=document.getElementById(id); if(el) el.setAttribute('aria-checked', settings[TOGGLES[id]] ? 'true' : 'false'); }
   const nat=document.getElementById('setNature'); if(nat) nat.value = settings.natureSound || 'none';
+  const mus=document.getElementById('setMusicTrack'); if(mus) mus.value = findTrack(settings.musicTrack) ? settings.musicTrack : 'none';
 }
 /* Nature-sound dropdown: pick one soft looping background sound (or None). */
 (function(){ const nat=document.getElementById('setNature'); if(!nat) return;
@@ -2956,10 +3026,77 @@ function closeHowTo(){
 document.getElementById('setHow').onclick = ()=> openHowTo(true);
 document.getElementById('howtoDone').onclick = closeHowTo;
 document.getElementById('howto').addEventListener('click', (e)=>{ if (e.target.id === 'howto') closeHowTo(); });
+
+/* ---- Musicians: wide Music dropdown + a page for each musician (private ?musicians switch) ---- */
+let pendingTrackId = null;
+function closeMusician(backToList){
+  closeOverlay('musician');
+  pendingTrackId = null;
+  if (backToList){
+    openSettings();
+    setTimeout(()=>{ const s = document.getElementById('setMusicTrack'); if (s) { try{ s.focus(); }catch(e){} } }, 220);   // land on the dropdown they came from
+  }
+}
+function openMusician(m, t){
+  pendingTrackId = t.id;
+  document.getElementById('musTitle').textContent = m.name;
+  document.getElementById('musTrack').textContent = 'Track: ' + t.title;
+  const ph = document.getElementById('musPhoto'); ph.textContent = '';
+  if (m.photo){ const im = document.createElement('img'); im.src = m.photo; im.alt = m.photoAlt || ''; ph.appendChild(im); ph.removeAttribute('role'); ph.removeAttribute('aria-label'); }
+  else { const ini = document.createElement('span'); ini.className = 'musinit'; ini.setAttribute('aria-hidden','true');
+         ini.textContent = m.name.split(/\s+/).filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase(); ph.appendChild(ini);
+         ph.setAttribute('role','img'); ph.setAttribute('aria-label', m.photoAlt || m.name); }
+  document.getElementById('musBio').textContent = m.bio;
+  const ul = document.getElementById('musLinks'); ul.textContent = '';
+  (m.links || []).forEach(l=>{
+    const li = document.createElement('li'), a = document.createElement('a');
+    a.href = l.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    a.setAttribute('aria-label', l.label + ' for ' + m.name + '. Opens in a new tab.');
+    a.innerHTML = '<span></span><span class="chev" aria-hidden="true">&rsaquo;</span>'; a.firstChild.textContent = l.label;
+    if (l.url === '#') a.addEventListener('click', e=>e.preventDefault());   // placeholder link: does nothing yet
+    li.appendChild(a); ul.appendChild(li);
+  });
+  closeOverlay('settings');                   // swap Settings for the musician's page
+  openOverlay('musician', 'musTitle');
+}
+if (MUSICIANS_ON){
+  (function(){
+    const oldSw = document.getElementById('setMusic'), oldRow = oldSw && oldSw.closest('.setrow');
+    if (!oldRow) return;
+    oldRow.style.display = 'none';                                   // the plain on/off switch steps aside
+    const row = document.createElement('div'); row.className = 'setrow setrow--stack'; row.id = 'musicRow';
+    const lab = document.createElement('div'); lab.className = 'setlabel'; lab.textContent = 'Music'; row.appendChild(lab);
+    const sel = document.createElement('select'); sel.id = 'setMusicTrack'; sel.className = 'langselect wideselect';
+    sel.setAttribute('aria-label', 'Music. Drop-down menu. Choose a track: swipe up or down to hear each one, then double-tap to see the musician’s page.');
+    const none = document.createElement('option'); none.value = 'none'; none.textContent = 'None'; sel.appendChild(none);
+    MUSICIANS.forEach(m=>m.tracks.forEach(t=>{ const o = document.createElement('option'); o.value = t.id; o.textContent = t.title + ' – ' + m.name; sel.appendChild(o); }));
+    sel.value = findTrack(settings.musicTrack) ? settings.musicTrack : 'none';
+    sel.addEventListener('change', ()=>{
+      const v = sel.value;
+      if (v === 'none'){ settings.musicTrack = 'none'; saveSettings(); updateMusic(); playSound('confirm'); return; }
+      const f = findTrack(v);
+      sel.value = findTrack(settings.musicTrack) ? settings.musicTrack : 'none';   // stays on the old choice until the big button is pressed
+      if (f) openMusician(f.musician, f.track);
+    });
+    row.appendChild(sel);
+    oldRow.parentNode.insertBefore(row, oldRow.nextSibling);
+  })();
+  document.getElementById('musBack').onclick = ()=> closeMusician(true);
+  document.getElementById('musician').addEventListener('click', (e)=>{ if (e.target.id === 'musician') closeMusician(true); });
+  document.getElementById('musPlay').onclick = ()=>{
+    const f = findTrack(pendingTrackId); if (!f) { closeMusician(true); return; }
+    settings.musicTrack = f.track.id; saveSettings();
+    closeOverlay('musician'); pendingTrackId = null;
+    updateMusic(); playSound('confirm');
+    announce('Now playing ' + f.track.title + ', by ' + f.musician.name + '.');
+    try{ document.getElementById('btnAppear').focus(); }catch(e){}
+  };
+}
 document.getElementById('settings').addEventListener('click', (e)=>{ if (e.target.id === 'settings') closeSettings(); });
 document.addEventListener('keydown', (e)=>{
   if (e.key==='Escape'){
-    if (isShowing('howto')) closeHowTo();
+    if (isShowing('musician')) closeMusician(true);
+    else if (isShowing('howto')) closeHowTo();
     else if (isShowing('settings')) closeSettings();
     else if (isShowing('menu')) closeOverlay('menu');
     else if (mouseSel) clearSelection();            // put a picked-up card back down
@@ -3427,6 +3564,7 @@ window.Sound = (function(){
   /* ---- music: a soft calm loop with a long CROSSFADE at the seam, so the loop is
      unnoticeable — it plays like one endless piece (Dani 2026-09-14). Heavenly Loop, CC0. ---- */
   var mBuf=null, mMaster=null, mTimers=[], mOn=false;
+  var BUILTIN_MUSIC='assets/sounds/music-loop.flac', mSrc=BUILTIN_MUSIC, mBufs={}, mNorm=false;   // mSrc = the file now chosen; mNorm = level-match it (musician tracks), the built-in loop keeps its fixed level
   function mClear(){ mTimers.forEach(clearTimeout); mTimers=[]; }
   function mSchedule(startAt){
     if(!mOn || !mMaster || !mBuf) return;
@@ -3440,10 +3578,24 @@ window.Sound = (function(){
   }
   function music(on){ var c=ensure(); if(!c) return;
     if(on){ if(mOn) return; mOn=true;
-      mMaster=c.createGain(); mMaster.gain.value=0.0001; mMaster.connect(c.destination); ramp(mMaster, SOFT*0.75, 1.2);
-      if(mBuf){ mSchedule(c.currentTime+0.05); }
-      else { fetch('assets/sounds/music-loop.flac').then(function(r){return r.arrayBuffer();}).then(function(b){return c.decodeAudioData(b);}).then(function(buf){ mBuf=buf; if(mOn) mSchedule(ctx.currentTime+0.05); }).catch(function(){}); }
+      mMaster=c.createGain(); mMaster.gain.value=0.0001; mMaster.connect(c.destination);
+      var mine=mSrc, norm=mNorm;
+      var begin=function(buf){ if(!mOn || !mMaster || mSrc!==mine) return; mBuf=buf;
+        ramp(mMaster, SOFT*0.75*(norm?normGain(buf):1), 1.2);          // quick gentle fade-in, level-matched for musician tracks
+        mSchedule(c.currentTime+0.05); };
+      if(mBufs[mine]){ begin(mBufs[mine]); }
+      else { fetch(mine).then(function(r){return r.arrayBuffer();}).then(function(b){return c.decodeAudioData(b);}).then(function(buf){ mBufs[mine]=buf; begin(buf); }).catch(function(){}); }
     } else { if(!mOn) return; mOn=false; mClear(); if(mMaster){ var m=mMaster; mMaster=null; var t=c.currentTime; m.gain.cancelScheduledValues(t); m.gain.setValueAtTime(Math.max(0.0001,m.gain.value),t); m.gain.linearRampToValueAtTime(0.0001,t+0.9); setTimeout(function(){ try{m.disconnect();}catch(e){} },1000); } }
+  }
+
+  /* musician tracks (Dani 2026-10-10): play ONE chosen file as the endless crossfaded loop; null = off.
+     Switching tracks fades the old one out and the new one in. */
+  function musicTrack(src){
+    if(!src){ music(false); return; }
+    if(mOn && mSrc===src) return;                  // already playing this one
+    var wasOn=mOn; if(wasOn) music(false);
+    mSrc=src; mNorm=(src!==BUILTIN_MUSIC); mBuf=mBufs[src]||null;
+    music(true);
   }
 
   /* ---- game sounds: real recorded card foley (Kenney casino pack, CC0), played soft ----
@@ -3538,7 +3690,7 @@ window.Sound = (function(){
   document.addEventListener('visibilitychange', function(){ if(document.hidden) hideAll(); else showAll(); });
   window.addEventListener('pagehide', hideAll);
 
-  return { nature:nature, music:music, game:game, purr:purr, screenPurr:screenPurr, cascade:cascade };
+  return { nature:nature, music:music, musicTrack:musicTrack, game:game, purr:purr, screenPurr:screenPurr, cascade:cascade };
 })();
 </script>
 
@@ -3567,7 +3719,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 10 · controls a6';
+  var BUILD_TAG = 'Oct 10 · musicians a7';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
