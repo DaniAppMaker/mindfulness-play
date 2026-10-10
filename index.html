@@ -423,6 +423,9 @@
   button.setrow.sethow .chev{ font-size:26px; line-height:1; color:var(--ink-soft); }
   /* the About screen (Dani 2026-10-10) */
   .aboutbrand{ margin:6px 0 2px; text-align:center; font-weight:600; color:var(--ink-soft); font-size:15px; letter-spacing:.02em; }
+  /* readable text for the long pages (Dani 2026-10-10: it was light grey and small - the generic .panel p rule was winning): dark ink, 17px */
+  #about .howtext p, #about .howtext li, #howto .howtext p, #howto .howtext li{ color:var(--ink); font-size:17px; line-height:1.6; }
+  #about .abouth{ font-size:21px; }
   .abouttext p{ text-align:left; }   /* long paragraphs read better left-aligned (Dani 2026-10-10); headings stay centred */
   .abouttext .abouth{ margin:22px 0 6px; font-size:19px; font-weight:650; color:var(--ink); text-align:center; }
   .abouttext .aboutcontact{ margin-top:22px; }
@@ -3818,7 +3821,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 10 · about a12';
+  var BUILD_TAG = 'Oct 10 · about a13';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
