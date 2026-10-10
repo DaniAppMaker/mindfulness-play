@@ -447,8 +447,8 @@
   .muslinks a .chev{ font-size:24px; color:var(--ink-soft); }
   .panel.panel--full #musPlay{ flex:0 0 auto; margin:16px auto 0; }
   #musPlay.bloom{ background-image:url("assets/buttons/popup-new-game.png"); background-size:100% 100%; background-repeat:no-repeat;
-    width:min(100%, 330px); height:auto; aspect-ratio:900 / 320; padding:0 36px; white-space:normal; text-align:center;
-    font-size:19px; line-height:1.25; }
+    width:min(100%, 270px); height:auto; aspect-ratio:900 / 320; padding:0 22px; white-space:normal; text-align:center;
+    font-size:17px; line-height:1.3; }   /* two even lines, smaller (Dani 2026-10-10) */
   .panel{
     /* same soft rounded voice as the invitations on the board */
     font-family:"Quicksand","Segoe UI",sans-serif;
@@ -1019,7 +1019,7 @@
       </div>
       <div class="howtext"><p id="musBio"></p></div>
       <ul class="muslinks" id="musLinks"></ul>
-      <button class="btn bloom" id="musPlay">Back to the game, with this music</button>
+      <button class="btn bloom" id="musPlay" aria-label="Back to the game, with this music">Back to the game,<br>with this music</button>
     </div>
   </div>
 
@@ -1080,7 +1080,7 @@ const MUSICIANS = [
   { id:'cassie', name:'Cassie Emmott', photo:null, photoAlt:'A photo of Cassie Emmott. (Description to come.)',
     bio:'This is where Cassie’s short bio will go: a few warm sentences about her and her music, in her own words.',
     links:[ {label:'Website', url:'#'}, {label:'Instagram', url:'#'}, {label:'Spotify', url:'#'} ],
-    tracks:[ {id:'cassie-1', title:'Track name', file:PLACEHOLDER_TRACK}, {id:'cassie-2', title:'Longer track name', file:PLACEHOLDER_TRACK} ] },
+    tracks:[ {id:'cassie-1', title:'Track name', file:PLACEHOLDER_TRACK} ] },
   { id:'erin', name:'Erin Flory Robertson', photo:null, photoAlt:'A photo of Erin Flory Robertson. (Description to come.)',
     bio:'This is where Erin’s short bio will go, in her own words.',
     links:[ {label:'Website', url:'#'}, {label:'Spotify', url:'#'} ],
@@ -3719,7 +3719,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 10 · musicians a7';
+  var BUILD_TAG = 'Oct 10 · musicians a8';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
