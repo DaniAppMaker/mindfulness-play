@@ -468,7 +468,7 @@
   .mus-head.mus-head{ position:relative; }
   .musmouse{ position:absolute; right:-6px; bottom:9px; width:50px; height:auto; pointer-events:none; }   /* level with the Track line; 16px from the side edge (panel padding 22 - 6), like the arrow's 16px (Dani 2026-10-10) */
   /* bottom: the big button in the centre; a small blue yarn ball to its LEFT at the same height, centred in the space to the edge */
-  .musplaywrap{ flex:0 0 auto; display:grid; grid-template-columns:minmax(52px,1fr) minmax(0,270px) minmax(52px,1fr); align-items:center; margin-top:44px; padding-top:0; padding-bottom:28px; }   /* 44px minimum gap above the button + yarn, so on short phones the yarn never touches the last link (Dani 2026-10-10); on tall screens nothing changes */
+  .musplaywrap{ flex:0 0 auto; display:grid; grid-template-columns:minmax(52px,1fr) minmax(0,270px) minmax(52px,1fr); align-items:center; margin-top:72px; padding-top:0; padding-bottom:28px; }   /* 72px minimum gap (was 44, 34: Dani 2026-10-10 'yarn too close to the links' on iPhone) above the button + yarn, so on short phones the yarn never touches the last link (Dani 2026-10-10); on tall screens nothing changes */
   #musPlay{ grid-column:2; }
   .musyarn{ grid-column:1; grid-row:1; justify-self:end; margin-right:14px; align-self:center; width:45px; height:auto; pointer-events:none; transform:translateY(-26px); }   /* higher than the button's middle, close to the button (Dani 2026-10-10) */
   #musPlay.bloom{ background-image:url("assets/buttons/popup-new-game.png"); background-size:100% 100%; background-repeat:no-repeat;
@@ -3822,7 +3822,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 10 · about a16';
+  var BUILD_TAG = 'Oct 10 · about a17';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
