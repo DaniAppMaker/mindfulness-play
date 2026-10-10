@@ -20,7 +20,7 @@
    ================================================================ */
 
 /* 👉 Bump this ONLY when card/interface images or sound files change or are added. */
-const CACHE_VERSION = 'v10';
+const CACHE_VERSION = 'v11';
 const CACHE_NAME = 'cozy-cat-' + CACHE_VERSION;
 
 /* The app shell — the few files needed to show *something* offline.
@@ -83,6 +83,7 @@ const ASSETS = [
   'assets/interface/prompt-cat.png',
   'assets/interface/prompt-mouse.png',
   'assets/interface/stretching-cat.png',
+  'assets/interface/mus-mouse.png','assets/interface/mus-yarn.png',   // musician page extras (2026-10-10)
   // soundscape (2026-09-14) — the 5 nature clips; game + UI sounds are synthesized (no files)
   'assets/sounds/rain.mp3',
   'assets/sounds/ocean.mp3',
