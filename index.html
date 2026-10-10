@@ -421,6 +421,12 @@
   button.setrow.sethow{ background:none; border:none; width:100%; font:inherit; color:inherit; text-align:left; cursor:pointer;
     display:flex; align-items:center; justify-content:space-between; gap:12px; }
   button.setrow.sethow .chev{ font-size:26px; line-height:1; color:var(--ink-soft); }
+  /* the About screen (Dani 2026-10-10) */
+  .aboutbrand{ margin:6px 0 2px; text-align:center; font-weight:600; color:var(--ink-soft); font-size:15px; letter-spacing:.02em; }
+  .abouttext .abouth{ margin:22px 0 6px; font-size:19px; font-weight:650; color:var(--ink); }
+  .abouttext .aboutcontact{ margin-top:22px; }
+  .abouttext .aboutsign{ margin-top:6px; font-weight:600; }
+  .panel.panel--full #aboutDone{ flex:0 0 auto; margin-top:16px; }
   .howtext{ flex:1 1 auto; }
   .howtext p, .howtext li{ font-size:16px; line-height:1.55; color:var(--ink); }
   .howtext p{ margin:0 0 14px; }
@@ -526,7 +532,7 @@
   .btn.bloom:active{ box-shadow:none; }
   #menuNew.bloom{     background-image:url("assets/buttons/popup-new-game.png"); }
   #menuClose.bloom{   background-image:url("assets/buttons/popup-return.png"); }
-  #settingsDone.bloom, #howtoDone.bloom{ background-image:url("assets/buttons/popup-done.png");
+  #settingsDone.bloom, #howtoDone.bloom, #aboutDone.bloom{ background-image:url("assets/buttons/popup-done.png");
     height:54px; font-size:17px; }   /* Dani's bordered pill: smaller shape, bigger word, so "Done" isn't lost inside a huge button (2026-10-08) */
   /* the win button "Play again" deals a fresh game, the same action as
      "New gentle game", so it reuses the pink new-game bloom to match */
@@ -978,6 +984,10 @@
           <div class="setlabel">Left-handed layout</div>
           <button type="button" role="switch" aria-checked="false" id="setLeft" class="switch" aria-label="Left-handed layout"><span class="slider"></span></button>
         </div>
+        <button type="button" class="setrow sethow" id="setAbout" aria-label="About">
+          <div><div class="setlabel">About</div></div>
+          <span class="chev" aria-hidden="true">&rsaquo;</span>
+        </button>
         <!-- contact row — info@ is the ONE public address (Dani 2026-09-24). VoiceOver wording is
              Dani's exact words; VO adds "link" itself, then reads the describedby hint. -->
         <a class="setrow setcontact" id="setContact" href="mailto:info@mindfulnessplay.com?subject=Mindfulness%20Play"
@@ -1017,6 +1027,48 @@
         <p>On a computer, you can press F1 at any time to read this again.</p>
       </div>
       <button class="btn bloom" id="howtoDone">Done</button>
+    </div>
+  </div>
+
+  <!-- About: full-screen, same recipe as How to play. Opens from the "About" row in Settings (just above
+       "Questions or ideas?"). Dani's FINAL About + Roots text (FINAL-WORDS §1) + Music, Sounds, Acknowledgements.
+       "Giving back" is built but HIDDEN until Dani chooses the two organizations (2026-10-10). -->
+  <div id="about" class="overlay overlay--full">
+    <div class="panel panel--full" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
+      <div class="settings-head">
+        <p class="aboutbrand">Mindfulness Play&trade; Solitaire</p>
+        <h2 id="aboutTitle" tabindex="-1">About</h2>
+      </div>
+      <div class="howtext abouttext">
+        <p>Mindfulness Play&trade; Solitaire is designed to take the pressure off, to bring some ease. While most apps use rewards and other pressures to keep you engaged, this one has no streaks, no scores, and no guilt.</p>
+        <p>Mindfulness often begins in sitting meditation. The hope is to carry that sense of presence into everyday life, but it's easy to forget. Mindfulness Play&trade; is that bridge from the cushion to everyday life. You play a soft game of solitaire, and playful watercolor cats invite you into mindfulness: A pause&hellip; notice your jaw. Soften as you exhale. As you bring mindfulness into your solitaire break, it can become easier to carry that sense of ease into other parts of your day.</p>
+
+        <h3 class="abouth">Roots</h3>
+        <p>The ideas in this game stem from many sources, beginning with Buddhism and yoga, which are both rooted in deep spiritual and cultural practices for the mind and body, cultivated over thousands of years in Asia. I learned these practices from many teachers, most deeply from the Vietnamese Zen teacher Thich Nhat Hanh, and from Tara Brach and Andy Puddicombe, who trained in the Theravada and Tibetan traditions. I have also spent many years learning about the nervous system from modern science, such as how our bodies shift between fight-or-flight and rest-and-digest, as well as how gentle noticing and dropping into our bodies can help us settle.</p>
+        <p>Over many years I've also learned from yoga teachers, from trauma-informed practice, from learning about neurodivergence and disability, from self-directed education, and from many books, courses and apps. I'm grateful to all of the people who teach these practices with such care. I come to this as an educator with more than twenty years of experience and with a PhD in education. I kept feeling stuck. I did the practices and felt good, but then struggled to apply what I learned to my everyday life, as a parent with chronic illness and a 24/7 caregiver. So I built a stepping stone for myself, the app I needed. And I thought others might like it too.</p>
+        <p>This game is a small bridge, not the whole path. If a moment of noticing feels good here, I warmly invite you to explore the traditions it comes from.</p>
+
+        <!-- HIDDEN until Dani chooses the two organizations (not shown, not read by screen readers) -->
+        <section id="aboutGiving" hidden>
+          <h3 class="abouth">Giving back</h3>
+          <p>As a way of giving back, as a small gesture in gratitude to the deep spiritual and cultural traditions from which this work draws, 5% of what this game earns goes to [organization], which helps people in need in Vietnam.</p>
+          <p>I built this game with the help of AI for the coding. The watercolor cats, the invitations and the words are mine. Because I used the help of AI, another 5% goes to [organization], which works to protect people and the environment from the potential harms of AI and to make sure it is used well.</p>
+          <p>As the game grows, I hope to give more to both.</p>
+        </section>
+
+        <h3 class="abouth">Music</h3>
+        <p>The music in this game was created by Cassie Emmott, Erin Flory Robertson and Christian Hardy. Choose a track in Settings to meet each of them.</p>
+
+        <h3 class="abouth">Sounds</h3>
+        <p>The ambient sounds are real recordings shared freely on Pixabay: rain by Liecio, ocean waves by DRAGON-STUDIO, forest birds by Dany_photo, and a stream by Pixabay user 26327991. The cat purring is by Islabonita. The soft card sounds and the gentle bell come from Kenney (kenney.nl).</p>
+
+        <h3 class="abouth">Acknowledgements</h3>
+        <p id="aboutThanks"></p>
+
+        <p class="aboutcontact"><strong>Questions or ideas?</strong> <a class="setmail" href="mailto:info@mindfulnessplay.com?subject=Mindfulness%20Play">info@mindfulnessplay.com</a></p>
+        <p class="aboutsign">With gratitude, Dani</p>
+      </div>
+      <button class="btn bloom" id="aboutDone">Done</button>
     </div>
   </div>
 
@@ -1099,7 +1151,7 @@ const DEFAULT_SETTINGS = { music:false, musicTrack:'none', gameSounds:true, natu
    PLACEHOLDERS: names/bios/links/photos and ALL the track files below are stand-ins (the files all point
    at the existing soft loop) until the real tracks arrive. mp3, 128 kbps, ~5 MB max each. */
 const MUSICIANS_ON = !/[?&]musicians=(0|off|no)(&|$)/.test(location.search);   // ON for everyone (Dani 2026-10-10: testers should see the musicians being added); ?musicians=off hides it for comparison
-const PLACEHOLDER_TRACK = 'assets/sounds/music-loop.flac';
+const PLACEHOLDER_TRACK = null;   // placeholders are SILENT until the real files arrive (Dani 2026-10-10: the old loop must never be mistaken for a musician's music)
 const MUSICIANS = [
   { id:'cassie', name:'Cassie Emmott', photo:null, photoAlt:'A photo of Cassie Emmott. (Description to come.)',
     bio:'This is where Cassie’s short bio will go: a few warm sentences about her and her music, in her own words.',
@@ -2473,7 +2525,7 @@ document.addEventListener('click', e=>{
    board item and no pop-up or screen is open. */
 function boardIdle(){
   return !autoCompleting && !advanceScreen && !drawSeqActive && !drag
-      && !isShowing('settings') && !isShowing('menu') && !isShowing('howto') && !isShowing('musician') && !document.querySelector('.screen.show');
+      && !isShowing('settings') && !isShowing('menu') && !isShowing('howto') && !isShowing('musician') && !isShowing('about') && !document.querySelector('.screen.show');
 }
 function boardFocusables(){
   return [...document.querySelectorAll('#topRow [tabindex="0"], #tableau [tabindex="0"], #promptCat, .ctrl')]
@@ -2507,7 +2559,7 @@ document.addEventListener('keydown', e=>{
     if (boardIdle()){ e.preventDefault(); undo(); }
     return;
   }
-  if (e.key === 'F1' && !mod && !e.altKey && !document.querySelector('.screen.show') && !isShowing('menu') && !isShowing('musician')){   // F1 = How to play (again closes it)
+  if (e.key === 'F1' && !mod && !e.altKey && !document.querySelector('.screen.show') && !isShowing('menu') && !isShowing('musician') && !isShowing('about')){   // F1 = How to play (again closes it)
     e.preventDefault();
     if (isShowing('howto')) closeHowTo(); else openHowTo(isShowing('settings'));
     return;
@@ -3051,6 +3103,21 @@ document.getElementById('setHow').onclick = ()=> openHowTo(true);
 document.getElementById('howtoDone').onclick = closeHowTo;
 document.getElementById('howto').addEventListener('click', (e)=>{ if (e.target.id === 'howto') closeHowTo(); });
 
+/* ---- About (Dani 2026-10-10): opens from the "About" row in Settings; Done / Esc return to Settings ---- */
+const ABOUT_TESTERS = ['Daniel Angus MacDonald'];   // early testers who agreed to be named; add the others as they say yes
+(function(){
+  const n = ABOUT_TESTERS, list = n.length <= 1 ? n.join('') : n.slice(0,-1).join(', ') + ', and ' + n[n.length-1];
+  document.getElementById('aboutThanks').textContent = 'Thank you to all of the early testers for their time and kind feedback, including those from the AppleVis community: ' + list + '.';
+})();
+function openAbout(){ closeOverlay('settings'); openOverlay('about', 'aboutTitle'); }
+function closeAbout(){ closeOverlay('about'); openSettings(); }
+/* The "About" row stays PRIVATE until Dani has seen the screen and approved it: add ?about to the game's address to see it (2026-10-10) */
+const ABOUT_ON = /[?&]about(&|=|$)/.test(location.search);
+if (!ABOUT_ON) document.getElementById('setAbout').style.display = 'none';
+document.getElementById('setAbout').onclick = openAbout;
+document.getElementById('aboutDone').onclick = closeAbout;
+document.getElementById('about').addEventListener('click', (e)=>{ if (e.target.id === 'about') closeAbout(); });
+
 /* ---- Musicians: wide Music dropdown + a page for each musician (private ?musicians switch) ---- */
 let pendingTrackId = null;
 function closeMusician(backToList){
@@ -3112,14 +3179,15 @@ if (MUSICIANS_ON){
     settings.musicTrack = f.track.id; saveSettings();
     closeOverlay('musician'); pendingTrackId = null;
     updateMusic(); playSound('confirm');
-    announce('Now playing ' + f.track.title + ', by ' + f.musician.name + '.');
+    if (f.track.file) announce('Now playing ' + f.track.title + ', by ' + f.musician.name + '.');   // placeholder tracks have no sound yet, so nothing is announced
     try{ document.getElementById('btnAppear').focus(); }catch(e){}
   };
 }
 document.getElementById('settings').addEventListener('click', (e)=>{ if (e.target.id === 'settings') closeSettings(); });
 document.addEventListener('keydown', (e)=>{
   if (e.key==='Escape'){
-    if (isShowing('musician')) closeMusician(true);
+    if (isShowing('about')) closeAbout();
+    else if (isShowing('musician')) closeMusician(true);
     else if (isShowing('howto')) closeHowTo();
     else if (isShowing('settings')) closeSettings();
     else if (isShowing('menu')) closeOverlay('menu');
@@ -3456,6 +3524,7 @@ function startupFlow(){
      (no auto-advance) so it can be inspected calmly. Only active with the param;
      the normal app flow is untouched. */
   const pv = new URLSearchParams(location.search).get('preview');
+  if (pv === 'about'){ openAbout(); return; }   // ?preview=about opens the About screen directly (for looking at it)
   if (pv === 'musician'){   // ?preview=musician (Cassie) or ?preview=musician&who=erin|christian opens a musician's page directly (for looking at it)
     const who = new URLSearchParams(location.search).get('who');
     const m = MUSICIANS.find(x=>x.id===who) || MUSICIANS[0];
@@ -3748,7 +3817,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 10 · musicians a9';
+  var BUILD_TAG = 'Oct 10 · musicians a10';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
