@@ -416,7 +416,17 @@
   }
   .panel.panel--full .setrow{ padding:14px 4px; }   /* taller bands = easier touch targets */
   .panel.panel--full .setrow-divider{ margin:6px 2px 2px; font-weight:650; text-align:center; }
-  .panel.panel--full #settingsDone{ flex:0 0 auto; margin-top:16px; }
+  .panel.panel--full #settingsDone, .panel.panel--full #howtoDone{ flex:0 0 auto; margin-top:16px; }
+  /* "How to play" row in Settings (a full-width band, like the other options) + the guide itself (Dani 2026-10-10) */
+  button.setrow.sethow{ background:none; border:none; width:100%; font:inherit; color:inherit; text-align:left; cursor:pointer;
+    display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  button.setrow.sethow .chev{ font-size:26px; line-height:1; color:var(--ink-soft); }
+  .howtext{ flex:1 1 auto; }
+  .howtext p, .howtext li{ font-size:16px; line-height:1.55; color:var(--ink); }
+  .howtext p{ margin:0 0 14px; }
+  .howtext ul{ margin:0 0 14px; padding-left:22px; }
+  .howtext li{ margin-bottom:8px; }
+  .howtext .howsub{ font-weight:650; margin:4px 0 6px; }
   .panel{
     /* same soft rounded voice as the invitations on the board */
     font-family:"Quicksand","Segoe UI",sans-serif;
@@ -480,7 +490,7 @@
   .btn.bloom:active{ box-shadow:none; }
   #menuNew.bloom{     background-image:url("assets/buttons/popup-new-game.png"); }
   #menuClose.bloom{   background-image:url("assets/buttons/popup-return.png"); }
-  #settingsDone.bloom{ background-image:url("assets/buttons/popup-done.png");
+  #settingsDone.bloom, #howtoDone.bloom{ background-image:url("assets/buttons/popup-done.png");
     height:54px; font-size:17px; }   /* Dani's bordered pill: smaller shape, bigger word, so "Done" isn't lost inside a huge button (2026-10-08) */
   /* the win button "Play again" deals a fresh game, the same action as
      "New gentle game", so it reuses the pink new-game bloom to match */
@@ -889,6 +899,10 @@
       <!-- the options grow to fill the middle of the screen (space-evenly), so there's
            no dead gap at the bottom and it reads as one coherent full screen (Dani 2026-09-13) -->
       <div class="settings-body">
+        <button type="button" class="setrow sethow" id="setHow" aria-label="How to play">
+          <div><div class="setlabel">How to play</div><div class="sethint">A short guide, for beginners</div></div>
+          <span class="chev" aria-hidden="true">&rsaquo;</span>
+        </button>
         <div class="setrow">
           <div><div class="setlabel">Language</div><div class="sethint">English · Español · Français · coming soon</div></div>
           <select id="setLang" class="langselect" disabled aria-label="Language">
@@ -941,6 +955,34 @@
     </div>
   </div>
 
+  <!-- How to play: a full-screen guide, same recipe as Settings. Opens with F1 (computer) and from the
+       first row of Settings (phone / tablet / screen reader). Dani's words, 2026-10-10. -->
+  <div id="howto" class="overlay overlay--full">
+    <div class="panel panel--full" role="dialog" aria-modal="true" aria-labelledby="howtoTitle">
+      <div class="settings-head">
+        <h2 id="howtoTitle" tabindex="-1">How to play</h2>
+      </div>
+      <div class="howtext">
+        <p>Solitaire is a traditional solo card game. The goal is to move all the cards home to the four paw spots at the top, one suit in each, in order from Ace up to King.</p>
+        <p>The seven columns start with 1, 2, 3 and so on up to 7 cards, from left to right. Only the top card of each column is face up. The cards under it are face down.</p>
+        <p>Whenever a card cannot go home to a paw spot, you can stack it in the columns, going down from King to Ace, with red and black taking turns. For example, a 6 of hearts can rest on a 7 of spades. Only a King can go into an empty column. Cards that are face down turn face up when you uncover them.</p>
+        <p>Tap or click the draw pile to turn over a card, or three if you choose that in Settings. When the pile is empty, tap or click it again to turn them all over once more.</p>
+        <p class="howsub">To move a card:</p>
+        <ul>
+          <li>On a phone or tablet, tap it and it goes to its best spot. Or drag it.</li>
+          <li>With a screen reader, swipe to the card and double-tap.</li>
+          <li>On a computer, double-click it, or click it and then click where it goes. You can also drag.</li>
+          <li>With a keyboard, use Tab or the arrow keys to reach it, then press Enter.</li>
+        </ul>
+        <p>To take a move back, press the Undo button (&ldquo;Undo the last move&rdquo;), or Ctrl+Z (Cmd+Z on a Mac), or Esc.</p>
+        <p>If you are stuck, the lightbulb button (&ldquo;Show me a move&rdquo;) shows you a move.</p>
+        <p>If you want to try the mindfulness practices, just wait until the cat sends you an invitation, or press the paw button at the bottom (&ldquo;An invitation to pause&rdquo;) to receive one.</p>
+        <p>On a computer, you can press F1 at any time to read this again.</p>
+      </div>
+      <button class="btn bloom" id="howtoDone">Done</button>
+    </div>
+  </div>
+
 <script>
 /* =========================================================================
    Cozy Cat Solitaire — a calm Klondike (draw 1 or classic 3, unlimited redeals).
@@ -958,6 +1000,7 @@ const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 const rankVal = r => RANKS.indexOf(r) + 1; // A=1 ... K=13
 
 let state, selection = null;
+let mouseSel = null;   // computer mouse: the card (or run) picked up by a click, waiting for a click on where it goes (2026-10-10)
 let trackedWaste = new Map();   // card.id -> its persistent waste-fan element
 let justRevealed = new Set();    // ids of cards just flipped face-up, to ease in
 let pendingFlip = null;          // {ids, from} of cards to glide after a move
@@ -1552,7 +1595,7 @@ function canStackFoundation(card, foundationPile){
    otherwise a tableau card it can build on, otherwise an empty column (Kings,
    only when that reveals a hidden card). Same rules — just far fewer taps. */
 function clearSelection(){
-  selection = null;
+  selection = null; mouseSel = null;
   document.querySelectorAll('.card.selected').forEach(c=>c.classList.remove('selected'));
 }
 
@@ -2235,6 +2278,156 @@ function cleanupDrag(){
   setTimeout(()=>{ suppressClick = false; }, 0);   // after the trailing click is eaten
 }
 
+/* ================= computer mouse + keyboard conveniences (Dani 2026-10-10) =================
+   Researched with how classic/Microsoft Solitaire plays: on a MOUSE, one click picks a card up
+   (it lifts with the honey glow), a click on where it goes puts it there, and a DOUBLE-click
+   sends it to its best spot. Dragging still works. The draw pile flips on a click OR a
+   double-click (a double-click is ONE flip). Phones, touch, pens, the keyboard and VoiceOver are
+   NOT touched: for them one tap / Enter still auto-moves, exactly as approved. */
+let lastPointerType = 'touch';
+document.addEventListener('pointerdown', e=>{ lastPointerType = e.pointerType || 'mouse'; }, true);
+
+function selectRun(src){
+  clearSelection();
+  const cards = pickUpRun(src.where, src.col, src.idx);
+  if (!cards) return false;
+  selection = { cards }; mouseSel = src;
+  cards.forEach(c=>{ const el = document.querySelector(`.card[data-id="${c.id}"]`); if (el) el.classList.add('selected'); });
+  return true;
+}
+
+// can the picked-up run legally go to dest ({where:'tableau'|'foundation', col})? Same rules as a drag-drop.
+function clickMoveLegal(src, dest){
+  const cards = pickUpRun(src.where, src.col, src.idx);
+  if (!cards) return false;
+  const moving = cards[0];
+  if (dest.where === 'tableau'){
+    if (src.where === 'tableau' && dest.col === src.col) return false;
+    const pile = state.tableau[dest.col];
+    return canStackTableau(moving, pile.length ? pile[pile.length-1] : null);
+  }
+  if (cards.length !== 1) return false;
+  return canStackFoundation(moving, state.foundations[dest.col]);
+}
+
+function performClickMove(src, dest){
+  const cards = pickUpRun(src.where, src.col, src.idx);
+  if (!cards) return;
+  const moving = cards[0];
+  const ids = cards.map(c=>c.id);
+  pendingFlip = { ids, from: captureRects(ids) };      // glide from where the cards were
+  snapshot();
+  removeFromSource(src.where, src.col, src.idx);
+  if (dest.where === 'foundation'){
+    state.foundations[dest.col].push(moving);
+    announce(`${cardName(moving)} sent home to its foundation.`);
+  } else {
+    const destPile = state.tableau[dest.col];
+    const onto = destPile.length ? destPile[destPile.length-1] : null;
+    cards.forEach(c=>destPile.push(c));
+    announce(onto ? `${cardName(moving)} is now on ${cardName(onto)}.`
+                  : `${cardName(moving)} is now in an empty column.`);
+  }
+  noteMove(`Returning the ${cardName(moving)} to ${locName(src.where, src.col)}.`);
+  afterMove();
+}
+
+function shakeSelected(){
+  if (reducedMotion()) return;
+  document.querySelectorAll('.card.selected').forEach(el=>{ el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); });
+}
+
+document.addEventListener('click', e=>{
+  if (e.defaultPrevented) return;                       // a finished drag already ate this click
+  if (lastPointerType !== 'mouse' || e.detail < 1) return;   // touch, pen, keyboard, VoiceOver: unchanged
+  if (autoCompleting || drag || document.querySelector('.overlay.open') || document.querySelector('.screen.show')) return;
+  const t = e.target;
+  if (!t.closest || !t.closest('#topRow, #tableau')) return;
+
+  // draw pile: a click flips; the 2nd click of a double-click is ignored, so it is ONE flip
+  if (t.closest('.drawpile')){
+    if (e.detail >= 2){ e.stopPropagation(); e.preventDefault(); } else clearSelection();
+    return;
+  }
+
+  const cardEl = t.closest('.card');
+  const src = (cardEl && cardEl.dataset.where) ? { where: cardEl.dataset.where, col: +cardEl.dataset.col, idx: +cardEl.dataset.idx } : null;
+  const colEl = t.closest('.col'), fEl = t.closest('[data-found]');
+  const dest = fEl ? { where:'foundation', col:+fEl.dataset.found } : colEl ? { where:'tableau', col:+colEl.dataset.col } : null;
+
+  if (src && e.detail >= 2){                            // double-click: best spot
+    e.stopPropagation(); e.preventDefault();
+    clearSelection(); autoMove(src.where, src.col, src.idx); return;
+  }
+  if (mouseSel && dest){                                // a card is picked up: this click says where it goes
+    const same = src && src.where === mouseSel.where && src.col === mouseSel.col && src.idx === mouseSel.idx;
+    e.stopPropagation(); e.preventDefault();
+    if (same){ clearSelection(); return; }              // click it again to put it down
+    if (clickMoveLegal(mouseSel, dest)){ const s = mouseSel; clearSelection(); performClickMove(s, dest); return; }
+    if (src && selectRun(src)) return;                  // not a legal spot: pick up this card instead
+    shakeSelected(); return;                            // nothing legal here: a gentle shudder
+  }
+  if (src){                                             // nothing picked up yet: pick this card up
+    e.stopPropagation(); e.preventDefault();
+    selectRun(src); return;
+  }
+  clearSelection();                                     // a click on empty space puts it down
+}, true);
+
+/* keyboard: arrow keys move between cards (spatially), Enter/Space moves the card (already built).
+   Tab and a screen reader's own arrow-reading are untouched. Arrow keys only act while focus is on a
+   board item and no pop-up or screen is open. */
+function boardIdle(){
+  return !autoCompleting && !advanceScreen && !drawSeqActive && !drag
+      && !isShowing('settings') && !isShowing('menu') && !isShowing('howto') && !document.querySelector('.screen.show');
+}
+function boardFocusables(){
+  return [...document.querySelectorAll('#topRow [tabindex="0"], #tableau [tabindex="0"], #promptCat, .ctrl')]
+    .filter(el=>{ const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && !el.closest('[aria-hidden="true"]') && !el.closest('[inert]'); });
+}
+function arrowFocus(dir){
+  const cur = document.activeElement;
+  const items = boardFocusables();
+  if (!cur || items.indexOf(cur) < 0) return false;
+  const cr = cur.getBoundingClientRect(), cx = cr.left + cr.width/2, cy = cr.top + cr.height/2;
+  let best = null, bestScore = Infinity;
+  for (const el of items){
+    if (el === cur) continue;
+    const r = el.getBoundingClientRect(), x = r.left + r.width/2, y = r.top + r.height/2;
+    const dx = x - cx, dy = y - cy;
+    let main, cross;
+    if (dir === 'ArrowRight'){ main = dx; cross = Math.abs(dy); }
+    else if (dir === 'ArrowLeft'){ main = -dx; cross = Math.abs(dy); }
+    else if (dir === 'ArrowDown'){ main = dy; cross = Math.abs(dx); }
+    else { main = -dy; cross = Math.abs(dx); }
+    if (main < 6) continue;
+    const score = main + cross * ((dir === 'ArrowUp' || dir === 'ArrowDown') ? 6 : 2);   // up/down stays in its own column first
+    if (score < bestScore){ bestScore = score; best = el; }
+  }
+  if (!best) return false;
+  best.focus(); return true;
+}
+document.addEventListener('keydown', e=>{
+  const mod = e.ctrlKey || e.metaKey;
+  if (mod && !e.shiftKey && !e.altKey && (e.key === 'z' || e.key === 'Z')){      // Ctrl+Z / Cmd+Z = undo
+    if (boardIdle()){ e.preventDefault(); undo(); }
+    return;
+  }
+  if (e.key === 'F1' && !mod && !e.altKey && !document.querySelector('.screen.show') && !isShowing('menu')){   // F1 = How to play (again closes it)
+    e.preventDefault();
+    if (isShowing('howto')) closeHowTo(); else openHowTo(isShowing('settings'));
+    return;
+  }
+  if (e.key === 'F5' && !mod && boardIdle()){                                      // F5 = new game (opens the New Game box, so nothing is lost by accident)
+    e.preventDefault(); openOverlay('menu','menuNew'); return;
+  }
+  if (!mod && !e.altKey && !e.shiftKey && /^Arrow(Left|Right|Up|Down)$/.test(e.key) && boardIdle()){
+    const tag = (document.activeElement && document.activeElement.tagName) || '';
+    if (/^(INPUT|SELECT|TEXTAREA)$/.test(tag)) return;
+    if (arrowFocus(e.key)) e.preventDefault();
+  }
+});
+
 function render(){
   renderTopRow();
   renderTableau();
@@ -2282,6 +2475,7 @@ function renderTopRow(){
       // No "bring it back to the columns" — that was read after every placement; the card is still activatable.
       el.setAttribute('aria-label', `Foundation ${f+1}, ${cardName(topCard)} on top.` +
         (cardHasMove('foundation', f, pile.length-1) ? ' This card has a move.' : ' This card has no moves.'));
+      el.dataset.where = 'foundation'; el.dataset.col = f; el.dataset.idx = pile.length-1;   // read by the computer-mouse click handler
       el.onclick = ()=> autoMove('foundation', f, pile.length-1);
       el.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); autoMove('foundation', f, pile.length-1); } };
       makeDraggable(el, 'foundation', f, pile.length-1);   // drag a card back down to the columns
@@ -2401,6 +2595,7 @@ function updateWaste(){
       el.removeAttribute('aria-hidden');
       el.setAttribute('aria-label', `${cardName(card)}, from the waste pile.` +
         (cardHasMove('waste', 0, 0) ? ' This card has a move.' : ' This card has no moves.'));
+      el.dataset.where = 'waste'; el.dataset.col = 0; el.dataset.idx = 0;
       el.onclick = ()=> autoMove('waste', 0, 0);
       makeDraggable(el, 'waste', 0, 0);
     } else {
@@ -2466,6 +2661,7 @@ function renderTableau(){
         if (faceUp.length > 1)
           lbl += `. Face up in this column: ${faceUp.map(c=>cardName(c)).join(', ')}`;
         el.setAttribute('aria-label', lbl + '.');
+        el.dataset.where = 'tableau'; el.dataset.col = col; el.dataset.idx = idx;
         el.onclick = (e)=>{ e.stopPropagation(); autoMove('tableau', col, idx); };
         makeDraggable(el, 'tableau', col, idx);   // tap still works; drag is added on top
       } else {
@@ -2741,11 +2937,32 @@ function updateLangLabel(){
 function openSettings(){ syncToggles(); updateLangLabel(); openOverlay('settings','settingsTitle'); }   // land VoiceOver on the "Settings" heading (the top), not the Done button (Dani 2026-09-12)
 function closeSettings(){ closeOverlay('settings'); document.getElementById('btnAppear').focus(); }
 document.getElementById('settingsDone').onclick = closeSettings;
+
+/* ---- How to play (Dani's words, 2026-10-10): F1 on a computer, first row of Settings on a phone/tablet ---- */
+let howtoFromSettings = false, howtoReturnEl = null;
+function openHowTo(fromSettings){
+  howtoFromSettings = !!fromSettings;
+  howtoReturnEl = fromSettings ? null : document.activeElement;
+  if (fromSettings) closeOverlay('settings');                 // swap Settings for the guide (it comes back on Done)
+  openOverlay('howto', 'howtoTitle');                         // lands on the title, like Settings
+}
+function closeHowTo(){
+  closeOverlay('howto');
+  if (howtoFromSettings){ howtoFromSettings = false; openSettings(); return; }
+  const back = howtoReturnEl && document.contains(howtoReturnEl) ? howtoReturnEl : document.getElementById('btnAppear');
+  try { back.focus(); } catch(e){}
+}
+document.getElementById('setHow').onclick = ()=> openHowTo(true);
+document.getElementById('howtoDone').onclick = closeHowTo;
+document.getElementById('howto').addEventListener('click', (e)=>{ if (e.target.id === 'howto') closeHowTo(); });
 document.getElementById('settings').addEventListener('click', (e)=>{ if (e.target.id === 'settings') closeSettings(); });
 document.addEventListener('keydown', (e)=>{
   if (e.key==='Escape'){
-    if (isShowing('settings')) closeSettings();
+    if (isShowing('howto')) closeHowTo();
+    else if (isShowing('settings')) closeSettings();
     else if (isShowing('menu')) closeOverlay('menu');
+    else if (mouseSel) clearSelection();            // put a picked-up card back down
+    else if (boardIdle()) undo();                   // computer: Esc also takes back a move (Dani 2026-10-10); only when nothing is open
   }
 });
 
@@ -3349,7 +3566,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 8 · new art a3';
+  var BUILD_TAG = 'Oct 10 · controls a4';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
