@@ -423,7 +423,8 @@
   button.setrow.sethow .chev{ font-size:26px; line-height:1; color:var(--ink-soft); }
   /* the About screen (Dani 2026-10-10) */
   .aboutbrand{ margin:6px 0 2px; text-align:center; font-weight:600; color:var(--ink-soft); font-size:15px; letter-spacing:.02em; }
-  #about .aboutbrand{ font-size:29px; color:var(--ink); line-height:1.2; margin:8px 0 6px; letter-spacing:.01em; text-wrap:balance; }   /* the product name is the biggest thing on the page, bigger than the 'About' title (Dani 2026-10-10) */
+  #about .aboutbrand{ font-size:29px; color:#6b665d; line-height:1.2; margin:8px 0 30px; letter-spacing:.01em; white-space:nowrap; display:flex; align-items:center; justify-content:center; gap:10px; }   /* one line, softer grey, an orange paw before the M (Dani 2026-10-10) */
+  #about .aboutpaw{ width:32px; height:auto; flex:0 0 auto; }   /* the product name is the biggest thing on the page, bigger than the 'About' title (Dani 2026-10-10) */
   /* readable text for the long pages (Dani 2026-10-10: it was light grey and small - the generic .panel p rule was winning): dark ink, 17px */
   #about .howtext p, #about .howtext li, #howto .howtext p, #howto .howtext li{ color:var(--ink); font-size:17px; line-height:1.6; }
   #about .abouth{ font-size:21px; }
@@ -1041,7 +1042,7 @@
   <div id="about" class="overlay overlay--full">
     <div class="panel panel--full" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
       <div class="settings-head">
-        <p class="aboutbrand">Mindfulness Play&trade; Solitaire</p>
+        <p class="aboutbrand"><img class="aboutpaw" src="assets/interface/about-paw.png" alt="" aria-hidden="true">Mindfulness Play&trade;</p>
         <h2 id="aboutTitle" tabindex="-1">About</h2>
       </div>
       <div class="howtext abouttext">
@@ -3822,7 +3823,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 10 · about a14';
+  var BUILD_TAG = 'Oct 10 · about a15';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
