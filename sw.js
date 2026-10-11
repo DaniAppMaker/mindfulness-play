@@ -20,7 +20,7 @@
    ================================================================ */
 
 /* 👉 Bump this ONLY when card/interface images or sound files change or are added. */
-const CACHE_VERSION = 'v12';
+const CACHE_VERSION = 'v13';
 const CACHE_NAME = 'cozy-cat-' + CACHE_VERSION;
 
 /* The app shell — the few files needed to show *something* offline.
@@ -40,6 +40,7 @@ const APP_SHELL = [
 /* Everything else — saved in the background, best-effort. A single
    missing file here never breaks the install. */
 const ASSETS = [
+  'assets/background/background-wide.jpg',   // horizontal-screen wash (2026-10-11)
   'assets/buttons/button-appearance.png',
   'assets/buttons/button-hint.png',
   'assets/buttons/button-paw.png',

@@ -791,7 +791,8 @@
     #welBrand{ font-size:calc(90 * var(--u)); white-space:nowrap; }
     #welBrand .tm{ width:auto; display:inline; }   /* here the TM counts as part of the title, so the right-most part of the text really sits on the margin */
     #welKind{ font-size:calc(200 * var(--u)); margin-top:calc(10 * var(--u)); }
-    .next-arrow{ right:calc(var(--m) * var(--u)); bottom:calc(100 * var(--u)); }
+    .next-arrow{ right:calc(var(--m) * var(--u)); bottom:max(calc(130 * var(--u)), calc(env(safe-area-inset-bottom, 0px) + 64px));
+               width:max(calc(120 * var(--u)), 56px); height:max(calc(120 * var(--u)), 56px); }   /* big enough for a thumb, and clear of the iPhone's bottom-edge swipe zone */
     /* loading */
     #loadCat{ left:calc(var(--m) * var(--u) - 0.002 * 480 * var(--u)); top:calc(240 * var(--u)); width:calc(480 * var(--u)); }
     #loadPrompt{ left:auto; right:calc(var(--m) * var(--u)); width:max-content; max-width:calc(900 * var(--u)); padding:0; top:calc(400 * var(--u)); font-size:calc(50 * var(--u)); }
@@ -803,6 +804,15 @@
     #winPrompt{ font-size:calc(64 * var(--u)); }
     #lostPrompt{ font-size:calc(56 * var(--u)); }   /* sized so the whole message fits on one line, keeping its right edge on the margin */
     #winNewBtn, #lostNewBtn{ position:static; margin-top:calc(60 * var(--u)); }
+  }
+  /* Wide screens: the painting is turned a quarter-turn, so its soft torn top edge fades in
+     from the LEFT edge (like the top of the tall phone view) and the colour runs all the way
+     to the right edge (no white/grey scanner margin). Same wash strength as everywhere else. */
+  @media (min-aspect-ratio: 13/10){
+    body::before, .screen::before, .overlay.overlay--full::before{
+      background-image:url("assets/background/background-wide.jpg");
+      background-position:left center; background-size:cover;
+    }
   }</style>
 </head>
 <body>
@@ -3912,7 +3922,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 11 · wide a23';
+  var BUILD_TAG = 'Oct 11 · wide a24';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
