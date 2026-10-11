@@ -377,34 +377,48 @@
      the RIGHT. --u is rescaled on #app only, so the welcome / loading / win / lose screens and pop-ups are untouched. */
   @media (min-aspect-ratio: 13/10){
     #app{
-      --L:360; --R:260;                                    /* side panels in board units (squarer screens such as tablets) */
+      --L:420; --R:240;                                    /* side panels in board units (squarer screens such as tablets) */
       --u: min(calc(100vw / (var(--L) + 1080 + var(--R))), calc(100vh / 1340));
       --board: calc(1080 * var(--u));
       --cw: calc(152 * var(--u));  --ch: calc(242 * var(--u));
       --stack-down: calc(32 * var(--u));  --stack-up: calc(68 * var(--u));
       width: calc((var(--L) + 1080 + var(--R)) * var(--u));  height: calc(1340 * var(--u));  min-height: 0;
     }
-    #prompt{ left:0; top:0; width:calc(var(--L) * var(--u)); height:100%; justify-content:center; padding:0 calc(24 * var(--u)); }
-    #promptText{ position:relative; top:auto; left:auto; transform:none; width:100%; max-width:100%;
-                 margin-top:calc(90 * var(--u)); font-size:calc(40 * var(--u)); }
+    #prompt{ left:0; top:0; width:calc(var(--L) * var(--u)); height:100%; justify-content:flex-start; padding:calc(300 * var(--u)) calc(24 * var(--u)) 0; }   /* the invitation sits next to the first row of cards; the cat + mouse go BELOW it (Dani 2026-10-11) */
+    #promptText{ position:relative; top:auto; left:auto; transform:none; width:100%; max-width:100%; order:-1;
+                 margin:0 0 calc(90 * var(--u)); font-size:calc(40 * var(--u)); }
     #promptText.long{ font-size:calc(34 * var(--u)); }
-    #promptPets{ transform:translateX(calc(-30 * var(--u))); }
-    #promptCat{ width:calc(210 * var(--u)); }
-    #promptMouse{ width:calc(125 * var(--u)); top:calc(75 * var(--u)); }
+    #promptPets{ transform:translateX(calc(-60 * var(--u))); }
+    #promptCat{ width:calc(170 * var(--u)); }
+    #promptMouse{ width:calc(100 * var(--u)); top:calc(60 * var(--u)); left:calc(100% + 14 * var(--u)); }   /* the mouse + its tail must stay clear of the first column of cards */
     #topRow{ left:calc(var(--L) * var(--u)); width:calc(1080 * var(--u)); top:calc(20 * var(--u)); }
     #tableau{ left:calc(var(--L) * var(--u)); width:calc(1080 * var(--u)); top:calc(300 * var(--u)); bottom:calc(20 * var(--u)); }
     #buttons{ left:calc((var(--L) + 1080) * var(--u)); top:0; width:calc(var(--R) * var(--u)); height:100%;
               flex-direction:column; justify-content:center; align-items:center; gap:calc(80 * var(--u)); padding:0; }
   }
+  /* use the VISIBLE height (iPhone Safari's toolbars change it) where supported */
+  @supports (height: 100dvh){
+    @media (min-aspect-ratio: 13/10){
+      #app{ --u: min(calc(100vw / (var(--L) + 1080 + var(--R))), calc(100dvh / 1340)); }
+    }
+  }
+  /* phones held sideways: short screens, so keep the side panels slim and the cards as big as the height allows */
+  @media (min-aspect-ratio: 155/100) and (max-height: 520px){
+    #app{ --L:520; --R:270; }
+    #promptText{ margin:0 0 calc(60 * var(--u)); font-size:calc(44 * var(--u)); }
+    #promptPets{ transform:translateX(calc(-50 * var(--u))); }
+    #promptCat{ width:calc(190 * var(--u)); }
+    #promptMouse{ width:calc(115 * var(--u)); top:calc(68 * var(--u)); left:calc(100% + 14 * var(--u)); }
+  }
   /* very wide screens (16:10 and wider: laptops, desktops): roomier side panels and the full-size cat */
   @media (min-aspect-ratio: 155/100){
-    #app{ --L:560; --R:440; }
-    #prompt{ padding:0 calc(30 * var(--u)); }
-    #promptText{ margin-top:calc(120 * var(--u)); font-size:calc(46 * var(--u)); }
+    #app{ --L:620; --R:420; }
+    #prompt{ padding:calc(300 * var(--u)) calc(90 * var(--u)) 0 calc(30 * var(--u)); }   /* extra right padding keeps the cat + mouse + text group well away from the cards */
+    #promptText{ margin:0 0 calc(110 * var(--u)); font-size:calc(46 * var(--u)); }
     #promptText.long{ font-size:calc(40 * var(--u)); }
-    #promptPets{ transform:translateX(calc(-40 * var(--u))); }
-    #promptCat{ width:calc(300 * var(--u)); }
-    #promptMouse{ width:calc(180 * var(--u)); top:calc(108 * var(--u)); }
+    #promptPets{ transform:translateX(calc(-110 * var(--u))); }
+    #promptCat{ width:calc(260 * var(--u)); }
+    #promptMouse{ width:calc(150 * var(--u)); top:calc(94 * var(--u)); left:calc(100% + 14 * var(--u)); }
   }
   /* ================= overlays (win / settings / menu) ================= */
   .overlay{
@@ -3859,7 +3873,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 11 · wide a20';
+  var BUILD_TAG = 'Oct 11 · wide a21';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
