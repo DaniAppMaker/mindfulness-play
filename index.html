@@ -370,6 +370,42 @@
   .ctrl:active{ transform:translateY(2px); }
   .ctrl img{ width:100%; height:100%; object-fit:contain; display:block; }
 
+  /* ================= WIDE-SCREEN LAYOUT (Dani 2026-10-11: laptops, desktops, landscape tablets/phones) =================
+     The phone board is a tall 1080x2160 column; on a wide screen it was shrunk to fit the HEIGHT and ended up a narrow
+     strip with tiny cards. On wide screens the game now uses a 2080x1340 stage instead (same 1080-wide board in the
+     middle, so every card position and rule is unchanged): the cat + invitation on the LEFT, the five buttons stacked on
+     the RIGHT. --u is rescaled on #app only, so the welcome / loading / win / lose screens and pop-ups are untouched. */
+  @media (min-aspect-ratio: 13/10){
+    #app{
+      --L:360; --R:260;                                    /* side panels in board units (squarer screens such as tablets) */
+      --u: min(calc(100vw / (var(--L) + 1080 + var(--R))), calc(100vh / 1340));
+      --board: calc(1080 * var(--u));
+      --cw: calc(152 * var(--u));  --ch: calc(242 * var(--u));
+      --stack-down: calc(32 * var(--u));  --stack-up: calc(68 * var(--u));
+      width: calc((var(--L) + 1080 + var(--R)) * var(--u));  height: calc(1340 * var(--u));  min-height: 0;
+    }
+    #prompt{ left:0; top:0; width:calc(var(--L) * var(--u)); height:100%; justify-content:center; padding:0 calc(24 * var(--u)); }
+    #promptText{ position:relative; top:auto; left:auto; transform:none; width:100%; max-width:100%;
+                 margin-top:calc(90 * var(--u)); font-size:calc(40 * var(--u)); }
+    #promptText.long{ font-size:calc(34 * var(--u)); }
+    #promptPets{ transform:translateX(calc(-30 * var(--u))); }
+    #promptCat{ width:calc(210 * var(--u)); }
+    #promptMouse{ width:calc(125 * var(--u)); top:calc(75 * var(--u)); }
+    #topRow{ left:calc(var(--L) * var(--u)); width:calc(1080 * var(--u)); top:calc(20 * var(--u)); }
+    #tableau{ left:calc(var(--L) * var(--u)); width:calc(1080 * var(--u)); top:calc(300 * var(--u)); bottom:calc(20 * var(--u)); }
+    #buttons{ left:calc((var(--L) + 1080) * var(--u)); top:0; width:calc(var(--R) * var(--u)); height:100%;
+              flex-direction:column; justify-content:center; align-items:center; gap:calc(80 * var(--u)); padding:0; }
+  }
+  /* very wide screens (16:10 and wider: laptops, desktops): roomier side panels and the full-size cat */
+  @media (min-aspect-ratio: 155/100){
+    #app{ --L:560; --R:440; }
+    #prompt{ padding:0 calc(30 * var(--u)); }
+    #promptText{ margin-top:calc(120 * var(--u)); font-size:calc(46 * var(--u)); }
+    #promptText.long{ font-size:calc(40 * var(--u)); }
+    #promptPets{ transform:translateX(calc(-40 * var(--u))); }
+    #promptCat{ width:calc(300 * var(--u)); }
+    #promptMouse{ width:calc(180 * var(--u)); top:calc(108 * var(--u)); }
+  }
   /* ================= overlays (win / settings / menu) ================= */
   .overlay{
     position:fixed; inset:0; z-index:30;
@@ -3529,6 +3565,7 @@ function startupFlow(){
      (no auto-advance) so it can be inspected calmly. Only active with the param;
      the normal app flow is untouched. */
   const pv = new URLSearchParams(location.search).get('preview');
+  if (pv === 'board'){ setGameHiddenForAT(false); if (new URLSearchParams(location.search).has('invite')) setTimeout(()=>{ try{ showInvitation(true); }catch(e){} }, 600); return; }   // ?preview=board shows the game board directly, skipping the welcome screens (for looking at layouts)
   if (pv === 'about'){ openAbout(); return; }   // ?preview=about opens the About screen directly (for looking at it)
   if (pv === 'musician'){   // ?preview=musician (Cassie) or ?preview=musician&who=erin|christian opens a musician's page directly (for looking at it)
     const who = new URLSearchParams(location.search).get('who');
@@ -3822,7 +3859,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 10 · about a19';
+  var BUILD_TAG = 'Oct 11 · wide a20';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
