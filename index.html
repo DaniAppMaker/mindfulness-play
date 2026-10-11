@@ -683,6 +683,7 @@
      so the column no longer paints its own wash — that avoids a darker band
      in the middle and a visible edge at the column sides. */
   .scr-art{ position:absolute; display:block; height:auto; }
+  .scr-group{ display:contents; }   /* in the tall phone layout these wrappers change nothing; the wide layout uses them to line text up on the margin */
   .scr-text{
     position:absolute; left:0; width:100%; margin:0; text-align:center;
     font-family:"Quicksand","Segoe UI",sans-serif; font-weight:500;
@@ -774,30 +775,35 @@
   #winNewBtn:active, #lostNewBtn:active{ transform:translateY(calc(1 * var(--u))); }
 
   /* ================= WIDE-SCREEN VERSIONS OF THE STORY SCREENS (Dani 2026-10-11) =================
-     Welcome / loading / win / no-moves, rebuilt as side-by-side scenes on a 1920x1080 stage: the picture on the LEFT,
-     the words (and the button) on the RIGHT. Same words, same pictures, same screen-reader order; only positions change.
-     Phones held upright keep the tall layouts untouched. */
+     Welcome / loading / win / no-moves, as side-by-side scenes on a 1920x1080 stage: the picture on the LEFT, the words (and
+     the button) on the RIGHT. Same words, same pictures, same screen-reader order. ONE MARGIN RULE for all four screens (and every
+     screen size, because it is in board units): the cat's painted LEFT edge is --m from the left screen edge, and the RIGHT-most
+     part of the text block is --m from the right screen edge. Phones held upright keep the tall layouts untouched. */
   @media (min-aspect-ratio: 13/10){
-    .screen{ --u: min(calc(100vw / 1920), calc(100vh / 1080)); --board: calc(1920 * var(--u)); --boardH: calc(1080 * var(--u)); }
-    .screen-col{ --ltStart:1020; --ltLen:780; }
-    .scr-text{ left:calc(960 * var(--u)); width:calc(960 * var(--u)); padding:0 calc(90 * var(--u)); }
+    .screen{ --u: min(calc(100vw / 1920), calc(100vh / 1080)); --board: calc(1920 * var(--u)); --boardH: calc(1080 * var(--u)); --m:110; }
+    .screen-col{ --ltStart:1030; --ltLen:780; }                        /* loading line: its right end is also --m from the edge (1920 - 110 - 780 = 1030) */
+    /* text groups: right edge on the margin, lines centred on each other */
+    .scr-group{ display:flex; flex-direction:column; align-items:center; position:absolute; right:calc(var(--m) * var(--u));
+                top:calc(540 * var(--u)); transform:translateY(-50%); width:max-content; max-width:calc(900 * var(--u)); }
+    .scr-group .scr-text{ position:static; transform:none; width:auto; padding:0; margin:0; }
     /* welcome */
-    #welCat{ left:calc(180 * var(--u)); top:calc(190 * var(--u)); width:calc(700 * var(--u)); }
-    #welBrand{ top:calc(440 * var(--u)); font-size:calc(90 * var(--u)); white-space:nowrap; padding:0; }
-    #welKind{ top:calc(640 * var(--u)); font-size:calc(200 * var(--u)); }
-    .next-arrow{ right:calc(110 * var(--u)); bottom:calc(100 * var(--u)); }
+    #welCat{ left:calc(var(--m) * var(--u) - 0.017 * 700 * var(--u)); top:calc(190 * var(--u)); width:calc(700 * var(--u)); }
+    #welBrand{ font-size:calc(90 * var(--u)); white-space:nowrap; }
+    #welBrand .tm{ width:auto; display:inline; }   /* here the TM counts as part of the title, so the right-most part of the text really sits on the margin */
+    #welKind{ font-size:calc(200 * var(--u)); margin-top:calc(10 * var(--u)); }
+    .next-arrow{ right:calc(var(--m) * var(--u)); bottom:calc(100 * var(--u)); }
     /* loading */
-    #loadCat{ left:calc(260 * var(--u)); top:calc(240 * var(--u)); width:calc(480 * var(--u)); }
-    #loadPrompt{ top:calc(400 * var(--u)); left:calc(900 * var(--u)); width:calc(1020 * var(--u)); padding:0 calc(40 * var(--u)); font-size:calc(50 * var(--u)); }   /* wide enough that none of the loading messages wraps an extra line */
+    #loadCat{ left:calc(var(--m) * var(--u) - 0.002 * 480 * var(--u)); top:calc(240 * var(--u)); width:calc(480 * var(--u)); }
+    #loadPrompt{ left:auto; right:calc(var(--m) * var(--u)); width:max-content; max-width:calc(900 * var(--u)); padding:0; top:calc(400 * var(--u)); font-size:calc(50 * var(--u)); }
     #loadTrack{ top:calc(780 * var(--u)); }
     #loadMouse{ top:calc(687 * var(--u)); }
     /* winning + no moves */
-    #winCatArt{ left:calc(180 * var(--u)); top:calc(230 * var(--u)); width:calc(650 * var(--u)); }
-    #lostCatArt{ left:calc(130 * var(--u)); top:calc(340 * var(--u)); width:calc(760 * var(--u)); }
-    #winPrompt, #lostPrompt{ top:calc(430 * var(--u)); font-size:calc(72 * var(--u)); }
-    #winNewBtn, #lostNewBtn{ left:calc(1250 * var(--u)); top:calc(620 * var(--u)); }
-  }
-</style>
+    #winCatArt{ left:calc(var(--m) * var(--u) - 0.041 * 650 * var(--u)); top:calc(230 * var(--u)); width:calc(650 * var(--u)); }
+    #lostCatArt{ left:calc(var(--m) * var(--u) - 0.004 * 760 * var(--u)); top:calc(340 * var(--u)); width:calc(760 * var(--u)); }
+    #winPrompt{ font-size:calc(64 * var(--u)); }
+    #lostPrompt{ font-size:calc(56 * var(--u)); }   /* sized so the whole message fits on one line, keeping its right edge on the margin */
+    #winNewBtn, #lostNewBtn{ position:static; margin-top:calc(60 * var(--u)); }
+  }</style>
 </head>
 <body>
   <!-- a quiet voice for screen readers: game events (moves, draws) are announced here -->
@@ -906,9 +912,11 @@
         <div class="scr-art" id="welCat" role="img" tabindex="-1"
              aria-label="Welcome to Mindfulness Play. This is a game of solitaire with invitations to mindfulness sprinkled in. It's an opportunity to take a break and to bridge mindfulness into real life, away from the meditation cushion. On the screen, a soft peaceful watercolor cat sits in a meditation pose, warm pink melting into golden yellow, eyes gently closed and paws folded."></div>
         <!-- STEP 2: the words on screen. Plain text, NOT inside a role="img", so read ONCE. -->
+        <div class="scr-group" id="welGroup">
         <p  class="scr-text" id="welBrand">Mindfulness Play<sup class="tm" aria-hidden="true">&trade;</sup></p>
         <!-- the tagline "Mindfulness, woven into everyday moments" is no longer on this screen (Dani, 2026-10-04); kept for the store page / website -->
         <p  class="scr-text" id="welKind">Solitaire</p>
+        </div>
       </div>
       <!-- STEP 3: the Begin button. Sibling of the (now plain) narration div, z-index:4 so
            it sits above and stays reachable. After it the screen ends and VoiceOver quiets. -->
@@ -967,8 +975,10 @@
            prompt text, then the New Game button. Previously the code focused the button,
            which skipped the cat and text. -->
       <div class="scr-art" id="winCatArt" role="img" tabindex="-1" aria-label="You finished the game! A watercolor splotch shading from pink at the face through lilac to sky blue, with black ink lines over it: a happy cat mid-stretch — front legs reaching forward, back arched, tail curled up high, eyes squeezed shut in a big satisfied smile."></div>
+      <div class="scr-group" id="winGroup">
       <p class="scr-text" id="winPrompt"></p>
       <button id="winNewBtn">New Game</button>
+      </div>
     </div>
   </div>
 
@@ -988,8 +998,10 @@
            OCR'd; the cursor lands on #lostCatDesc instead. -->
       <div class="scr-art" id="lostCatArt" aria-hidden="true"></div>
       <p id="lostCatDesc" class="visually-hidden" tabindex="-1">No moves left. A soft pink watercolor splotch with black ink lines over it: a round cat flopped down on its belly for a rest, legs sprawled out, long tail trailing off to one side, eyes closed — completely relaxed.</p>
+      <div class="scr-group" id="lostGroup">
       <p class="scr-text" id="lostPrompt"></p>
       <button id="lostNewBtn">New Game</button>
+      </div>
     </div>
   </div>
 
@@ -3900,7 +3912,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 11 · wide a22';
+  var BUILD_TAG = 'Oct 11 · wide a23';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
