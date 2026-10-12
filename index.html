@@ -835,8 +835,9 @@
     #welBrand .tm{ width:auto; display:inline; }   /* here the TM counts as part of the title, so the right-most part of the text really sits on the margin */
     #welKind{ font-size:calc(200 * var(--u)); margin-top:calc(10 * var(--u)); }
     /* the Begin arrows (welcome + loading): identical size, bottom-right corner of the SCREEN, ~20px in */
-    .next-arrow{ position:absolute; right:max(20px, env(safe-area-inset-right, 0px)); bottom:max(20px, env(safe-area-inset-bottom, 0px));
-                 width:56px; height:56px; }
+    .next-arrow{ position:absolute; right:max(36px, env(safe-area-inset-right, 0px)); bottom:max(64px, env(safe-area-inset-bottom, 0px));
+                 width:56px; height:56px; }   /* lifted off the bottom edge: at ~20px the iPhone app ignored taps (Dani 2026-10-12, a26/a27); 64px up worked in a24 */
+    .next-arrow::after{ content:""; position:absolute; inset:-36px -12px -8px -36px; }   /* invisible extra tap room above and to the left */
     /* loading */
     #loadCat{ left:calc(170.4 * var(--u)); top:calc(111 * var(--u)); width:calc(680 * var(--u)); }
     #loadPrompt{ left:calc(var(--ltStart) * var(--u)); right:auto; width:calc(var(--ltLen) * var(--u)); max-width:none; padding:0; top:calc(400 * var(--u)); font-size:calc(48 * var(--u)); }
@@ -3969,7 +3970,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 11 · wide a27';
+  var BUILD_TAG = 'Oct 11 · wide a28';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
