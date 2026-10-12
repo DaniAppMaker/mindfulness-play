@@ -746,7 +746,7 @@
      A screen-reader player is told to double-tap anywhere, so they don't hunt
      for it — but it's still a real, labelled "Begin" button they can land on. */
   .next-arrow{
-    position:absolute; right:calc(84 * var(--u)); bottom:calc(160 * var(--u));
+    position:absolute; right:calc((100% - var(--board)) / 2 + 84 * var(--u)); bottom:calc((100% - var(--boardH)) / 2 + 160 * var(--u));   /* a direct child of the screen (NOT the clipped column), so iPhones never lose its taps */
     width:calc(104 * var(--u)); height:calc(104 * var(--u));
     padding:0; border:none; background:none; cursor:pointer;
     color:var(--ink-soft); opacity:0; z-index:4;
@@ -835,7 +835,7 @@
     #welBrand .tm{ width:auto; display:inline; }   /* here the TM counts as part of the title, so the right-most part of the text really sits on the margin */
     #welKind{ font-size:calc(200 * var(--u)); margin-top:calc(10 * var(--u)); }
     /* the Begin arrows (welcome + loading): identical size, bottom-right corner of the SCREEN, ~20px in */
-    .next-arrow{ position:fixed; right:max(20px, env(safe-area-inset-right, 0px)); bottom:max(20px, env(safe-area-inset-bottom, 0px));
+    .next-arrow{ position:absolute; right:max(20px, env(safe-area-inset-right, 0px)); bottom:max(20px, env(safe-area-inset-bottom, 0px));
                  width:56px; height:56px; }
     /* loading */
     #loadCat{ left:calc(170.4 * var(--u)); top:calc(111 * var(--u)); width:calc(680 * var(--u)); }
@@ -975,10 +975,10 @@
       </div>
       <!-- STEP 3: the Begin button. Sibling of the (now plain) narration div, z-index:4 so
            it sits above and stays reachable. After it the screen ends and VoiceOver quiets. -->
+    </div>
       <button type="button" class="next-arrow" id="welNext" aria-label="Begin the game">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4.5" y1="12" x2="18" y2="12"/><polyline points="12.5 6 18.5 12 12.5 18"/></svg>
       </button>
-    </div>
   </div>
 
   <!-- Loading. Same winning recipe as the welcome screen (Dani-approved 2026-09-10):
@@ -1016,10 +1016,10 @@
       <div id="loadMouse" aria-hidden="true"></div>
       <!-- STEP 3: the Begin button. Plain sibling of the (now plain) narration div. Its
            label folds in the "you can skip the description" heads-up for new players. -->
+    </div>
       <button type="button" class="next-arrow" id="loadNext" aria-label="Begin the game. When you begin, you can listen to a short description of the game, or tap anything to skip it.">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4.5" y1="12" x2="18" y2="12"/><polyline points="12.5 6 18.5 12 12.5 18"/></svg>
       </button>
-    </div>
   </div>
 
   <div class="screen fade" id="screenWin" role="dialog" aria-modal="true" aria-label="You finished the game">
@@ -3969,7 +3969,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 11 · wide a26';
+  var BUILD_TAG = 'Oct 11 · wide a27';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
