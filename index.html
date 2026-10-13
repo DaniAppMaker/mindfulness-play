@@ -448,9 +448,27 @@
     #prompt{ padding:calc(300 * var(--u)) calc(90 * var(--u)) 0 calc(30 * var(--u)); }   /* extra right padding keeps the cat + mouse + text group well away from the cards */
     #promptText{ margin:0 0 calc(110 * var(--u)); font-size:calc(46 * var(--u)); }
     #promptText.long{ font-size:calc(40 * var(--u)); }
-    #promptPets{ transform:translateX(calc(-110 * var(--u))); }
+    #promptPets{ transform:translateX(calc(-52 * var(--u))); }   /* centres the cat + mouse PAIR in the left space (measured 2026-10-12) */
     #promptCat{ width:calc(260 * var(--u)); }
     #promptMouse{ width:calc(150 * var(--u)); top:calc(94 * var(--u)); left:calc(100% + 14 * var(--u)); }
+  }
+  /* The cat stays still: the invitation text keeps a reserved space whether or not words are showing,
+     so the cat + mouse below it never jump when an invitation appears or fades (Dani 2026-10-12). */
+  @media (min-aspect-ratio: 13/10){
+    #promptText{ min-height:calc(330 * var(--u)); }
+  }
+  /* Measure the REAL visible screen (container units), not vw/vh: on an iPhone held sideways vh/vw can include the
+     strip under the home bar, which pushed the bottom button half off the screen (Dani 2026-10-12). The stage is
+     now the whole visible screen: the board sits in the exact middle, and the cat group (left) and the five buttons
+     (right) are each centred in their own side space, so both sides are the same size. */
+  @supports (width: 1cqw){
+    @media (min-aspect-ratio: 13/10){
+      body{ container-type:size; min-height:0; }
+      #app{ --Z0:420; --u: min(calc(100cqw / (1080 + 2 * var(--Z0))), calc(100cqh / 1340)); width:100%; }
+      #prompt{ width:calc(50% - 540 * var(--u)); }
+      #topRow, #tableau{ left:calc(50% - 540 * var(--u)); }
+      #buttons{ left:calc(50% + 540 * var(--u)); width:calc(50% - 540 * var(--u)); }
+    }
   }
   /* ================= overlays (win / settings / menu) ================= */
   .overlay{
@@ -835,20 +853,25 @@
     #welBrand .tm{ width:auto; display:inline; }   /* here the TM counts as part of the title, so the right-most part of the text really sits on the margin */
     #welKind{ font-size:calc(200 * var(--u)); margin-top:calc(10 * var(--u)); }
     /* the Begin arrows (welcome + loading): identical size, bottom-right corner of the SCREEN, ~20px in */
-    .next-arrow{ position:absolute; right:max(36px, env(safe-area-inset-right, 0px)); bottom:max(64px, calc(170 * var(--u)), env(safe-area-inset-bottom, 0px));
+    .next-arrow{ position:absolute; right:max(36px, env(safe-area-inset-right, 0px)); bottom:max(64px, calc(240 * var(--u)), env(safe-area-inset-bottom, 0px));
                  width:56px; height:56px; }   /* lifted off the bottom edge: at ~20px the iPhone app ignored taps (Dani 2026-10-12, a26/a27); 64px up worked in a24 */
     .next-arrow::after{ content:""; position:absolute; inset:-36px -12px -8px -36px; }   /* invisible extra tap room above and to the left */
     /* loading */
     #loadCat{ left:calc(170.4 * var(--u)); top:calc(97 * var(--u)); width:calc(560 * var(--u)); }
     #loadPrompt{ left:calc(849 * var(--u)); right:auto; width:calc(900 * var(--u)); max-width:none; padding:0; top:calc(450 * var(--u)); font-size:calc(48 * var(--u)); }
-    #loadTrack{ top:calc(1035 * var(--u)); }
-    #loadMouse{ top:calc(942 * var(--u)); }
+    #loadTrack{ top:calc(975 * var(--u)); }
+    #loadMouse{ top:calc(882 * var(--u)); }
     /* winning + no moves */
     #winCatArt{ width:calc(700 * var(--u)); margin:0 calc(-0.002 * 700 * var(--u)) 0 calc(-0.041 * 700 * var(--u)); }
     #lostCatArt{ width:calc(720 * var(--u)); margin:0 0 0 calc(-0.003 * 720 * var(--u)); }
     #winPrompt{ font-size:calc(64 * var(--u)); }
     #lostPrompt{ font-size:calc(56 * var(--u)); }
     #winNewBtn, #lostNewBtn{ position:static; margin-top:calc(60 * var(--u)); }
+  }
+  @supports (width: 1cqw){
+    @media (min-aspect-ratio: 13/10){
+      .screen{ container-type:size; --u: min(calc(100cqw / 1920), calc(100cqh / 1080)); }   /* the real visible screen, as above */
+    }
   }
   /* Wide screens: the painting is turned a quarter-turn, so its soft torn top edge fades in
      from the LEFT edge (like the top of the tall phone view) and the colour runs all the way
@@ -3563,7 +3586,18 @@ function setLoadingScreenText(){
    is ready; it never auto-advances. (Dani 2026-09-10: bring the mouse back, and the
    arrow appears once the mouse finishes.) */
 const LOAD_TRACK_START = 175, LOAD_TRACK_LEN = 730, LOAD_MOUSE_HALF = 66;   // reference units — full original length (the Begin arrow sits BELOW the line, so no overlap)
-function startMouseWalk(onArrive){
+/* The loading line must not finish before the screen's pictures have really loaded (Dani 2026-10-12: the line
+   finished, then the cat appeared later). Start fetching + decoding them at launch; startMouseWalk holds the line
+   just short of the end until they are ready (or 20s, so nothing can ever hang). */
+let loadingAssetsReady = false;
+(function(){
+  const urls = ['assets/interface/paw-licking-cat.png', 'assets/interface/loading-mouse.png'];
+  let left = urls.length;
+  const one = ()=>{ if (--left <= 0) loadingAssetsReady = true; };
+  urls.forEach(u=>{ const im = new Image(); im.onload = ()=>{ (im.decode ? im.decode() : Promise.resolve()).then(one, one); }; im.onerror = one; im.src = u; });
+  setTimeout(()=>{ loadingAssetsReady = true; }, 20000);
+})();
+function startMouseWalk(onArrive, gate){
   const fill  = document.getElementById('loadFill');
   const mouse = document.getElementById('loadMouse');
   const setP = (p)=>{
@@ -3575,17 +3609,21 @@ function startMouseWalk(onArrive){
   setP(0);
   if (reducedMotion()){                       // no walk animation — settle at the end, then reveal
     setP(1);
-    const t = setTimeout(onArrive, 900);      // still a beat to read first
+    let t = 0; const waitReady = ()=>{ if (!gate || gate()) onArrive(); else t = setTimeout(waitReady, 200); };
+    t = setTimeout(waitReady, 900);           // still a beat to read first (and wait for the pictures)
     return ()=> clearTimeout(t);
   }
   const DUR = firstLaunch ? 4250 : 2750;      // a calm slow walk the first time; a little brisker on repeat opens (the teaching line still wants reading)
-  let raf = 0, start = 0, cancelled = false;
+  let raf = 0, start = 0, last = 0, shown = 0, cancelled = false;
   const step = (ts)=>{
     if (cancelled) return;
-    if (!start) start = ts;
-    const p = (ts - start) / DUR;
-    setP(p);
-    if (p < 1) raf = requestAnimationFrame(step);
+    if (!start){ start = ts; last = ts; }
+    const dt = Math.max(0, (ts - last) / 1000); last = ts;
+    const cap = (gate && !gate()) ? 0.9 : 1;                 // wait just short of the end until everything has loaded
+    const goal = Math.min((ts - start) / DUR, cap);
+    shown = Math.min(goal, shown + Math.max(dt, 0.001) * 0.8);   // never jumps: catches up smoothly
+    setP(shown);
+    if (shown < 1) raf = requestAnimationFrame(step);
     else onArrive();
   };
   raf = requestAnimationFrame(step);
@@ -3600,7 +3638,7 @@ function runLoading(finish){
   // The Begin arrow starts hidden and appears when the mouse finishes walking the line;
   // it only becomes tappable once it has fully faded in (armArrow).
   disarmArrow(document.getElementById('loadNext'));
-  const cancelWalk = startMouseWalk(()=> armArrow(document.getElementById('loadNext')));
+  const cancelWalk = startMouseWalk(()=> armArrow(document.getElementById('loadNext')), ()=> loadingAssetsReady);
   const done = ()=>{ if(finished) return; finished = true; cancelWalk(); advanceScreen = null; finish(); };
   advanceScreen = done;
   // Advance ONLY via the Begin arrow — and only once it has faded in (it's
@@ -3970,7 +4008,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 11 · wide a29';
+  var BUILD_TAG = 'Oct 11 · wide a30';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
