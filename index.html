@@ -818,8 +818,8 @@
   .scr-gap{ display:none; }
   @media (min-aspect-ratio: 13/10){
     .screen{ --u: min(calc(100vw / 1920), calc(100vh / 1080)); --board: calc(1920 * var(--u)); --boardH: calc(1080 * var(--u)); }
-    /* loading line: fixed 780u column. cat 680u: side gap X=(1920-678-780)/2.7=171.1, middle 0.7X=119.8 */
-    .screen-col{ --ltStart:968.8; --ltLen:780; }
+    /* loading: the line runs along the BOTTOM from the cat's left edge to the words' right edge (like the tall view). Cat 560u + 900u words column: side gap X=(1920-558-900)/2.7=171, middle 0.7X=119.7 */
+    .screen-col{ --ltStart:171; --ltLen:1578; }
     #welNarration, #screenWin .screen-col, #screenLost .screen-col{ display:flex; align-items:center; }
     #welNarration::before, #welNarration::after,
     #screenWin .screen-col::before, #screenWin .screen-col::after,
@@ -835,14 +835,14 @@
     #welBrand .tm{ width:auto; display:inline; }   /* here the TM counts as part of the title, so the right-most part of the text really sits on the margin */
     #welKind{ font-size:calc(200 * var(--u)); margin-top:calc(10 * var(--u)); }
     /* the Begin arrows (welcome + loading): identical size, bottom-right corner of the SCREEN, ~20px in */
-    .next-arrow{ position:absolute; right:max(36px, env(safe-area-inset-right, 0px)); bottom:max(64px, env(safe-area-inset-bottom, 0px));
+    .next-arrow{ position:absolute; right:max(36px, env(safe-area-inset-right, 0px)); bottom:max(64px, calc(170 * var(--u)), env(safe-area-inset-bottom, 0px));
                  width:56px; height:56px; }   /* lifted off the bottom edge: at ~20px the iPhone app ignored taps (Dani 2026-10-12, a26/a27); 64px up worked in a24 */
     .next-arrow::after{ content:""; position:absolute; inset:-36px -12px -8px -36px; }   /* invisible extra tap room above and to the left */
     /* loading */
-    #loadCat{ left:calc(170.4 * var(--u)); top:calc(111 * var(--u)); width:calc(680 * var(--u)); }
-    #loadPrompt{ left:calc(var(--ltStart) * var(--u)); right:auto; width:calc(var(--ltLen) * var(--u)); max-width:none; padding:0; top:calc(400 * var(--u)); font-size:calc(48 * var(--u)); }
-    #loadTrack{ top:calc(780 * var(--u)); }
-    #loadMouse{ top:calc(687 * var(--u)); }
+    #loadCat{ left:calc(170.4 * var(--u)); top:calc(97 * var(--u)); width:calc(560 * var(--u)); }
+    #loadPrompt{ left:calc(849 * var(--u)); right:auto; width:calc(900 * var(--u)); max-width:none; padding:0; top:calc(450 * var(--u)); font-size:calc(48 * var(--u)); }
+    #loadTrack{ top:calc(1035 * var(--u)); }
+    #loadMouse{ top:calc(942 * var(--u)); }
     /* winning + no moves */
     #winCatArt{ width:calc(700 * var(--u)); margin:0 calc(-0.002 * 700 * var(--u)) 0 calc(-0.041 * 700 * var(--u)); }
     #lostCatArt{ width:calc(720 * var(--u)); margin:0 0 0 calc(-0.003 * 720 * var(--u)); }
@@ -3970,7 +3970,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 11 · wide a28';
+  var BUILD_TAG = 'Oct 11 · wide a29';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
