@@ -5,21 +5,21 @@
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Mindfulness Play: Solitaire</title>
+<title>Cupunapa: Mindful Solitaire</title>
 <!-- Home-screen ("Add to Home Screen") name + icon = the cropped welcome-screen cat.
      These live here (not just in the live folder) so a publish can never strip them
      again — see the 2026-09-08 regression note.
-     NAMES (Dani, 2026-10-01 → built 2026-10-04): "Mindfulness Play" is the BRAND; this
-     app is "Mindfulness Play: Solitaire" (page title, link preview, stores) and
+     NAMES (Dani, 2026-10-01 → built 2026-10-04): "Cupunapa" is the BRAND; this
+     app is "Cupunapa: Mindful Solitaire" (page title, link preview, stores) and
      "Mindful Solitaire" on the home screen. -->
 <meta name="application-name" content="Mindful Solitaire" />
 <meta name="apple-mobile-web-app-title" content="Mindful Solitaire" />
-<meta name="description" content="Solitaire with a twist: designed to take the pressure off, to bring some ease. Watercolor cats invite you into mindfulness. No streaks, no scores, no guilt." />
+<meta name="description" content="Cupunapa, a mindful game of solitaire, designed to take the pressure off, to bring some ease. Watercolor cats invite you into mindfulness. No streaks, no scores, no guilt." />
 <!-- Link preview (iMessage, WhatsApp, social): what a shared link shows. -->
 <meta property="og:type" content="website" />
-<meta property="og:site_name" content="Mindfulness Play" />
-<meta property="og:title" content="Mindfulness Play: Solitaire" />
-<meta property="og:description" content="Solitaire with a twist: designed to take the pressure off, to bring some ease. Watercolor cats invite you into mindfulness. No streaks, no scores, no guilt." />
+<meta property="og:site_name" content="Cupunapa" />
+<meta property="og:title" content="Cupunapa: Mindful Solitaire" />
+<meta property="og:description" content="Cupunapa, a mindful game of solitaire, designed to take the pressure off, to bring some ease. Watercolor cats invite you into mindfulness. No streaks, no scores, no guilt." />
 <meta property="og:url" content="https://daniappmaker.github.io/mindfulness-play/" />
 <meta property="og:image" content="https://daniappmaker.github.io/mindfulness-play/assets/icon/apple-touch-icon.png" />
 <meta name="twitter:card" content="summary" />
@@ -881,6 +881,91 @@
       background-image:url("assets/background/background-wide.jpg");
       background-position:left center; background-size:cover;
     }
+  }
+
+  /* ================= SIDEWAYS PHONE LAYOUT (Dani 2026-10-16, from her approved picture "Mockup-sideways-v6") =================
+     Phones held sideways (short, wide screens) get their own arrangement so the cards are as big as the HEIGHT allows
+     and nothing is tiny or lost: foundations in a column on the LEFT, the seven columns centred in the middle, the
+     waste fan + draw pile in a column on the RIGHT, the five buttons in a row along the BOTTOM (smaller + faded),
+     and the cat + mouse + invitation (no box) centred in the corner UNDER the draw pile.
+     Everything is measured in --k = one "design pixel" = 1/393 of the REAL visible height (container units, never vh),
+     so the layout scales on every phone. Left-handed play (html.lh) mirrors it. Tablets and laptops are untouched.
+     The cat keeps a RESERVED space (room for a 4-line invitation, text sits right above the cat) so it never jumps. */
+  @supports (width: 1cqw){
+    @media (min-aspect-ratio: 155/100) and (max-height: 520px){
+      #app{
+        --k: calc(100cqh / 393);
+        --u: calc(var(--k) * 0.329);                          /* card = 50 x 80 design pixels */
+        --cw: calc(152 * var(--u));  --ch: calc(242 * var(--u));
+        --stack-down: calc(32 * var(--u));  --stack-up: calc(68 * var(--u));
+        --m: calc(24 * var(--k));                             /* margin from the left / right screen edge */
+        --wf: calc(100 * var(--u));                           /* how far the waste fan reaches left of the draw pile */
+        --gapc: calc(22 * var(--k));                          /* gap between the seven columns */
+        --tot: calc(7 * var(--cw) + 6 * var(--gapc));
+        --Lend: calc(var(--m) + var(--cw));                   /* right edge of the foundation column */
+        --Rstart: calc(100cqw - var(--m) - var(--cw) - var(--wf));   /* left edge of the waste fan */
+        --X0: calc(var(--Lend) + (var(--Rstart) - var(--Lend) - var(--tot)) / 2);   /* seven columns centred between the two sides */
+        --cbw: calc(170 * var(--k));                          /* cat + mouse + invitation group: width */
+        --cbh: calc(186 * var(--k));                          /* ... reserved height (4 lines of text + cat) */
+        --cbtop: calc(12 * var(--k) + 2 * var(--ch));         /* bottom edge of the draw pile */
+        --cbm: calc((100cqh - var(--cbtop) - var(--cbh)) / 2);   /* equal space above / below / beside the group */
+        width:100cqw; height:100cqh; min-height:0;
+      }
+      html.lh #app{
+        --Lend: calc(var(--m) + var(--cw) + var(--wf));
+        --Rstart: calc(100cqw - var(--m) - var(--cw));
+      }
+      /* foundations: a column on the left, not overlapping */
+      #topRow{ left:0; top:calc(6 * var(--k)); width:100%; height:var(--ch); }
+      #topRow .top-dyn[data-found]{ left:var(--m) !important; }
+      #topRow .top-dyn[data-found="0"]{ top:0 !important; }
+      #topRow .top-dyn[data-found="1"]{ top:calc(1 * (var(--ch) + 3.5 * var(--k))) !important; }
+      #topRow .top-dyn[data-found="2"]{ top:calc(2 * (var(--ch) + 3.5 * var(--k))) !important; }
+      #topRow .top-dyn[data-found="3"]{ top:calc(3 * (var(--ch) + 3.5 * var(--k))) !important; }
+      /* draw pile under the waste fan, right edge = same distance from the screen edge as the foundations */
+      #topRow .drawpile{ left:calc(100cqw - var(--m) - var(--cw)) !important; top:calc(var(--ch) + 6 * var(--k)) !important; }
+      #wasteFan{ left:calc(var(--Rstart) - 644 * var(--u)); right:auto; width:100%; }
+      /* the seven columns, centred between the foundations and the waste fan */
+      #tableau{ left:var(--X0); width:var(--tot); top:calc(6 * var(--k)); bottom:0; overflow:visible; }
+      #tableau .col[data-col="0"]{ left:calc(0 * (var(--cw) + var(--gapc))) !important; }
+      #tableau .col[data-col="1"]{ left:calc(1 * (var(--cw) + var(--gapc))) !important; }
+      #tableau .col[data-col="2"]{ left:calc(2 * (var(--cw) + var(--gapc))) !important; }
+      #tableau .col[data-col="3"]{ left:calc(3 * (var(--cw) + var(--gapc))) !important; }
+      #tableau .col[data-col="4"]{ left:calc(4 * (var(--cw) + var(--gapc))) !important; }
+      #tableau .col[data-col="5"]{ left:calc(5 * (var(--cw) + var(--gapc))) !important; }
+      #tableau .col[data-col="6"]{ left:calc(6 * (var(--cw) + var(--gapc))) !important; }
+      /* left-handed: mirror (foundations on the right, draw pile + waste on the left, group bottom-left) */
+      html.lh #topRow .top-dyn[data-found]{ left:calc(100cqw - var(--m) - var(--cw)) !important; }
+      html.lh #topRow .drawpile{ left:var(--m) !important; }
+      html.lh #wasteFan{ left:calc(var(--m) - 184 * var(--u)); }
+      /* the five buttons along the bottom: 28 design px, 14 apart, faded to 70%, centred under the columns */
+      #buttons{
+        left:calc(var(--X0) + var(--tot) / 2 - (5 * 28 + 4 * 14) * var(--k) / 2);
+        top:calc(100cqh - 6 * var(--k) - 28 * var(--k));
+        width:calc((5 * 28 + 4 * 14) * var(--k)); height:calc(28 * var(--k));
+        flex-direction:row; justify-content:space-between; align-items:center; gap:0; padding:0;
+      }
+      .ctrl{ position:relative; width:calc(28 * var(--k)); height:calc(28 * var(--k)); min-width:0; min-height:0; }
+      .ctrl img{ opacity:.7; }
+      .ctrl::after{ content:""; position:absolute; inset:calc(-7 * var(--k)); }   /* keeps the tap area generous */
+      /* cat + mouse + invitation: one group, text centred above the pair, no box */
+      #prompt{
+        left:calc(100cqw - var(--cbm) - var(--cbw)); top:calc(var(--cbtop) + var(--cbm));
+        width:var(--cbw); height:var(--cbh); padding:0;
+        display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:calc(6 * var(--k));
+      }
+      html.lh #prompt{ left:var(--cbm); }
+      #promptText{
+        position:relative; top:auto; left:auto; transform:none; order:-1;
+        width:100%; max-width:100%; min-height:0; margin:0; flex:1 1 auto;
+        display:flex; align-items:flex-end; justify-content:center;
+        font-size:calc(22 * var(--k)); line-height:1.2;
+      }
+      #promptText.long{ font-size:calc(18 * var(--k)); line-height:1.22; }
+      #promptPets{ flex:0 0 auto; transform:translateX(calc(-27 * var(--k))); }   /* centres the cat + mouse PAIR */
+      #promptCat{ width:calc(92 * var(--k)); }
+      #promptMouse{ width:calc(48 * var(--k)); top:calc(40 * var(--k)); left:calc(100% + 6 * var(--k)); }
+    }
   }</style>
 </head>
 <body>
@@ -902,22 +987,26 @@
        cascade's re-renders never destroy it. (Dani 2026-09-10) -->
   <p id="winStatus" class="visually-hidden" tabindex="-1"></p>
   <p id="sr-intro" class="visually-hidden" tabindex="-1">
-    Listen to the game description, or tap anywhere to skip it. To hear it again
-    later, find and double-tap the cat at the top of the screen. Mindfulness Play, a
-    calm game of solitaire. Your goal is to send every card
-    home to the four foundation piles, each built up from Ace to King. The board,
-    in reading order, is: first a cat and a mouse resting together at the top, then
-    the four foundations and the draw pile, then the seven columns of cards, then
-    the five buttons — new game, undo, invitation, show me a move, and settings.
-    Every card is hand-painted in soft watercolor and ink, and the face cards — the
-    Kings, Queens, Jacks, and Aces — have their own cute, playful cats on them
+    Listen to the game description, or tap anywhere (or click) to skip it. To hear it again
+    later, find the cat at the top of the screen and double-tap it (or press Enter, or
+    double-click it). Cupunapa, a mindful game of solitaire. If you like, you can
+    practice mindfulness while you play. You can wait for an invitation to arrive, or
+    find and press the button An invitation to pause to receive one. Your goal is to
+    send every card home to the four foundation piles, each built up from Ace to King.
+    The board, in reading order, is: first a cat and a mouse resting together at the
+    top, then the four foundations and the draw pile, then the seven columns of cards,
+    then the five buttons: new game, undo, invitation, show me a move, and settings.
+    Every card is hand-painted in soft watercolor and ink, and the face cards (the
+    Kings, Queens, Jacks, and Aces) have their own cute, playful cats on them
     instead of the traditional court and ace designs.
-    Swipe right to move through it; each card tells you where it sits and whether it
-    has a move to make. To move a card, double-tap
-    it — or press Enter — and it travels on its own to the best legal spot: home
-    to its foundation, or onto the card it can build on. Double-tap the draw pile
-    to turn a card, and again once it is empty to turn them all over. There are no
-    timers and no score — take all the time you like.
+    Swipe right (or press Tab) to move through it; each card tells you where it sits and whether it
+    has one or more moves available. To move a card with a screen reader, double-tap it.
+    With a keyboard, press Enter. On a computer, you can also double-click it. It travels
+    on its own to the best legal spot: home to its foundation, or onto the card it can
+    build on. To turn over a card from the draw pile, double-tap it, press Enter, or
+    double-click it. When the pile is empty, do the same again to turn all the cards
+    over. To take a move back, press the Undo button, or Ctrl+Z, or Escape. There are
+    no timers and no score. Take all the time you like.
   </p>
 
   <div id="app">
@@ -929,7 +1018,7 @@
              impractical (it sits behind all 52 cards), so double-tapping this cat
              re-reads the whole game description. Wired in JS (replayIntro). -->
         <img id="promptCat" src="assets/interface/prompt-cat.png" role="button" tabindex="0"
-             aria-label="The resting cat: playfully upside down on its back in lilac-and-pink watercolor, paws curled, gazing at you. Double-tap to hear the game description again."
+             aria-label="The resting cat: playfully upside down on its back in lilac-and-pink watercolor, paws curled, gazing at you. Double-tap, press Enter, or double-click to hear the game description again."
              alt="A cute cat playfully upside down on its back, paws curled, gazing at you; a lilac-and-pink watercolor splotch turned into a playful critter with ink.">
         <img id="promptMouse" src="assets/interface/prompt-mouse.png" alt="A tiny watercolor mouse in soft blue — a round ear, a dot for an eye, whiskers, and a long curly tail — resting quietly near the cat, the two of them at ease together.">
       </div>
@@ -988,13 +1077,13 @@
         <!-- STEP 1: the cat carries the spoken intro as its aria-label. Real full-size
              element, so focus + swipe advance cleanly; no text descendants to double-read. -->
         <div class="scr-art" id="welCat" role="img" tabindex="-1"
-             aria-label="Welcome to Mindfulness Play. This is a game of solitaire with invitations to mindfulness sprinkled in. It's an opportunity to take a break and to bridge mindfulness into real life, away from the meditation cushion. On the screen, a soft peaceful watercolor cat sits in a meditation pose, warm pink melting into golden yellow, eyes gently closed and paws folded."></div>
+             aria-label="Welcome to Cupunapa Mindful Solitaire. This is a game of solitaire with invitations to mindfulness sprinkled in. It's an opportunity to take a break and to bridge mindfulness into real life, away from the meditation cushion. On the screen, a soft peaceful watercolor cat sits in a meditation pose, warm pink melting into golden yellow, eyes gently closed and paws folded."></div>
         <!-- STEP 2: the words on screen. Plain text, NOT inside a role="img", so read ONCE. -->
         <div class="scr-gap" aria-hidden="true"></div>
         <div class="scr-group" id="welGroup">
-        <p  class="scr-text" id="welBrand">Mindfulness Play<sup class="tm" aria-hidden="true">&trade;</sup></p>
+        <p  class="scr-text" id="welBrand">Cupunapa<sup class="tm" aria-hidden="true">&trade;</sup></p>
         <!-- the tagline "Mindfulness, woven into everyday moments" is no longer on this screen (Dani, 2026-10-04); kept for the store page / website -->
-        <p  class="scr-text" id="welKind">Solitaire</p>
+        <p  class="scr-text" id="welKind">Mindful Solitaire</p>
         </div>
       </div>
       <!-- STEP 3: the Begin button. Sibling of the (now plain) narration div, z-index:4 so
@@ -1041,7 +1130,7 @@
       <!-- STEP 3: the Begin button. Plain sibling of the (now plain) narration div. Its
            label folds in the "you can skip the description" heads-up for new players. -->
     </div>
-      <button type="button" class="next-arrow" id="loadNext" aria-label="Begin the game. When you begin, you can listen to a short description of the game, or tap anything to skip it.">
+      <button type="button" class="next-arrow" id="loadNext" aria-label="Begin the game. When you begin, you can listen to a short description of the game, or tap the screen (or click) to skip it.">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4.5" y1="12" x2="18" y2="12"/><polyline points="12.5 6 18.5 12 12.5 18"/></svg>
       </button>
   </div>
@@ -1094,7 +1183,7 @@
            "Cozy Cat" heading was removed: VoiceOver landed on it as a stray little
            rectangle reading "cozy cat" on the New Game / Back buttons (Dani 2026-09-13). -->
       <div class="btnrow">
-        <button class="btn bloom" id="menuNew">New gentle game</button>
+        <button class="btn bloom" id="menuNew">New game</button>
         <button class="btn bloom" id="menuClose">Back to the game</button>
       </div>
     </div>
@@ -1129,7 +1218,7 @@
         </div>
         <div class="setrow">
           <div class="setlabel">Ambient tracks</div>
-          <select id="setNature" class="langselect" aria-label="Ambient tracks. Drop-down menu. Choose a soft ambient track for the background: swipe up or down to hear each one, then double-tap to choose it.">
+          <select id="setNature" class="langselect" aria-label="Ambient tracks. Drop-down menu. Choose a soft ambient track for the background: swipe up or down (or use the arrow keys) to hear each one, then double-tap (or press Enter) to choose it.">
             <option value="none">None</option>
             <option value="rain">Calming rain</option>
             <option value="ocean">Breathing ocean waves</option>
@@ -1164,11 +1253,11 @@
         </button>
         <!-- contact row — info@ is the ONE public address (Dani 2026-09-24). VoiceOver wording is
              Dani's exact words; VO adds "link" itself, then reads the describedby hint. -->
-        <a class="setrow setcontact" id="setContact" href="mailto:info@mindfulnessplay.com?subject=Mindfulness%20Play"
-           aria-label="Questions or ideas? Write to us at info@mindfulnessplay.com" aria-describedby="setContactHint">
-          <div><div class="setlabel">Questions or ideas?</div><div class="sethint">We'd love to hear from you: <span class="setmail">info@mindfulnessplay.com</span></div></div>
+        <a class="setrow setcontact" id="setContact" href="mailto:info@cupunapa.com?subject=Cupunapa"
+           aria-label="Questions or ideas? Write to us at info@cupunapa.com" aria-describedby="setContactHint">
+          <div><div class="setlabel">Questions or ideas?</div><div class="sethint">We'd love to hear from you: <span class="setmail">info@cupunapa.com</span></div></div>
         </a>
-        <span id="setContactHint" class="visually-hidden">Double-tap to open your email app.</span>
+        <span id="setContactHint" class="visually-hidden">Double-tap, press Enter, or click to open your email app.</span>
       </div>
 
       <button class="btn bloom" id="settingsDone">Done</button>
@@ -1193,11 +1282,11 @@
         <ul>
           <li>On a phone or tablet, tap it and it goes to its best spot. Or drag it.</li>
           <li>With a screen reader, swipe to the card and double-tap.</li>
-          <li>On a computer, double-click it, or click it and then click where it goes. You can also drag.</li>
+          <li>On a computer, double-click and the card moves on its own to its best spot, or click it and then click where it goes. You can also drag it.</li>
           <li>With a keyboard, use Tab or the arrow keys to reach it, then press Enter.</li>
         </ul>
         <p>To take a move back, press the Undo button (&ldquo;Undo the last move&rdquo;), or Ctrl+Z (Cmd+Z on a Mac), or Esc.</p>
-        <p>If you are stuck, the lightbulb button (&ldquo;Show me a move&rdquo;) shows you a move.</p>
+        <p>The lightbulb button (&ldquo;Show me a move&rdquo;) shows you a move.</p>
         <p>On a computer, you can press F1 at any time to read this again.</p>
       </div>
       <button class="btn bloom" id="howtoDone">Done</button>
@@ -1210,12 +1299,12 @@
   <div id="about" class="overlay overlay--full">
     <div class="panel panel--full" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
       <div class="settings-head">
-        <p class="aboutbrand"><img class="aboutpaw" src="assets/interface/about-paw.png" alt="" aria-hidden="true">Mindfulness Play&trade;</p>
+        <p class="aboutbrand"><img class="aboutpaw" src="assets/interface/about-paw.png" alt="" aria-hidden="true">Cupunapa&trade;</p>
         <h2 id="aboutTitle" tabindex="-1">About</h2>
       </div>
       <div class="howtext abouttext">
-        <p>Mindfulness Play&trade; Solitaire is designed to take the pressure off, to bring some ease. While most apps use rewards and other pressures to keep you engaged, this one has no streaks, no scores, and no guilt.</p>
-        <p>Mindfulness often begins in sitting meditation. The hope is to carry that sense of presence into everyday life, but it's easy to forget. Mindfulness Play&trade; is that bridge from the cushion to everyday life. You play a soft game of solitaire, and playful watercolor cats invite you into mindfulness: A pause&hellip; notice your jaw. Soften as you exhale. As you bring mindfulness into your solitaire break, it can become easier to carry that sense of ease into other parts of your day.</p>
+        <p>Cupunapa&trade; Mindful Solitaire is designed to take the pressure off, to bring some ease. While most apps use rewards and other pressures to keep you engaged, this one has no streaks, no scores, and no guilt.</p>
+        <p>Mindfulness often begins in sitting meditation. The hope is to carry that sense of presence into everyday life, but it's easy to forget. Cupunapa&trade; Mindful Solitaire is that bridge from the cushion to everyday life. You play a soft game of solitaire, and playful watercolor cats invite you into mindfulness: A pause&hellip; notice your jaw. Soften as you exhale. As you bring mindfulness into your solitaire break, it can become easier to carry that sense of ease into other parts of your day.</p>
 
         <h3 class="abouth">Roots</h3>
         <p>The ideas in this game stem from many sources, beginning with Buddhism and yoga, which are both rooted in deep spiritual and cultural practices for the mind and body, cultivated over thousands of years in Asia. I learned these practices from many teachers, most deeply from the Vietnamese Zen teacher Thich Nhat Hanh, and from Tara Brach and Andy Puddicombe, who trained in the Theravada and Tibetan traditions. I have also spent many years learning about the nervous system from modern science, such as how our bodies shift between fight-or-flight and rest-and-digest, as well as how gentle noticing and dropping into our bodies can help us settle.</p>
@@ -1226,7 +1315,7 @@
         <section id="aboutGiving">
           <h3 class="abouth">Giving back</h3>
           <p>As a way of giving back, as a small gesture in gratitude to the deep spiritual and cultural traditions from which this work draws, 5% of what this game earns goes to an organization that helps people in need in Vietnam.</p>
-          <p>I focused on the concept, the ideas, the direction, the art and the wording. AI focused on the coding. Because I used the help of AI, another 5% goes to an organization that works to protect people and the environment from the potential harms of AI and to make sure it is used well.</p>
+          <p>I created the concept, the ideas, the art and the wording. AI helped with the coding. I care about how AI is used, so another 5% goes to an organization that works to keep people and the environment safe and to help AI be used well.</p>
           <p>As the game grows, I hope to give more to both.</p>
         </section>
 
@@ -1239,7 +1328,7 @@
         <h3 class="abouth">Acknowledgements</h3>
         <p id="aboutThanks"></p>
 
-        <p class="aboutcontact"><strong>Questions or ideas?</strong> <a class="setmail" href="mailto:info@mindfulnessplay.com?subject=Mindfulness%20Play">info@mindfulnessplay.com</a></p>
+        <p class="aboutcontact"><strong>Questions or ideas?</strong> <a class="setmail" href="mailto:info@cupunapa.com?subject=Cupunapa">info@cupunapa.com</a></p>
         <p class="aboutsign">With gratitude, Dani</p>
       </div>
       <button class="btn bloom" id="aboutDone">Done</button>
@@ -1369,6 +1458,7 @@ function applyA11y(){
   // Reduce-motion is still fully honored, automatically, from the phone's own
   // system setting (CSS `prefers-reduced-motion` + reducedMotion()); there is no
   // in-app toggle. "Bigger cards" was removed — the cards already open at max size.
+  document.documentElement.classList.toggle('lh', !!settings.leftHanded);   // the sideways-phone layout mirrors itself for left-handed play
   if (state) render();          // left-handed changes card X positions
 }
 /* While an invitation "has the floor" (see announceInvite), move descriptions stay
@@ -1561,21 +1651,21 @@ const INVITE_FAMILIES = {
     "Does your body need anything?\nThirsty, maybe?",
   ]},
   catsays: { weight:1, lines:[
-    "The cat has no advice,\nbut remains deeply invested.",
-    "The cat would help,\nbut has important curling to do.",
-    "The cat is supervising.\nQualifications remain unclear.",
-    "The cat has chosen a favorite card\nand refuses to explain why.",
-    "The cat is quietly\nrooting for the queen.",
-    "The cat has mistaken the deck\nfor a very small mattress.",
-    "The cat is confident\nthe next card will be a card.",
-    "The cat thinks the jack\nis being a little dramatic.",
-    "The cat would like\ncredit for that move.",
-    "The cat is pleased with your work.\nThe cat did most of it.",
-    "The cat has reviewed the situation\nand recommends a nap.",
-    "The cat is emotionally attached\nto this particular pile.",
-    "The cat has appointed itself\nHead of Card Placement.",
-    "The cat believes the game\nshould have more cats.",
-    "The cat has no idea\nwhat's happening,\nbut supports it.",
+    "The kitty has no advice,\nbut remains deeply invested.",
+    "The kitty would help,\nbut has important curling to do.",
+    "The kitty is supervising.\nQualifications remain unclear.",
+    "The kitty has chosen a favorite card\nand refuses to explain why.",
+    "The kitty wants\nthe Queen to win.",
+    "The kitty has mistaken the deck\nfor a very small mattress.",
+    "The kitty is confident\nthe next card will be a card.",
+    "The kitty thinks the jack\nis being a little dramatic.",
+    "The kitty would like\ncredit for that move.",
+    "The kitty is pleased with your work.\nThe kitty did most of it.",
+    "The kitty has reviewed the situation\nand recommends a nap.",
+    "The kitty is emotionally attached\nto this particular pile.",
+    "The kitty has appointed itself\nHead of Card Placement.",
+    "The kitty believes the game\nshould have more kitties.",
+    "The kitty has no idea\nwhat's happening,\nbut is against it.",
   ]},
 };
 
@@ -1589,8 +1679,7 @@ const MOMENT_LEADINS = [
 INVITE_FAMILIES.moments = { weight:1.5, make: t => drawFrom('leadin', MOMENT_LEADINS) + "\n" + t, lines:[
   "when you get several\ngood cards in a row?",
   "when you are not seeing\nany moves?",
-  "when you win the game?",
-  "when you lose the game?",
+  "when you finish a game?",
   "when you realize\nyou missed a move?",
   "when there are\nno more moves left?",
   "when you spot a move?",
@@ -2200,7 +2289,7 @@ function maybeAutoComplete(){
   // element lives outside #app, so the per-card re-renders never destroy it.
   const ws = document.getElementById('winStatus');
   if (ws){
-    ws.textContent = 'You did it! The cards are floating home on their own now. You won!';
+    ws.textContent = 'You solved the game, and all the cards are flying home to their bases.';
     try { ws.focus(); } catch(e){}
   }
   setTimeout(autoCompleteStep, 340);
@@ -2266,7 +2355,7 @@ function turnStockCard(){
 // Announce + persist once a draw has finished turning its card(s).
 function finishDraw(turned){
   const last = turned[turned.length - 1];
-  const moveTail = cardHasMove('waste', 0, 0) ? ' This card has a move.' : ' This card has no moves.';
+  const moveTail = cardHasMove('waste', 0, 0) ? ' This card has one or more moves available.' : ' This card has no moves available.';
   if (turned.length === 1){
     announce(`Turned ${cardName(last)}.` + moveTail);
     noteMove(`Returning the ${cardName(last)} to the draw pile.`);
@@ -2774,7 +2863,7 @@ function renderTopRow(){
       // and covers it (Dani 2026-09-15).
       if (autoCompleting && pile.length >= 2){
         const under = cardEl(pile[pile.length-2]);
-        under.classList.add('top-dyn');
+        under.classList.add('top-dyn'); under.dataset.found = f;
         under.style.left = xpos(FOUND_X[f], CARD_W);
         under.style.top = '0';
         // NO explicit z-index: the under-card must stay BELOW the real top card. A
@@ -2794,7 +2883,7 @@ function renderTopRow(){
       // foundation card also says whether it can come back down (Dani 2026-09-12).
       // No "bring it back to the columns" — that was read after every placement; the card is still activatable.
       el.setAttribute('aria-label', `Foundation ${f+1}, ${cardName(topCard)} on top.` +
-        (cardHasMove('foundation', f, pile.length-1) ? ' This card has a move.' : ' This card has no moves.'));
+        (cardHasMove('foundation', f, pile.length-1) ? ' This card has one or more moves available.' : ' This card has no moves available.'));
       el.dataset.where = 'foundation'; el.dataset.col = f; el.dataset.idx = pile.length-1;   // read by the computer-mouse click handler
       el.onclick = ()=> autoMove('foundation', f, pile.length-1);
       el.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); autoMove('foundation', f, pile.length-1); } };
@@ -2824,7 +2913,7 @@ function renderTopRow(){
   } else {
     // Empty pile: tell a VoiceOver player HOW to keep playing — double-tap gathers
     // the used cards back and turns them all again (Dani 2026-09-12).
-    draw = makeSlot({ recycle:true, label:'Draw pile, empty. Double-tap to gather the used cards and turn them all again.' });
+    draw = makeSlot({ recycle:true, label:'Draw pile, empty. Double-tap, press Enter, or double-click to gather the used cards and turn them all again.' });
     // Gently fade the recycle arrow in the FIRST render after the pile empties;
     // don't replay the fade on later re-renders while it stays empty, and never
     // pulse/scale (Dani 2026-09-12). The arrow's own subtle flash continues.
@@ -2914,7 +3003,7 @@ function updateWaste(){
       el.tabIndex = 0;
       el.removeAttribute('aria-hidden');
       el.setAttribute('aria-label', `${cardName(card)}, from the waste pile.` +
-        (cardHasMove('waste', 0, 0) ? ' This card has a move.' : ' This card has no moves.'));
+        (cardHasMove('waste', 0, 0) ? ' This card has one or more moves available.' : ' This card has no moves available.'));
       el.dataset.where = 'waste'; el.dataset.col = 0; el.dataset.idx = 0;
       el.onclick = ()=> autoMove('waste', 0, 0);
       makeDraggable(el, 'waste', 0, 0);
@@ -2976,7 +3065,7 @@ function renderTableau(){
         // thing to plan a move). Only when more than one is face up — a lone top card
         // has already named itself.
         // a quick, non-verbose clue: does tapping this card actually do anything?
-        lbl += cardHasMove('tableau', col, idx) ? '. This card has a move' : '. This card has no moves';
+        lbl += cardHasMove('tableau', col, idx) ? '. This card has one or more moves available' : '. This card has no moves available';
         const faceUp = pile.filter(c=>c.faceUp);
         if (faceUp.length > 1)
           lbl += `. Face up in this column: ${faceUp.map(c=>cardName(c)).join(', ')}`;
@@ -3096,7 +3185,7 @@ function showHint(){
   const shown = moves.slice(0, MAX).map(m=>m.text).join('; ');
   const more = moves.length > MAX ? `; and ${moves.length - MAX} more` : '';
   const n = moves.length;
-  announce(`${n} move${n>1?'s':''} you can make: ${shown}${more}. Find the card and double-tap it to move it.`);
+  announce(`${n} move${n>1?'s':''} you can make: ${shown}${more}. Find the card and double-tap it (or press Enter, or double-click it) to move it.`);
   // still give the gentle visual pulse on the first move's card for sighted players
   const el = document.querySelector(`.card[data-id="${moves[0].id}"]`);
   if (el) el.classList.add('hint');
@@ -3111,7 +3200,7 @@ function hintDrawPile(){
   if (pile && anyPileCardPlayable()){
     pile.classList.add('hint');
     announce(state.stock.length ? 'Turn a card from the draw pile.'
-                                : 'Tap the pile to gather the cards back.');
+                                : 'Tap, click, or press Enter on the pile to gather the cards back.');
     setTimeout(clearHints, 2500);
   } else {
     onNoMovesLeft();
@@ -3253,7 +3342,7 @@ function updateLangLabel(){
   if (!sel) return;
   sel.setAttribute('aria-label', sel.disabled
     ? 'Language: English. More languages — Spanish and French — are coming soon.'
-    : 'Language. Drop-down menu. Choose a language: swipe up or down to hear each one, then double-tap to choose it.');
+    : 'Language. Drop-down menu. Choose a language: swipe up or down (or use the arrow keys) to hear each one, then double-tap (or press Enter) to choose it.');
 }
 function openSettings(){ syncToggles(); updateLangLabel(); openOverlay('settings','settingsTitle'); }   // land VoiceOver on the "Settings" heading (the top), not the Done button (Dani 2026-09-12)
 function closeSettings(){ closeOverlay('settings'); document.getElementById('btnAppear').focus(); }
@@ -3332,7 +3421,7 @@ if (MUSICIANS_ON){
     const row = document.createElement('div'); row.className = 'setrow setrow--stack'; row.id = 'musicRow';
     const lab = document.createElement('div'); lab.className = 'setlabel'; lab.textContent = 'Music'; row.appendChild(lab);
     const sel = document.createElement('select'); sel.id = 'setMusicTrack'; sel.className = 'langselect wideselect';
-    sel.setAttribute('aria-label', 'Music. Drop-down menu. Choose a track: swipe up or down to hear each one, then double-tap to see the musician’s page.');
+    sel.setAttribute('aria-label', 'Music. Choose a track. The options show the track name and the artist’s name. To choose a track, swipe up or down (or use the arrow keys) to hear each option, then double-tap (or press Enter) to select it.');
     const none = document.createElement('option'); none.value = 'none'; none.textContent = 'None'; sel.appendChild(none);
     MUSICIANS.forEach(m=>m.tracks.forEach(t=>{ const o = document.createElement('option'); o.value = t.id; o.textContent = t.title + ' – ' + m.name; sel.appendChild(o); }));
     sel.value = findTrack(settings.musicTrack) ? settings.musicTrack : 'none';
@@ -4008,7 +4097,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 11 · wide a30';
+  var BUILD_TAG = 'Oct 16 · cupunapa c1';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
