@@ -505,6 +505,7 @@
     position:relative; z-index:1;
     max-width:520px; width:100%; margin:0 auto;
     min-height:100%; box-sizing:border-box;
+    align-self:flex-start;   /* grow with the content (a stretched box stayed one screen tall, so the bottom padding fell outside it and Done touched the screen edge on long pages - Dani 2026-10-16) */
     background:none; border:none; border-radius:0; box-shadow:none;
     padding:26px 22px 30px;
     display:flex; flex-direction:column;   /* head at top, options fill middle, Done at bottom */
@@ -4207,7 +4208,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 16 · cupunapa c8';
+  var BUILD_TAG = 'Oct 16 · cupunapa c9';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
