@@ -520,7 +520,8 @@
   /* "How to play" row in Settings (a full-width band, like the other options) + the guide itself (Dani 2026-10-10) */
   button.setrow.sethow{ background:none; border:0; border-top:1px solid #efdcc0; width:100%; font:inherit; color:inherit; text-align:left; cursor:pointer;
     display:flex; align-items:center; justify-content:space-between; gap:12px; }
-  button.setrow.sethow .chev{ flex:0 0 auto; width:32px; height:32px; display:grid; place-items:center; border-radius:50%; background:#fffdf9; border:2px solid #e6b88c; color:var(--ink); font-size:34px; line-height:1; padding-bottom:9px; box-sizing:border-box; overflow:visible; }   /* big, clear arrow (low-vision friendly) */
+  button.setrow.sethow .chev::after{ content:""; position:absolute; left:50%; top:50%; width:11px; height:11px; border-right:3px solid var(--ink); border-top:3px solid var(--ink); transform:translate(-65%,-50%) rotate(45deg); }
+  button.setrow.sethow .chev{ flex:0 0 auto; width:32px; height:32px; display:grid; place-items:center; border-radius:50%; background:#fffdf9; border:2px solid #e6b88c; color:var(--ink); font-size:0; line-height:0; padding:0; box-sizing:border-box; position:relative; }   /* big, clear arrow (low-vision friendly) - drawn in CSS so it is exactly centred */
   /* the About screen (Dani 2026-10-10) */
   .aboutbrand{ margin:6px 0 2px; text-align:center; font-weight:600; color:var(--ink-soft); font-size:15px; letter-spacing:.02em; }
   #about .aboutbrand, #howto .aboutbrand{ font-size:29px; color:#6b665d; line-height:1.2; margin:8px 0 30px; letter-spacing:.01em; white-space:nowrap; display:flex; align-items:center; justify-content:center; gap:10px; }   /* one line, softer grey, an orange paw before the M (Dani 2026-10-10) */
@@ -544,8 +545,10 @@
   #howto .howtext ul{ list-style:disc outside; padding-left:30px; margin:0 0 14px; }
   #howto .howtext li{ padding-left:4px; margin-bottom:10px; }
   #howto .howtext li::marker{ color:var(--ink); font-size:1.5em; }
-  .panel.panel--full #aboutDone, .panel.panel--full #howtoDone{ align-self:flex-start; width:150px; margin-left:0; margin-right:auto; margin-bottom:0; }
-  #about .panel.panel--full, #howto .panel.panel--full, #settings .panel.panel--full{ padding-bottom:20px; }
+  .panel.panel--full #aboutDone{ align-self:flex-start; width:150px; margin-left:0; margin-right:auto; margin-bottom:0; }
+  .panel.panel--full #howtoDone{ align-self:center; width:150px; margin:0 auto; }   /* How to play: Done is centred (Dani 2026-10-16) */
+  /* Done sits well clear of the bottom edge AND the iPhone home bar, so it is easy to press (Dani 2026-10-16: at 20px it was stuck to the edge) */
+  #about .panel.panel--full, #howto .panel.panel--full, #settings .panel.panel--full{ padding-bottom:calc(30px + env(safe-area-inset-bottom, 0px)); }
   .panel.panel--full #settingsDone{ margin-bottom:0; }
   .howtext{ flex:1 1 auto; }
   .howtext p, .howtext li{ font-size:16px; line-height:1.55; color:var(--ink); }
@@ -673,8 +676,8 @@
   .setlabel{ font-size:19px; font-weight:600; color:var(--ink); }   /* bigger settings text (Dani 2026-09-14) */
   .sethint{ font-size:15px; color:#4f4540; margin-top:3px; line-height:1.3; }   /* darker + ~30% bigger so it is easy to read (Dani 2026-10-16) */
   a.setcontact{ text-decoration:none; color:inherit; }
-  .setmail{ color:var(--ink); font-weight:600; text-decoration:underline; text-underline-offset:3px; font-size:1.5em; }   /* the email address: way bigger, easy to tap (Dani 2026-10-16) */
-  .abouttext .setmail{ font-size:1.25em; }
+  .setmail{ color:#e6b88c; font-weight:700; text-decoration:underline; text-underline-offset:4px; font-size:19px; }   /* the email address: label-sized (19px), the deep orange of the turned-on switch (Dani 2026-10-16) */
+  .abouttext .setmail{ font-size:inherit; }
   .setnote{ margin:15px 2px 2px; font-size:12px; color:var(--ink-soft); text-align:center; line-height:1.5; }
   /* Each toggle is a real <button role="switch"> — the reliable accessible pattern.
      The old hidden-<input> toggles were skipped/jumped-over in VoiceOver's swipe order
@@ -4204,7 +4207,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 16 · cupunapa c6';
+  var BUILD_TAG = 'Oct 16 · cupunapa c7';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
