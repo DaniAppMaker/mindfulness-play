@@ -534,12 +534,19 @@
   .abouttext .aboutsign{ margin-top:6px; font-weight:inherit; }   /* not bold (Dani 2026-10-10) */
   .panel.panel--full #aboutDone{ flex:0 0 auto; margin-top:16px; }
   /* About + How to play (Dani 2026-10-16): all text and the Done button start at the LEFT, and Done sits well above the bottom edge so it is easy to press */
-  #about .settings-head, #howto .settings-head{ text-align:left; align-items:flex-start; }
-  #about .settings-head h2, #howto .settings-head h2{ text-align:left; margin-left:0; }
-  #about .aboutbrand, #howto .aboutbrand{ justify-content:flex-start; }
-  #about .abouttext .abouth, #howto .howtext .howsub{ text-align:left; }
-  .panel.panel--full #aboutDone, .panel.panel--full #howtoDone{ align-self:flex-start; margin-left:0; margin-right:auto; margin-bottom:10px; }
-  #about .panel.panel--full, #howto .panel.panel--full, #settings .panel.panel--full{ padding-bottom:calc(46px + env(safe-area-inset-bottom, 0px)); }
+  /* (revised 2026-10-16) the title + paw and the subtitles are CENTRED; all body text stays at the LEFT; Done is exactly 20px above the bottom edge */
+  #about .settings-head, #howto .settings-head{ text-align:center; align-items:center; }
+  #about .settings-head h2, #howto .settings-head h2{ text-align:center; margin-left:0; }
+  #about .aboutbrand, #howto .aboutbrand{ justify-content:center; }
+  #about .abouttext .abouth, #howto .howtext .howsub{ text-align:center; }
+  #howto .howtext p, #howto .howtext li{ text-align:left; }
+  /* proper bullets, like a Word document: a solid round bullet, clearly visible, with the text hanging to the right of it */
+  #howto .howtext ul{ list-style:disc outside; padding-left:30px; margin:0 0 14px; }
+  #howto .howtext li{ padding-left:4px; margin-bottom:10px; }
+  #howto .howtext li::marker{ color:var(--ink); font-size:1.5em; }
+  .panel.panel--full #aboutDone, .panel.panel--full #howtoDone{ align-self:flex-start; width:150px; margin-left:0; margin-right:auto; margin-bottom:0; }
+  #about .panel.panel--full, #howto .panel.panel--full, #settings .panel.panel--full{ padding-bottom:20px; }
+  .panel.panel--full #settingsDone{ margin-bottom:0; }
   .howtext{ flex:1 1 auto; }
   .howtext p, .howtext li{ font-size:16px; line-height:1.55; color:var(--ink); }
   .howtext p{ margin:0 0 14px; }
@@ -547,8 +554,8 @@
   .howtext li{ margin-bottom:8px; }
   .howtext .howsub{ font-weight:650; margin:4px 0 6px; }
   /* the Music dropdown row: label on top, a WIDE full-width dropdown below (rows read "Track name - Musician") */
-  .setrow.setrow--stack{ flex-direction:column; align-items:stretch; gap:8px; }
-  .setrow.setrow--stack select.wideselect{ width:100%; max-width:none; font-size:15px; padding:11px 36px 11px 14px; text-overflow:ellipsis; }
+  .setrow.setrow--stack{ flex-direction:row; align-items:center; gap:12px; }   /* the Music drop-down sits on the same line as its label, like Ambient tracks (Dani 2026-10-16) */
+  .setrow.setrow--stack select.wideselect{ width:auto; max-width:62%; min-width:0; font-size:13.5px; padding:7px 12px; text-overflow:ellipsis; }
   /* a musician's page */
   .musback{ align-self:flex-start; flex:0 0 auto; width:48px; height:48px; border-radius:50%; border:1px solid var(--line, #e8dccb);
     background:rgba(255,253,249,.9); color:var(--ink); font-size:26px; line-height:1; cursor:pointer; margin:0 0 6px -6px; }
@@ -3903,6 +3910,7 @@ function startupFlow(){
   const pv = new URLSearchParams(location.search).get('preview');
   if (pv === 'board'){ setGameHiddenForAT(false); if (new URLSearchParams(location.search).has('invite')) setTimeout(()=>{ try{ showInvitation(true); }catch(e){} }, 600); return; }   // ?preview=board shows the game board directly, skipping the welcome screens (for looking at layouts)
   if (pv === 'settings'){ setGameHiddenForAT(false); setTimeout(()=>{ try{ openSettings(); }catch(e){} }, 300); return; }   // ?preview=settings opens Settings directly (for looking at it)
+  if (pv === 'howto'){ setGameHiddenForAT(false); setTimeout(()=>{ try{ openHowTo(false); }catch(e){} }, 300); return; }   // ?preview=howto opens How to play directly
   if (pv === 'about'){ openAbout(); return; }   // ?preview=about opens the About screen directly (for looking at it)
   if (pv === 'musician'){   // ?preview=musician (Cassie) or ?preview=musician&who=erin|christian opens a musician's page directly (for looking at it)
     const who = new URLSearchParams(location.search).get('who');
@@ -4196,7 +4204,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 16 · cupunapa c5';
+  var BUILD_TAG = 'Oct 16 · cupunapa c6';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
