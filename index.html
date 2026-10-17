@@ -1186,10 +1186,10 @@
       <div id="loadNarration" style="position:absolute; inset:0; z-index:2;">
         <!-- STEP 1: the teaching line — visible AND read once. tabindex=-1 so the cursor
              can land here first. Text set each visit in setLoadingScreenText(). -->
-        <p class="scr-text" id="loadPrompt" tabindex="-1"></p>
-        <!-- STEP 2: the cat, background image + role="img"; its aria-label (the cat
-             description) is set in setLoadingScreenText(). -->
+        <!-- ORDER (Dani 2026-10-17): the cat FIRST (VoiceOver is put on it the moment the screen appears), then the teaching line,
+             then the loading line, then Begin. Only the order in the code changed; both are placed by CSS, so nothing moves. -->
         <div class="scr-art" id="loadCat" role="img" tabindex="-1" aria-label=""></div>
+        <p class="scr-text" id="loadPrompt" tabindex="-1"></p>
       </div>
       <!-- The mouse walks this line while the screen holds; when it reaches the end the
            Begin arrow appears (Dani 2026-09-10). Purely VISUAL — aria-hidden so it stays
@@ -3842,9 +3842,8 @@ function startMouseWalk(onArrive, gate){
 }
 function runLoading(finish){
   setLoadingScreenText();
-  // Seat the screen-reader cursor on the teaching line (step 1) so it reads promptly;
-  // swipe advances to the cat (step 2), then the Begin button (step 3).
-  moveATCursorTo('loadPrompt');
+  // The screen-reader cursor is put on the CAT synchronously by proceed() (inside the double-tap, the only moment iOS honours it);
+  // swipe goes cat -> teaching line -> loading line -> Begin.
   let finished = false;
   // The Begin arrow starts hidden and appears when the mouse finishes walking the line;
   // it only becomes tappable once it has fully faded in (armArrow).
@@ -3978,7 +3977,7 @@ function startupFlow(){
     // the cursor to the browser chrome (the 2026-09-08 "loading screen read
     // nothing, swipe jumped to Safari's buttons" bug).
     runLoading(()=> revealBoardForAT());            // sets the teaching line + narration first
-    try { document.getElementById('loadNarration').focus(); } catch(e){}
+    try { document.getElementById('loadCat').focus(); } catch(e){}   // VoiceOver starts speaking on the cat AT ONCE, in the gesture (Dani 2026-10-17: it stayed silent until she found the cat by touch)
     w.classList.remove('show'); w.style.opacity='';
   };
   advanceScreen = proceed;
@@ -4222,7 +4221,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c17';
+  var BUILD_TAG = 'Oct 17 · cupunapa c18';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
