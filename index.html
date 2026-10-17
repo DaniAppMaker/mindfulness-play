@@ -3409,7 +3409,12 @@ document.addEventListener('click', (e)=>{
    reaching #sr-intro by swiping is impractical, so double-tapping the cat re-reads
    it. Focusing #sr-intro re-reads the whole thing — the same mechanism used when
    the board first appears. */
-function replayIntro(){ moveATCursorTo('sr-intro'); }
+function replayIntro(){
+  // Double-tapping the cat ALWAYS reads the FULL game description - even in a resumed game, where the spoken text at the start was the short "welcome back" line (Dani 2026-10-17: it kept repeating the welcome-back line)
+  const intro = document.getElementById('sr-intro');
+  if (intro && typeof SR_INTRO_NEW === 'string' && SR_INTRO_NEW) intro.innerHTML = SR_INTRO_NEW;
+  moveATCursorTo('sr-intro');
+}
 (function(){
   const cat = document.getElementById('promptCat');
   if (!cat) return;
@@ -4221,7 +4226,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c18';
+  var BUILD_TAG = 'Oct 17 · cupunapa c19';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
