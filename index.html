@@ -548,9 +548,16 @@
   #howto .howtext li::marker{ color:var(--ink); font-size:1.5em; }
   .panel.panel--full #aboutDone{ align-self:center; width:150px; margin:0 auto; }   /* About: Done is centred too (Dani 2026-10-16) */
   .panel.panel--full #howtoDone{ align-self:center; width:150px; margin:0 auto; }   /* How to play: Done is centred (Dani 2026-10-16) */
-  /* Done sits well clear of the bottom edge AND the iPhone home bar, so it is easy to press (Dani 2026-10-16: at 20px it was stuck to the edge) */
-  #about .panel.panel--full, #howto .panel.panel--full, #settings .panel.panel--full{ padding-bottom:calc(64px + env(safe-area-inset-bottom, 0px)); }
+  /* Done sits well clear of the bottom edge AND the iPhone home bar, so it is easy to press (Dani 2026-10-16: at 20px it was stuck to the edge).
+     The blank space ABOVE Done (from the last text) equals the blank space BELOW it (to the screen edge): both are --dg (Dani 2026-10-17). */
+  #about .panel.panel--full, #howto .panel.panel--full, #settings .panel.panel--full{ --dg: calc(48px + env(safe-area-inset-bottom, 0px)); padding-bottom:var(--dg); }
   .panel.panel--full #settingsDone{ margin-bottom:0; }
+  @media not all and (min-aspect-ratio: 155/100) and (max-height: 520px){   /* tall view only (sideways Settings has its own Done) */
+    .panel.panel--full #aboutDone, .panel.panel--full #howtoDone{ margin:var(--dg) auto 0; }
+    .panel.panel--full #settingsDone{ margin-top:var(--dg); }
+    #settings .panel.panel--full .settings-body{ justify-content:space-between; }   /* leftover room goes between the rows, never above Done, so the two blank spaces stay equal */
+    #howto .howtext > :last-child, #about .abouttext > :last-child{ margin-bottom:0; }   /* the last paragraph adds no extra space above Done */
+  }
   .howtext{ flex:1 1 auto; }
   .howtext p, .howtext li{ font-size:16px; line-height:1.55; color:var(--ink); }
   .howtext p{ margin:0 0 14px; }
@@ -4208,7 +4215,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 16 · cupunapa c9';
+  var BUILD_TAG = 'Oct 17 · cupunapa c10';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
