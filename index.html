@@ -3870,7 +3870,7 @@ function runLoading(finish){
 // keep the approved text for a fresh deal (Dani 2026-09-20).
 const SR_INTRO_NEW = (document.getElementById('sr-intro') || {}).innerHTML || '';
 const SR_INTRO_RETURNING =
-  'Welcome back. You are returning to a game already in progress — the board is just as you left it.';
+  'Welcome back. You are returning to a game already in progress, and the board is just as you left it. To hear the game description, find the cat at the top of the screen and double-tap it (or press Enter, or double-click it).';
 function applySrIntro(){
   const intro = document.getElementById('sr-intro');
   if (intro) intro.innerHTML = resumedGame ? SR_INTRO_RETURNING : SR_INTRO_NEW;
@@ -4222,7 +4222,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c16';
+  var BUILD_TAG = 'Oct 17 · cupunapa c17';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
