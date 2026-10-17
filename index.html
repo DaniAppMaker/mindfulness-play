@@ -520,7 +520,7 @@
   /* "How to play" row in Settings (a full-width band, like the other options) + the guide itself (Dani 2026-10-10) */
   button.setrow.sethow{ background:none; border:0; border-top:1px solid #efdcc0; width:100%; font:inherit; color:inherit; text-align:left; cursor:pointer;
     display:flex; align-items:center; justify-content:space-between; gap:12px; }
-  button.setrow.sethow .chev{ flex:0 0 auto; width:44px; height:44px; display:grid; place-items:center; border-radius:50%; background:#fffdf9; border:2px solid #e6b88c; color:var(--ink); font-size:34px; line-height:1; padding-bottom:4px; box-sizing:border-box; }   /* big, clear arrow (low-vision friendly) */
+  button.setrow.sethow .chev{ flex:0 0 auto; width:32px; height:32px; display:grid; place-items:center; border-radius:50%; background:#fffdf9; border:2px solid #e6b88c; color:var(--ink); font-size:34px; line-height:1; padding-bottom:9px; box-sizing:border-box; overflow:visible; }   /* big, clear arrow (low-vision friendly) */
   /* the About screen (Dani 2026-10-10) */
   .aboutbrand{ margin:6px 0 2px; text-align:center; font-weight:600; color:var(--ink-soft); font-size:15px; letter-spacing:.02em; }
   #about .aboutbrand, #howto .aboutbrand{ font-size:29px; color:#6b665d; line-height:1.2; margin:8px 0 30px; letter-spacing:.01em; white-space:nowrap; display:flex; align-items:center; justify-content:center; gap:10px; }   /* one line, softer grey, an orange paw before the M (Dani 2026-10-10) */
@@ -795,8 +795,8 @@
     50%    { transform:scale(1.09); }
   }
   /* ---- Loading (spec Screen 2) ---- */
-  #loadPrompt{ top:calc(440 * var(--u));  font-size:calc(52 * var(--u)); line-height:1.22; white-space:pre-line; }
-  #loadCat{    left:calc(300 * var(--u)); top:calc(780 * var(--u));  width:calc(480 * var(--u)); aspect-ratio:1371 / 1727; background:url("assets/interface/paw-licking-cat.png") center/contain no-repeat; }
+  #loadPrompt{ top:calc(500 * var(--u));  font-size:calc(60 * var(--u)); line-height:1.22; white-space:pre-line; }
+  #loadCat{    left:calc(300 * var(--u)); top:calc(840 * var(--u));  width:calc(480 * var(--u)); aspect-ratio:1371 / 1727; background:url("assets/interface/paw-licking-cat.png") center/contain no-repeat; }
   /* #loadPrompt and #loadCat are focused programmatically to seat the VoiceOver cursor;
      both are non-interactive (tabindex=-1, never keyboard-tabbable), so hide the blue
      focus ring. VoiceOver draws its own cursor, so this doesn't affect screen readers.
@@ -916,7 +916,7 @@
         --Lend: calc(var(--m) + var(--cw));                   /* right edge of the foundation column */
         --gp: calc(10 * var(--k));                            /* gap between the draw pile and the waste fan (they sit side by side) */
         --Rfan: calc(100cqw - var(--m) - var(--cw) - var(--wf));   /* left edge of the waste fan */
-        --Rstart: calc(var(--Rfan) - var(--gp) - var(--cw));  /* left edge of the draw pile = the left edge of the right-hand block */
+        --Rstart: calc(100cqw - var(--m) - var(--cw) - var(--gp) - var(--cw) - var(--wf));  /* left edge of the right-hand block = the first (oldest) waste card; the draw pile is the right-most thing */
         --X0: calc(var(--Lend) + (var(--Rstart) - var(--Lend) - var(--tot)) / 2);   /* seven columns centred between the two sides */
         --cbw: min(calc(230 * var(--k)), calc(100cqw - var(--X0) - var(--tot) - var(--cbm) - 8 * var(--k)));   /* cat + mouse + invitation group: width (never under the columns) */
         --cbh: calc(270 * var(--k));                          /* ... reserved height (room for a big invitation + the cat) */
@@ -937,8 +937,8 @@
       #topRow .top-dyn[data-found="2"]{ top:calc(2 * (var(--ch) + 3.5 * var(--k))) !important; }
       #topRow .top-dyn[data-found="3"]{ top:calc(3 * (var(--ch) + 3.5 * var(--k))) !important; }
       /* draw pile BESIDE the waste fan (draw pile on the left, the fan to its right, ending the same distance from the screen edge as the foundations) - frees the whole right side for the cat + a big invitation */
-      #topRow .drawpile{ left:var(--Rstart) !important; top:0 !important; }
-      #wasteFan{ left:calc(var(--Rfan) - 644 * var(--u)); right:auto; width:100%; }
+      #topRow .drawpile{ left:calc(100cqw - var(--m) - var(--cw)) !important; top:0 !important; }
+      #wasteFan{ left:calc(var(--Rstart) - 644 * var(--u)); right:auto; width:100%; }
       /* the seven columns, centred between the foundations and the waste fan */
       #tableau{ left:var(--X0); width:var(--tot); top:calc(6 * var(--k)); bottom:0; overflow:visible; }
       #tableau .col[data-col="0"]{ left:calc(0 * (var(--cw) + var(--gapc))) !important; }
@@ -973,9 +973,9 @@
         position:relative; top:auto; left:auto; transform:none; order:-1;
         width:100%; max-width:100%; min-height:0; margin:0; flex:0 0 auto;
         display:block; text-align:center;
-        font-size:calc(34 * var(--k)); line-height:1.2;   /* the real size is chosen in JS: the biggest that fits (setPrompt) */
+        font-size:calc(15 * var(--k)); line-height:1.25;   /* the real size is chosen in JS: the biggest that fits, up to this (setPrompt) */
       }
-      #promptText.long{ font-size:calc(34 * var(--k)); line-height:1.2; }
+      #promptText.long{ font-size:calc(15 * var(--k)); line-height:1.25; }
       #promptPets{ flex:0 0 auto; transform:translateX(calc(-27 * var(--k))); }   /* centres the cat + mouse PAIR */
       #promptCat{ width:calc(92 * var(--k)); }
       #promptMouse{ width:calc(48 * var(--k)); top:calc(40 * var(--k)); left:calc(100% + 6 * var(--k)); }
@@ -1024,8 +1024,8 @@
     #settings .setrow.setrow--stack{ flex-direction:row; align-items:center; gap:10px; }
     #settings .setrow.setrow--stack select.wideselect{ width:62%; }
     #settings .setrow.setcontact{ min-height:54px; }
-    #settings .setrow:nth-child(5n+1){ border-top:none; }   /* no line above the first row of each column */
-    #settings #settingsDone{ position:absolute; top:8px; right:30px; width:150px; height:46px; margin:0; align-self:auto; }   /* Done lives in the top-right corner when sideways: always visible, never near the bottom edge, never next to the email row */
+    #settings .setrow:has(#setTimed){ border-top:none; }   /* the first row of the right-hand column is at the top of the screen: no line above it (the lines stay in the tall view) */
+    #settings #settingsDone{ position:absolute; bottom:calc(30px + env(safe-area-inset-bottom, 0px) * 0); right:30px; width:130px; height:46px; margin:0; align-self:auto; z-index:6; }   /* Done: bottom-right corner, centred in the space under the About arrow and to the right of the email text (Dani 2026-10-16) */
     #settings .settings-head{ min-height:46px; }
   }</style>
 </head>
@@ -1800,7 +1800,7 @@ function nextInvitationText(){
   return F.make ? F.make(line) : line;
 }
 const promptTextEl = ()=> document.getElementById('promptText');
-const SIDEWAYS_NOTE_MAX = 44, SIDEWAYS_NOTE_MIN = 14;   // invitation text size range on a phone held sideways, in design pixels (the biggest that fits is used)
+const SIDEWAYS_NOTE_MAX = 15, SIDEWAYS_NOTE_MIN = 10;   // invitation text size range on a phone held sideways, in design pixels (the biggest that fits is used)
 const sidewaysPhone = ()=> window.matchMedia('(min-aspect-ratio: 155/100) and (max-height: 520px)').matches;
 function setPrompt(text, opts={}){
   const el = promptTextEl();
@@ -1822,7 +1822,7 @@ function setPrompt(text, opts={}){
   if (has && window.matchMedia('(min-aspect-ratio: 155/100) and (max-height: 520px)').matches){
     const box = document.getElementById('prompt'), pets = document.getElementById('promptPets');
     if (box && pets){
-      const k = box.getBoundingClientRect().height / 190;                   // one design pixel
+      const k = box.getBoundingClientRect().height / 270;                   // one design pixel (the group is 270 design pixels tall)
       const room = box.getBoundingClientRect().height - pets.getBoundingClientRect().height - 12 * k;
       el.classList.remove('long');
       let s = SIDEWAYS_NOTE_MAX;
@@ -3079,7 +3079,7 @@ function updateWaste(){
       el.style.top = '0';
       // where it slides in FROM: the newest comes off the draw pile; an older
       // card re-surfacing (after the top was played) eases in from the left
-      const fromX = (card.id === newestId) ? xpos((sidewaysPhone() && !LH()) ? 461.6 : DRAW_X, CARD_W)
+      const fromX = (card.id === newestId) ? xpos((sidewaysPhone() && !LH()) ? 1078.4 : DRAW_X, CARD_W)
                                            : xpos(WASTE_X[0] - 44, CARD_W);
       el.style.left = fromX;
       el.style.opacity = (card.id === newestId) ? '1' : '0';
@@ -4196,7 +4196,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 16 · cupunapa c4';
+  var BUILD_TAG = 'Oct 16 · cupunapa c5';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
