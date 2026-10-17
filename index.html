@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Cupunapa: Mindful Solitaire</title>
 <!-- Home-screen ("Add to Home Screen") name + icon = the cropped welcome-screen cat.
      These live here (not just in the live folder) so a publish can never strip them
@@ -903,13 +903,13 @@
         --stack-down: calc(32 * var(--u));  --stack-up: calc(68 * var(--u));
         --m: calc(24 * var(--k));                             /* margin from the left / right screen edge */
         --wf: calc(100 * var(--u));                           /* how far the waste fan reaches left of the draw pile */
-        --gapc: calc(22 * var(--k));                          /* gap between the seven columns */
+        --gapc: calc(12 * var(--k));                          /* gap between the seven columns */
         --tot: calc(7 * var(--cw) + 6 * var(--gapc));
         --Lend: calc(var(--m) + var(--cw));                   /* right edge of the foundation column */
         --Rstart: calc(100cqw - var(--m) - var(--cw) - var(--wf));   /* left edge of the waste fan */
         --X0: calc(var(--Lend) + (var(--Rstart) - var(--Lend) - var(--tot)) / 2);   /* seven columns centred between the two sides */
-        --cbw: calc(170 * var(--k));                          /* cat + mouse + invitation group: width */
-        --cbh: calc(186 * var(--k));                          /* ... reserved height (4 lines of text + cat) */
+        --cbw: calc(196 * var(--k));                          /* cat + mouse + invitation group: width */
+        --cbh: calc(190 * var(--k));                          /* ... reserved height (4 lines of text + cat) */
         --cbtop: calc(12 * var(--k) + 2 * var(--ch));         /* bottom edge of the draw pile */
         --cbm: calc((100cqh - var(--cbtop) - var(--cbh)) / 2);   /* equal space above / below / beside the group */
         width:100cqw; height:100cqh; min-height:0;
@@ -943,32 +943,78 @@
       html.lh #wasteFan{ left:calc(var(--m) - 184 * var(--u)); }
       /* the five buttons along the bottom: 28 design px, 14 apart, faded to 70%, centred under the columns */
       #buttons{
-        left:calc(var(--X0) + var(--tot) / 2 - (5 * 28 + 4 * 14) * var(--k) / 2);
-        top:calc(100cqh - 6 * var(--k) - 28 * var(--k));
-        width:calc((5 * 28 + 4 * 14) * var(--k)); height:calc(28 * var(--k));
+        left:calc(var(--X0) + var(--tot) / 2 - (5 * 36.4 + 4 * 26) * var(--k) / 2);
+        top:calc(100cqh - 6 * var(--k) - 36.4 * var(--k));
+        width:calc((5 * 36.4 + 4 * 26) * var(--k)); height:calc(36.4 * var(--k));
         flex-direction:row; justify-content:space-between; align-items:center; gap:0; padding:0;
       }
-      .ctrl{ position:relative; width:calc(28 * var(--k)); height:calc(28 * var(--k)); min-width:0; min-height:0; }
+      .ctrl{ position:relative; width:calc(36.4 * var(--k)); height:calc(36.4 * var(--k)); min-width:0; min-height:0; }
       .ctrl img{ width:100%; height:100%; opacity:.7; }
-      .ctrl::after{ content:""; position:absolute; inset:calc(-7 * var(--k)); }   /* keeps the tap area generous */
+      .ctrl::after{ content:""; position:absolute; inset:calc(-5 * var(--k)); }   /* keeps the tap area generous */
       /* cat + mouse + invitation: one group, text centred above the pair, no box */
       #prompt{
         left:calc(100cqw - var(--cbm) - var(--cbw)); top:calc(var(--cbtop) + var(--cbm));
         width:var(--cbw); height:var(--cbh); padding:0;
-        display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:calc(6 * var(--k));
+        display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:calc(12 * var(--k));
       }
       html.lh #prompt{ left:var(--cbm); }
       #promptText{
         position:relative; top:auto; left:auto; transform:none; order:-1;
         width:100%; max-width:100%; min-height:0; margin:0; flex:1 1 auto;
         display:flex; align-items:flex-end; justify-content:center;
-        font-size:calc(22 * var(--k)); line-height:1.2;
+        font-size:calc(26 * var(--k)); line-height:1.2;
       }
-      #promptText.long{ font-size:calc(18 * var(--k)); line-height:1.22; }
+      #promptText.long{ font-size:calc(21 * var(--k)); line-height:1.22; }
       #promptPets{ flex:0 0 auto; transform:translateX(calc(-27 * var(--k))); }   /* centres the cat + mouse PAIR */
       #promptCat{ width:calc(92 * var(--k)); }
       #promptMouse{ width:calc(48 * var(--k)); top:calc(40 * var(--k)); left:calc(100% + 6 * var(--k)); }
     }
+  }
+
+  /* the page now covers the whole screen (viewport-fit=cover): in every position keep clear of the home bar / notch at top + bottom */
+  body{ box-sizing:border-box; padding-top:env(safe-area-inset-top, 0px); padding-bottom:env(safe-area-inset-bottom, 0px); }
+  .screen{ box-sizing:border-box; padding-top:env(safe-area-inset-top, 0px); padding-bottom:env(safe-area-inset-bottom, 0px); }
+
+  /* ================= PHONES HELD SIDEWAYS: fit the REAL screen (Dani 2026-10-16, notes after her iPhone test) =================
+     1. The page now covers the whole screen (viewport-fit=cover) and keeps clear of the notch / home bar with the safe-area
+        insets, so there is no blank strip at the side and the buttons stay above the home bar.
+     2. The stage height is the REAL visible height (JS --appH from window.innerHeight, updated on rotate / Safari toolbars),
+        and the page can no longer be dragged up/down, so the bottom of the game is never cut off.
+     3. Welcome screen: everything except the arrow is 30% smaller, the cat->words distance stays the same.
+     4. Loading screen: the cat is 30% smaller, the words ~30% bigger (the cat->words distance stays the same). */
+  @media (min-aspect-ratio: 155/100) and (max-height: 520px){
+    html{ background:var(--paper); }
+    html, body{ height:var(--appH, 100%); overflow:hidden; }
+    body{ box-sizing:border-box; padding:env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
+    .screen{ box-sizing:border-box; height:var(--appH, 100%); bottom:auto;
+             padding:env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
+    /* welcome */
+    .scr-gap{ flex:none; width:calc(97 * var(--u)); }
+    #welCat{ width:calc(532 * var(--u)); margin:0 calc(-0.017 * 532 * var(--u)) 0 calc(-0.018 * 532 * var(--u)); }
+    #welBrand{ font-size:calc(63 * var(--u)); }
+    #welKind{ font-size:calc(140 * var(--u)); margin-top:calc(7 * var(--u)); }
+    /* loading */
+    #loadCat{ left:calc(170.4 * var(--u)); top:calc(202.8 * var(--u)); width:calc(392 * var(--u)); }
+    #loadPrompt{ left:calc(681 * var(--u)); width:calc(1120 * var(--u)); font-size:calc(62 * var(--u)); }
+    /* full-screen pages (Settings, How to play, About, musician pages) keep clear of the notch + home bar */
+    .overlay.overlay--full{ box-sizing:border-box; padding:env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
+    /* SETTINGS, sideways: two columns so it all fits without a long scroll (left column first, then right - same order a screen reader reads);
+       a roomy Done button centred at the bottom, away from the edges and from the email row (Dani 2026-10-16) */
+    #settings .panel.panel--full{ max-width:none; padding:6px 30px calc(12px) 30px; }
+    #settings .settings-head{ display:flex; align-items:center; justify-content:center; gap:12px; margin:0 0 2px; }
+    #settings .settings-head .panelArt.paw{ width:30px; margin:0; }
+    #settings .settings-head h2{ margin:0; font-size:24px; }
+    #settings .settings-body{
+      display:grid; grid-auto-flow:column; grid-template-rows:repeat(5, auto); grid-template-columns:1fr 1fr;
+      column-gap:40px; row-gap:0; justify-content:stretch; align-content:space-around;
+    }
+    #settings .setrow{ padding:2px 6px; min-height:44px; }
+    #settings .setlabel{ font-size:18px; }
+    #settings .setrow.setrow--stack{ flex-direction:row; align-items:center; gap:10px; }
+    #settings .setrow.setrow--stack select.wideselect{ width:62%; }
+    #settings .setrow.setcontact{ min-height:54px; }
+    #settings .setcontact .setmail{ font-size:17px; }
+    #settings #settingsDone{ flex:0 0 auto; align-self:center; width:min(300px, 44%); height:52px; margin:10px auto 4px; }
   }</style>
 </head>
 <body>
@@ -1455,6 +1501,21 @@ function saveSettings(){
   if (FRESH_START) return;   // don't clobber the real saved prefs during a fresh test
   try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }catch(e){}
 }
+
+/* ---------- fit the REAL visible screen (Dani 2026-10-16) ----------
+   iPhone Safari's toolbars and a rotation change how tall the visible page really is, and the first measure can be
+   wrong (the bottom of the game was cut off). window.innerHeight is the truth; we publish it as --appH / --appW and
+   re-measure on every resize, rotation and when the page is shown again. */
+function fitStage(){
+  try{
+    const r = document.documentElement.style;
+    r.setProperty('--appH', window.innerHeight + 'px');
+    r.setProperty('--appW', window.innerWidth + 'px');
+  }catch(e){}
+}
+fitStage();
+['resize','orientationchange','pageshow','load'].forEach(ev=>window.addEventListener(ev, ()=>{ fitStage(); setTimeout(fitStage, 120); setTimeout(fitStage, 450); setTimeout(fitStage, 1100); }));
+try{ if (window.visualViewport) window.visualViewport.addEventListener('resize', fitStage); }catch(e){}
 
 /* ---------- accessibility helpers ---------- */
 function applyA11y(){
@@ -3807,6 +3868,7 @@ function startupFlow(){
      the normal app flow is untouched. */
   const pv = new URLSearchParams(location.search).get('preview');
   if (pv === 'board'){ setGameHiddenForAT(false); if (new URLSearchParams(location.search).has('invite')) setTimeout(()=>{ try{ showInvitation(true); }catch(e){} }, 600); return; }   // ?preview=board shows the game board directly, skipping the welcome screens (for looking at layouts)
+  if (pv === 'settings'){ setGameHiddenForAT(false); setTimeout(()=>{ try{ openSettings(); }catch(e){} }, 300); return; }   // ?preview=settings opens Settings directly (for looking at it)
   if (pv === 'about'){ openAbout(); return; }   // ?preview=about opens the About screen directly (for looking at it)
   if (pv === 'musician'){   // ?preview=musician (Cassie) or ?preview=musician&who=erin|christian opens a musician's page directly (for looking at it)
     const who = new URLSearchParams(location.search).get('who');
@@ -4100,7 +4162,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 16 · cupunapa c2';
+  var BUILD_TAG = 'Oct 16 · cupunapa c3';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
