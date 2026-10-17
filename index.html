@@ -883,6 +883,9 @@
     }
   }
 
+  /* Tall phone view: the five buttons look 30% smaller and 30% faded (Dani 2026-10-16). The tap area stays full size (and the equal spacing stays), only the painted button shrinks. */
+  @media (max-aspect-ratio: 13/10){ .ctrl img{ width:70%; height:70%; opacity:.7; } }
+
   /* ================= SIDEWAYS PHONE LAYOUT (Dani 2026-10-16, from her approved picture "Mockup-sideways-v6") =================
      Phones held sideways (short, wide screens) get their own arrangement so the cards are as big as the HEIGHT allows
      and nothing is tiny or lost: foundations in a column on the LEFT, the seven columns centred in the middle, the
@@ -946,7 +949,7 @@
         flex-direction:row; justify-content:space-between; align-items:center; gap:0; padding:0;
       }
       .ctrl{ position:relative; width:calc(28 * var(--k)); height:calc(28 * var(--k)); min-width:0; min-height:0; }
-      .ctrl img{ opacity:.7; }
+      .ctrl img{ width:100%; height:100%; opacity:.7; }
       .ctrl::after{ content:""; position:absolute; inset:calc(-7 * var(--k)); }   /* keeps the tap area generous */
       /* cat + mouse + invitation: one group, text centred above the pair, no box */
       #prompt{
@@ -4097,7 +4100,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 16 · cupunapa c1';
+  var BUILD_TAG = 'Oct 16 · cupunapa c2';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
