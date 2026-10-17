@@ -1027,26 +1027,19 @@
     #loadPrompt{ left:calc(681 * var(--u)); width:calc(1120 * var(--u)); font-size:calc(62 * var(--u)); }
     /* full-screen pages (Settings, How to play, About, musician pages) keep clear of the notch + home bar */
     .overlay.overlay--full{ box-sizing:border-box; padding:env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
-    /* SETTINGS, sideways: two columns so it all fits without a long scroll (left column first, then right - same order a screen reader reads);
-       a roomy Done button centred at the bottom, away from the edges and from the email row (Dani 2026-10-16) */
-    #settings .panel.panel--full{ max-width:none; padding:6px 30px 10px 30px; }
-    #settings .settings-head{ display:flex; align-items:center; justify-content:center; gap:12px; margin:0 0 2px; }
+    /* SETTINGS, sideways: ONE column again, like the tall view but a little wider, and the page scrolls (Dani 2026-10-17: the two-column
+       version was cramped - the email link sat at the screen edge and the lower part of the letters was hidden). Same order a screen reader reads. */
+    #settings .panel.panel--full{ max-width:720px; padding:8px 30px 54px 30px; }
+    #settings .settings-head{ display:flex; align-items:center; justify-content:center; gap:12px; margin:0 0 4px; min-height:0; }
     #settings .settings-head .panelArt.paw{ width:30px; margin:0; }
     #settings .settings-head h2{ margin:0; font-size:24px; }
-    /* two INDEPENDENT columns (not a shared grid), so every row is just as tall as its own text + the same padding above and below:
-       the space between a row's text and its orange lines is the SAME in every row (Dani 2026-10-17). The left column ends after "Game sounds". */
-    #settings .settings-body{
-      display:block; -webkit-column-count:2; column-count:2; column-gap:40px; column-fill:balance;
-    }
-    #settings .setrow{ padding:9px 6px; min-height:0; box-sizing:border-box; break-inside:avoid; -webkit-column-break-inside:avoid; }
-    #settings .setrow:has(#setGame){ break-after:column; -webkit-column-break-after:always; }
-    #settings .setlabel{ font-size:18px; }
-    #settings .setrow.setrow--stack{ flex-direction:row; align-items:center; gap:10px; }
-    #settings .setrow.setrow--stack select.wideselect{ width:62%; }
-    #settings .setrow.setcontact{ min-height:54px; padding-right:150px; }   /* the text stops before the Done button, so Done never covers it (the orange line above still runs the full width) */
-    #settings .setrow:has(#setTimed){ border-top:none; }   /* the first row of the right-hand column is at the top of the screen: no line above it (the lines stay in the tall view) */
-    #settings #settingsDone{ position:absolute; bottom:calc(30px + env(safe-area-inset-bottom, 0px) * 0); right:22px; width:124px; height:46px; margin:0; align-self:auto; z-index:6; }   /* Done: bottom-right corner, centred in the space under the About arrow and to the right of the email text (Dani 2026-10-16) */
-    #settings .settings-head{ min-height:46px; }
+    #settings .settings-body{ display:flex; flex-direction:column; flex:0 0 auto; justify-content:flex-start; }
+    #settings .setrow{ padding:12px 6px; min-height:0; box-sizing:border-box; }
+    #settings .setlabel{ font-size:19px; }
+    #settings .setrow.setrow--stack{ flex-direction:row; align-items:center; gap:12px; }
+    #settings .setrow.setrow--stack select.wideselect{ width:auto; max-width:62%; }
+    #settings .setrow.setcontact{ min-height:0; padding-bottom:18px; }   /* room under the email so the tails of the letters (p, @) are never cut off */
+    #settings #settingsDone{ position:static; flex:0 0 auto; align-self:center; width:150px; height:54px; margin:34px auto 0; }   /* Done after the last row, centred: 34px above, 54px below (the panel's bottom padding) */
   }</style>
 </head>
 <body>
@@ -4217,7 +4210,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c14';
+  var BUILD_TAG = 'Oct 17 · cupunapa c15';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
