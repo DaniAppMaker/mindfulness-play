@@ -924,12 +924,12 @@
     @media (min-aspect-ratio: 155/100) and (max-height: 520px){
       #app{
         --k: calc(100cqh / 393);
-        --u: calc(var(--k) * 0.329);                          /* card = 50 x 80 design pixels */
+        --u: calc(var(--k) * 0.3816);                         /* card = 58 x 92 design pixels (as big as the four stacked foundations allow) */
         --cw: calc(152 * var(--u));  --ch: calc(242 * var(--u));
         --stack-down: calc(32 * var(--u));  --stack-up: calc(68 * var(--u));
         --m: calc(24 * var(--k));                             /* margin from the left / right screen edge */
         --wf: calc(100 * var(--u));                           /* how far the waste fan reaches left of the draw pile */
-        --gapc: calc(12 * var(--k));                          /* gap between the seven columns */
+        --gapc: calc(2 * var(--u));                           /* gap between the seven columns: almost touching, like the tall view */
         --tot: calc(7 * var(--cw) + 6 * var(--gapc));
         --Lend: calc(var(--m) + var(--cw));                   /* right edge of the foundation column */
         --gp: calc(10 * var(--k));                            /* gap between the draw pile and the waste fan (they sit side by side) */
@@ -937,7 +937,7 @@
         --Rstart: calc(100cqw - var(--m) - var(--cw) - var(--gp) - var(--cw) - var(--wf));  /* left edge of the right-hand block = the first (oldest) waste card; the draw pile is the right-most thing */
         --X0: calc(var(--Lend) + (var(--Rstart) - var(--Lend) - var(--tot)) / 2);   /* seven columns centred between the two sides */
         --cbw: min(calc(230 * var(--k)), calc(100cqw - var(--X0) - var(--tot) - var(--cbm) - 8 * var(--k)));   /* cat + mouse + invitation group: width (never under the columns) */
-        --cbh: calc(270 * var(--k));                          /* ... reserved height (room for a big invitation + the cat) */
+        --cbh: calc(250 * var(--k));                          /* ... reserved height (room for the invitation + the cat) */
         --cbtop: calc(12 * var(--k) + var(--ch));             /* bottom edge of the top row (draw pile + waste fan) */
         --cbm: calc((100cqh - var(--cbtop) - var(--cbh)) / 2);   /* equal space above / below / beside the group */
         width:100cqw; height:100cqh; min-height:0;
@@ -991,9 +991,9 @@
         position:relative; top:auto; left:auto; transform:none; order:-1;
         width:100%; max-width:100%; min-height:0; margin:0; flex:0 0 auto;
         display:block; text-align:center;
-        font-size:calc(15 * var(--k)); line-height:1.25;   /* the real size is chosen in JS: the biggest that fits, up to this (setPrompt) */
+        font-size:calc(22.5 * var(--k)); line-height:1.25;   /* the real size is chosen in JS: the biggest that fits, up to this (setPrompt) */
       }
-      #promptText.long{ font-size:calc(15 * var(--k)); line-height:1.25; }
+      #promptText.long{ font-size:calc(22.5 * var(--k)); line-height:1.25; }
       #promptPets{ flex:0 0 auto; transform:translateX(calc(-27 * var(--k))); }   /* centres the cat + mouse PAIR */
       #promptCat{ width:calc(92 * var(--k)); }
       #promptMouse{ width:calc(48 * var(--k)); top:calc(40 * var(--k)); left:calc(100% + 6 * var(--k)); }
@@ -1033,17 +1033,19 @@
     #settings .settings-head{ display:flex; align-items:center; justify-content:center; gap:12px; margin:0 0 2px; }
     #settings .settings-head .panelArt.paw{ width:30px; margin:0; }
     #settings .settings-head h2{ margin:0; font-size:24px; }
+    /* two INDEPENDENT columns (not a shared grid), so every row is just as tall as its own text + the same padding above and below:
+       the space between a row's text and its orange lines is the SAME in every row (Dani 2026-10-17). The left column ends after "Game sounds". */
     #settings .settings-body{
-      display:grid; grid-auto-flow:column; grid-template-rows:repeat(5, auto); grid-template-columns:1fr 1fr;
-      column-gap:40px; row-gap:0; justify-content:stretch; align-content:space-around;
+      display:block; -webkit-column-count:2; column-count:2; column-gap:40px; column-fill:balance;
     }
-    #settings .setrow{ padding:2px 6px; min-height:44px; }
+    #settings .setrow{ padding:9px 6px; min-height:0; box-sizing:border-box; break-inside:avoid; -webkit-column-break-inside:avoid; }
+    #settings .setrow:has(#setGame){ break-after:column; -webkit-column-break-after:always; }
     #settings .setlabel{ font-size:18px; }
     #settings .setrow.setrow--stack{ flex-direction:row; align-items:center; gap:10px; }
     #settings .setrow.setrow--stack select.wideselect{ width:62%; }
-    #settings .setrow.setcontact{ min-height:54px; }
+    #settings .setrow.setcontact{ min-height:54px; padding-right:150px; }   /* the text stops before the Done button, so Done never covers it (the orange line above still runs the full width) */
     #settings .setrow:has(#setTimed){ border-top:none; }   /* the first row of the right-hand column is at the top of the screen: no line above it (the lines stay in the tall view) */
-    #settings #settingsDone{ position:absolute; bottom:calc(30px + env(safe-area-inset-bottom, 0px) * 0); right:30px; width:130px; height:46px; margin:0; align-self:auto; z-index:6; }   /* Done: bottom-right corner, centred in the space under the About arrow and to the right of the email text (Dani 2026-10-16) */
+    #settings #settingsDone{ position:absolute; bottom:calc(30px + env(safe-area-inset-bottom, 0px) * 0); right:22px; width:124px; height:46px; margin:0; align-self:auto; z-index:6; }   /* Done: bottom-right corner, centred in the space under the About arrow and to the right of the email text (Dani 2026-10-16) */
     #settings .settings-head{ min-height:46px; }
   }</style>
 </head>
@@ -1818,7 +1820,7 @@ function nextInvitationText(){
   return F.make ? F.make(line) : line;
 }
 const promptTextEl = ()=> document.getElementById('promptText');
-const SIDEWAYS_NOTE_MAX = 15, SIDEWAYS_NOTE_MIN = 10;   // invitation text size range on a phone held sideways, in design pixels (the biggest that fits is used)
+const SIDEWAYS_NOTE_MAX = 22.5, SIDEWAYS_NOTE_MIN = 10, SIDEWAYS_GROUP_H = 250;   // invitation text size range on a phone held sideways, in design pixels (the biggest that fits is used)
 const sidewaysPhone = ()=> window.matchMedia('(min-aspect-ratio: 155/100) and (max-height: 520px)').matches;
 function setPrompt(text, opts={}){
   const el = promptTextEl();
@@ -1840,7 +1842,7 @@ function setPrompt(text, opts={}){
   if (has && window.matchMedia('(min-aspect-ratio: 155/100) and (max-height: 520px)').matches){
     const box = document.getElementById('prompt'), pets = document.getElementById('promptPets');
     if (box && pets){
-      const k = box.getBoundingClientRect().height / 270;                   // one design pixel (the group is 270 design pixels tall)
+      const k = box.getBoundingClientRect().height / SIDEWAYS_GROUP_H;      // one design pixel (the group is SIDEWAYS_GROUP_H design pixels tall)
       const room = box.getBoundingClientRect().height - pets.getBoundingClientRect().height - 12 * k;
       el.classList.remove('long');
       let s = SIDEWAYS_NOTE_MAX;
@@ -3097,7 +3099,7 @@ function updateWaste(){
       el.style.top = '0';
       // where it slides in FROM: the newest comes off the draw pile; an older
       // card re-surfacing (after the top was played) eases in from the left
-      const fromX = (card.id === newestId) ? xpos((sidewaysPhone() && !LH()) ? 1078.4 : DRAW_X, CARD_W)
+      const fromX = (card.id === newestId) ? xpos((sidewaysPhone() && !LH()) ? 1074.2 : DRAW_X, CARD_W)
                                            : xpos(WASTE_X[0] - 44, CARD_W);
       el.style.left = fromX;
       el.style.opacity = (card.id === newestId) ? '1' : '0';
@@ -4215,7 +4217,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c13';
+  var BUILD_TAG = 'Oct 17 · cupunapa c14';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
