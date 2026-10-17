@@ -553,8 +553,8 @@
   #about .panel.panel--full, #howto .panel.panel--full, #settings .panel.panel--full{ --dg: 54px; padding-bottom:var(--dg); }   /* 54px = the height of the Done button itself: the blank space above and below it equals its own height (Dani 2026-10-17) */
   .panel.panel--full #settingsDone{ margin-bottom:0; }
   @media not all and (min-aspect-ratio: 155/100) and (max-height: 520px){   /* tall view only (sideways Settings has its own Done) */
-    .panel.panel--full #aboutDone, .panel.panel--full #howtoDone{ margin:var(--dg) auto 0; }
-    .panel.panel--full #settingsDone{ margin-top:var(--dg); }
+    .panel.panel--full #aboutDone, .panel.panel--full #howtoDone{ margin:calc(var(--dg) - 10px) auto 0; }   /* the space above Done is 10px less than below (Dani 2026-10-17) */
+    .panel.panel--full #settingsDone{ margin-top:calc(var(--dg) - 10px); }
     #settings .panel.panel--full .settings-body{ justify-content:space-between; }   /* leftover room goes between the rows, never above Done, so the two blank spaces stay equal */
     #howto .howtext > :last-child, #about .abouttext > :last-child{ margin-bottom:0; }   /* the last paragraph adds no extra space above Done */
   }
@@ -4215,7 +4215,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c11';
+  var BUILD_TAG = 'Oct 17 · cupunapa c12';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
