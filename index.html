@@ -518,13 +518,13 @@
   .panel.panel--full .setrow-divider{ margin:6px 2px 2px; font-weight:650; text-align:center; }
   .panel.panel--full #settingsDone, .panel.panel--full #howtoDone{ flex:0 0 auto; margin-top:16px; }
   /* "How to play" row in Settings (a full-width band, like the other options) + the guide itself (Dani 2026-10-10) */
-  button.setrow.sethow{ background:none; border:none; width:100%; font:inherit; color:inherit; text-align:left; cursor:pointer;
+  button.setrow.sethow{ background:none; border:0; border-top:1px solid #efdcc0; width:100%; font:inherit; color:inherit; text-align:left; cursor:pointer;
     display:flex; align-items:center; justify-content:space-between; gap:12px; }
-  button.setrow.sethow .chev{ font-size:26px; line-height:1; color:var(--ink-soft); }
+  button.setrow.sethow .chev{ flex:0 0 auto; width:44px; height:44px; display:grid; place-items:center; border-radius:50%; background:#fffdf9; border:2px solid #e6b88c; color:var(--ink); font-size:34px; line-height:1; padding-bottom:4px; box-sizing:border-box; }   /* big, clear arrow (low-vision friendly) */
   /* the About screen (Dani 2026-10-10) */
   .aboutbrand{ margin:6px 0 2px; text-align:center; font-weight:600; color:var(--ink-soft); font-size:15px; letter-spacing:.02em; }
-  #about .aboutbrand{ font-size:29px; color:#6b665d; line-height:1.2; margin:8px 0 30px; letter-spacing:.01em; white-space:nowrap; display:flex; align-items:center; justify-content:center; gap:10px; }   /* one line, softer grey, an orange paw before the M (Dani 2026-10-10) */
-  #about .aboutpaw{ width:32px; height:auto; flex:0 0 auto; }   /* the product name is the biggest thing on the page, bigger than the 'About' title (Dani 2026-10-10) */
+  #about .aboutbrand, #howto .aboutbrand{ font-size:29px; color:#6b665d; line-height:1.2; margin:8px 0 30px; letter-spacing:.01em; white-space:nowrap; display:flex; align-items:center; justify-content:center; gap:10px; }   /* one line, softer grey, an orange paw before the M (Dani 2026-10-10) */
+  #about .aboutpaw, #howto .aboutpaw{ width:32px; height:auto; flex:0 0 auto; }   /* the product name is the biggest thing on the page, bigger than the 'About' title (Dani 2026-10-10) */
   /* readable text for the long pages (Dani 2026-10-10: it was light grey and small - the generic .panel p rule was winning): dark ink, 17px */
   #about .howtext p, #about .howtext li, #howto .howtext p, #howto .howtext li{ color:var(--ink); font-size:17px; line-height:1.6; }
   #about .abouth{ font-size:21px; }
@@ -533,6 +533,13 @@
   .abouttext .aboutcontact{ margin-top:22px; }
   .abouttext .aboutsign{ margin-top:6px; font-weight:inherit; }   /* not bold (Dani 2026-10-10) */
   .panel.panel--full #aboutDone{ flex:0 0 auto; margin-top:16px; }
+  /* About + How to play (Dani 2026-10-16): all text and the Done button start at the LEFT, and Done sits well above the bottom edge so it is easy to press */
+  #about .settings-head, #howto .settings-head{ text-align:left; align-items:flex-start; }
+  #about .settings-head h2, #howto .settings-head h2{ text-align:left; margin-left:0; }
+  #about .aboutbrand, #howto .aboutbrand{ justify-content:flex-start; }
+  #about .abouttext .abouth, #howto .howtext .howsub{ text-align:left; }
+  .panel.panel--full #aboutDone, .panel.panel--full #howtoDone{ align-self:flex-start; margin-left:0; margin-right:auto; margin-bottom:10px; }
+  #about .panel.panel--full, #howto .panel.panel--full, #settings .panel.panel--full{ padding-bottom:calc(46px + env(safe-area-inset-bottom, 0px)); }
   .howtext{ flex:1 1 auto; }
   .howtext p, .howtext li{ font-size:16px; line-height:1.55; color:var(--ink); }
   .howtext p{ margin:0 0 14px; }
@@ -655,11 +662,12 @@
     display:flex; align-items:center; justify-content:space-between; gap:12px;
     padding:11px 2px; border-top:1px solid #efdcc0; text-align:left;
   }
-  .setrow:first-of-type{ border-top:none; }
+  .settings-body > .setrow:first-child{ border-top:none; }   /* a soft orange line between EVERY row, none above the first */
   .setlabel{ font-size:19px; font-weight:600; color:var(--ink); }   /* bigger settings text (Dani 2026-09-14) */
-  .sethint{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; line-height:1.3; }
+  .sethint{ font-size:15px; color:#4f4540; margin-top:3px; line-height:1.3; }   /* darker + ~30% bigger so it is easy to read (Dani 2026-10-16) */
   a.setcontact{ text-decoration:none; color:inherit; }
-  .setmail{ color:var(--ink); font-weight:600; text-decoration:underline; text-underline-offset:2px; }
+  .setmail{ color:var(--ink); font-weight:600; text-decoration:underline; text-underline-offset:3px; font-size:1.5em; }   /* the email address: way bigger, easy to tap (Dani 2026-10-16) */
+  .abouttext .setmail{ font-size:1.25em; }
   .setnote{ margin:15px 2px 2px; font-size:12px; color:var(--ink-soft); text-align:center; line-height:1.5; }
   /* Each toggle is a real <button role="switch"> — the reliable accessible pattern.
      The old hidden-<input> toggles were skipped/jumped-over in VoiceOver's swipe order
@@ -906,17 +914,20 @@
         --gapc: calc(12 * var(--k));                          /* gap between the seven columns */
         --tot: calc(7 * var(--cw) + 6 * var(--gapc));
         --Lend: calc(var(--m) + var(--cw));                   /* right edge of the foundation column */
-        --Rstart: calc(100cqw - var(--m) - var(--cw) - var(--wf));   /* left edge of the waste fan */
+        --gp: calc(10 * var(--k));                            /* gap between the draw pile and the waste fan (they sit side by side) */
+        --Rfan: calc(100cqw - var(--m) - var(--cw) - var(--wf));   /* left edge of the waste fan */
+        --Rstart: calc(var(--Rfan) - var(--gp) - var(--cw));  /* left edge of the draw pile = the left edge of the right-hand block */
         --X0: calc(var(--Lend) + (var(--Rstart) - var(--Lend) - var(--tot)) / 2);   /* seven columns centred between the two sides */
-        --cbw: calc(196 * var(--k));                          /* cat + mouse + invitation group: width */
-        --cbh: calc(190 * var(--k));                          /* ... reserved height (4 lines of text + cat) */
-        --cbtop: calc(12 * var(--k) + 2 * var(--ch));         /* bottom edge of the draw pile */
+        --cbw: min(calc(230 * var(--k)), calc(100cqw - var(--X0) - var(--tot) - var(--cbm) - 8 * var(--k)));   /* cat + mouse + invitation group: width (never under the columns) */
+        --cbh: calc(270 * var(--k));                          /* ... reserved height (room for a big invitation + the cat) */
+        --cbtop: calc(12 * var(--k) + var(--ch));             /* bottom edge of the top row (draw pile + waste fan) */
         --cbm: calc((100cqh - var(--cbtop) - var(--cbh)) / 2);   /* equal space above / below / beside the group */
         width:100cqw; height:100cqh; min-height:0;
       }
       html.lh #app{
-        --Lend: calc(var(--m) + var(--cw) + var(--wf));
-        --Rstart: calc(100cqw - var(--m) - var(--cw));
+        --Lend: calc(var(--m) + var(--cw) + var(--gp) + var(--cw) + var(--wf));   /* right edge of the left-hand block (draw pile + waste fan) */
+        --Rstart: calc(100cqw - var(--m) - var(--cw));                           /* left edge of the foundation column (now on the right) */
+        --cbw: min(calc(230 * var(--k)), calc(var(--X0) - var(--cbm) - var(--cbm) - 8 * var(--k)));
       }
       /* foundations: a column on the left, not overlapping */
       #topRow{ left:0; top:calc(6 * var(--k)); width:100%; height:var(--ch); }
@@ -925,9 +936,9 @@
       #topRow .top-dyn[data-found="1"]{ top:calc(1 * (var(--ch) + 3.5 * var(--k))) !important; }
       #topRow .top-dyn[data-found="2"]{ top:calc(2 * (var(--ch) + 3.5 * var(--k))) !important; }
       #topRow .top-dyn[data-found="3"]{ top:calc(3 * (var(--ch) + 3.5 * var(--k))) !important; }
-      /* draw pile under the waste fan, right edge = same distance from the screen edge as the foundations */
-      #topRow .drawpile{ left:calc(100cqw - var(--m) - var(--cw)) !important; top:calc(var(--ch) + 6 * var(--k)) !important; }
-      #wasteFan{ left:calc(var(--Rstart) - 644 * var(--u)); right:auto; width:100%; }
+      /* draw pile BESIDE the waste fan (draw pile on the left, the fan to its right, ending the same distance from the screen edge as the foundations) - frees the whole right side for the cat + a big invitation */
+      #topRow .drawpile{ left:var(--Rstart) !important; top:0 !important; }
+      #wasteFan{ left:calc(var(--Rfan) - 644 * var(--u)); right:auto; width:100%; }
       /* the seven columns, centred between the foundations and the waste fan */
       #tableau{ left:var(--X0); width:var(--tot); top:calc(6 * var(--k)); bottom:0; overflow:visible; }
       #tableau .col[data-col="0"]{ left:calc(0 * (var(--cw) + var(--gapc))) !important; }
@@ -939,8 +950,8 @@
       #tableau .col[data-col="6"]{ left:calc(6 * (var(--cw) + var(--gapc))) !important; }
       /* left-handed: mirror (foundations on the right, draw pile + waste on the left, group bottom-left) */
       html.lh #topRow .top-dyn[data-found]{ left:calc(100cqw - var(--m) - var(--cw)) !important; }
-      html.lh #topRow .drawpile{ left:var(--m) !important; }
-      html.lh #wasteFan{ left:calc(var(--m) - 184 * var(--u)); }
+      html.lh #topRow .drawpile{ left:var(--m) !important; top:0 !important; }
+      html.lh #wasteFan{ left:calc(var(--m) + var(--cw) + var(--gp) - 184 * var(--u)); }
       /* the five buttons along the bottom: 28 design px, 14 apart, faded to 70%, centred under the columns */
       #buttons{
         left:calc(var(--X0) + var(--tot) / 2 - (5 * 36.4 + 4 * 26) * var(--k) / 2);
@@ -960,11 +971,11 @@
       html.lh #prompt{ left:var(--cbm); }
       #promptText{
         position:relative; top:auto; left:auto; transform:none; order:-1;
-        width:100%; max-width:100%; min-height:0; margin:0; flex:1 1 auto;
-        display:flex; align-items:flex-end; justify-content:center;
-        font-size:calc(26 * var(--k)); line-height:1.2;
+        width:100%; max-width:100%; min-height:0; margin:0; flex:0 0 auto;
+        display:block; text-align:center;
+        font-size:calc(34 * var(--k)); line-height:1.2;   /* the real size is chosen in JS: the biggest that fits (setPrompt) */
       }
-      #promptText.long{ font-size:calc(21 * var(--k)); line-height:1.22; }
+      #promptText.long{ font-size:calc(34 * var(--k)); line-height:1.2; }
       #promptPets{ flex:0 0 auto; transform:translateX(calc(-27 * var(--k))); }   /* centres the cat + mouse PAIR */
       #promptCat{ width:calc(92 * var(--k)); }
       #promptMouse{ width:calc(48 * var(--k)); top:calc(40 * var(--k)); left:calc(100% + 6 * var(--k)); }
@@ -990,7 +1001,7 @@
              padding:env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
     /* welcome */
     .scr-gap{ flex:none; width:calc(97 * var(--u)); }
-    #welCat{ width:calc(532 * var(--u)); margin:0 calc(-0.017 * 532 * var(--u)) 0 calc(-0.018 * 532 * var(--u)); }
+    #welCat{ width:calc(638 * var(--u)); margin:0 calc(-0.017 * 638 * var(--u)) 0 calc(-0.018 * 638 * var(--u)); }
     #welBrand{ font-size:calc(63 * var(--u)); }
     #welKind{ font-size:calc(140 * var(--u)); margin-top:calc(7 * var(--u)); }
     /* loading */
@@ -1000,7 +1011,7 @@
     .overlay.overlay--full{ box-sizing:border-box; padding:env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
     /* SETTINGS, sideways: two columns so it all fits without a long scroll (left column first, then right - same order a screen reader reads);
        a roomy Done button centred at the bottom, away from the edges and from the email row (Dani 2026-10-16) */
-    #settings .panel.panel--full{ max-width:none; padding:6px 30px calc(12px) 30px; }
+    #settings .panel.panel--full{ max-width:none; padding:6px 30px 10px 30px; }
     #settings .settings-head{ display:flex; align-items:center; justify-content:center; gap:12px; margin:0 0 2px; }
     #settings .settings-head .panelArt.paw{ width:30px; margin:0; }
     #settings .settings-head h2{ margin:0; font-size:24px; }
@@ -1013,8 +1024,9 @@
     #settings .setrow.setrow--stack{ flex-direction:row; align-items:center; gap:10px; }
     #settings .setrow.setrow--stack select.wideselect{ width:62%; }
     #settings .setrow.setcontact{ min-height:54px; }
-    #settings .setcontact .setmail{ font-size:17px; }
-    #settings #settingsDone{ flex:0 0 auto; align-self:center; width:min(300px, 44%); height:52px; margin:10px auto 4px; }
+    #settings .setrow:nth-child(5n+1){ border-top:none; }   /* no line above the first row of each column */
+    #settings #settingsDone{ position:absolute; top:8px; right:30px; width:150px; height:46px; margin:0; align-self:auto; }   /* Done lives in the top-right corner when sideways: always visible, never near the bottom edge, never next to the email row */
+    #settings .settings-head{ min-height:46px; }
   }</style>
 </head>
 <body>
@@ -1126,7 +1138,7 @@
         <!-- STEP 1: the cat carries the spoken intro as its aria-label. Real full-size
              element, so focus + swipe advance cleanly; no text descendants to double-read. -->
         <div class="scr-art" id="welCat" role="img" tabindex="-1"
-             aria-label="Welcome to Cupunapa Mindful Solitaire. This is a game of solitaire with invitations to mindfulness sprinkled in. It's an opportunity to take a break and to bridge mindfulness into real life, away from the meditation cushion. On the screen, a soft peaceful watercolor cat sits in a meditation pose, warm pink melting into golden yellow, eyes gently closed and paws folded."></div>
+             aria-label="Welcome to Cupunapa Mindful Solitaire. This is a game of solitaire with invitations to mindfulness sprinkled in. It's an opportunity to take a break and to bridge mindfulness into real life, beyond the meditation cushion. On the screen, a soft peaceful watercolor cat sits in a meditation pose, warm pink melting into golden yellow, eyes gently closed and paws folded."></div>
         <!-- STEP 2: the words on screen. Plain text, NOT inside a role="img", so read ONCE. -->
         <div class="scr-gap" aria-hidden="true"></div>
         <div class="scr-group" id="welGroup">
@@ -1318,6 +1330,7 @@
   <div id="howto" class="overlay overlay--full">
     <div class="panel panel--full" role="dialog" aria-modal="true" aria-labelledby="howtoTitle">
       <div class="settings-head">
+        <p class="aboutbrand"><img class="aboutpaw" src="assets/interface/about-paw.png" alt="" aria-hidden="true">Cupunapa&trade;</p>
         <h2 id="howtoTitle" tabindex="-1">How to play</h2>
       </div>
       <div class="howtext">
@@ -1787,6 +1800,8 @@ function nextInvitationText(){
   return F.make ? F.make(line) : line;
 }
 const promptTextEl = ()=> document.getElementById('promptText');
+const SIDEWAYS_NOTE_MAX = 44, SIDEWAYS_NOTE_MIN = 14;   // invitation text size range on a phone held sideways, in design pixels (the biggest that fits is used)
+const sidewaysPhone = ()=> window.matchMedia('(min-aspect-ratio: 155/100) and (max-height: 520px)').matches;
 function setPrompt(text, opts={}){
   const el = promptTextEl();
   el.classList.toggle('long', !!opts.long);
@@ -1802,6 +1817,24 @@ function setPrompt(text, opts={}){
   // the biggest size that keeps its line breaks and fits between the cat and the
   // cards (Dani 2026-09-27: the old one-step smaller size looked far too small)
   el.style.fontSize = '';
+  /* SIDEWAYS PHONES (Dani 2026-10-16): the note takes the biggest size that fits the space above the cat, with its own
+     line breaks kept - never tiny, never running into the cards or the draw pile. */
+  if (has && window.matchMedia('(min-aspect-ratio: 155/100) and (max-height: 520px)').matches){
+    const box = document.getElementById('prompt'), pets = document.getElementById('promptPets');
+    if (box && pets){
+      const k = box.getBoundingClientRect().height / 190;                   // one design pixel
+      const room = box.getBoundingClientRect().height - pets.getBoundingClientRect().height - 12 * k;
+      el.classList.remove('long');
+      let s = SIDEWAYS_NOTE_MAX;
+      for (; s >= SIDEWAYS_NOTE_MIN; s -= 1){
+        el.style.fontSize = (s * k) + 'px';
+        if (el.getBoundingClientRect().height <= room && el.scrollWidth <= el.clientWidth + 1) break;
+      }
+    }
+    el.style.opacity = has ? '1' : '0';
+    if (has) el.removeAttribute('aria-hidden'); else el.setAttribute('aria-hidden', 'true');
+    return;
+  }
   if (has && !opts.long){
     const lines = text.split('\n').length;
     const u = parseFloat(getComputedStyle(el).fontSize) / 58;   // px per design unit
@@ -3046,7 +3079,7 @@ function updateWaste(){
       el.style.top = '0';
       // where it slides in FROM: the newest comes off the draw pile; an older
       // card re-surfacing (after the top was played) eases in from the left
-      const fromX = (card.id === newestId) ? xpos(DRAW_X, CARD_W)
+      const fromX = (card.id === newestId) ? xpos((sidewaysPhone() && !LH()) ? 461.6 : DRAW_X, CARD_W)
                                            : xpos(WASTE_X[0] - 44, CARD_W);
       el.style.left = fromX;
       el.style.opacity = (card.id === newestId) ? '1' : '0';
@@ -3554,7 +3587,8 @@ const LOADING_LINES = [                                     // Dani's words (202
   "Can play be a place to notice,\nas well as a place to rest?",
   "You can notice a thought\nwithout having to follow it.",
   "What changes in your body\nwhen you become interested\nin something?",
-  "You can be curious about your body\nwithout needing to change\nhow it feels."
+  "You can be curious about your body\nwithout needing to change\nhow it feels.",
+  "Have you tried meditating\nby gazing at a candle flame?"       // added 2026-10-16 (Dani)
 ];
 // Roots lines — where these practices come from (Dani 2026-09-29). They join the
 // shuffle only from the player's 5th app open, so the game feels familiar first.
@@ -3905,7 +3939,7 @@ function startupFlow(){
   const cancelWelArrow = revealArrowLater('welNext', firstLaunch ? 2500 : 900);   // halved 2026-10-12 (Dani: less to read now)
   const proceed = ()=>{
     cancelWelArrow();
-    playPurr();                                     // a soft grounding purr as the player enters (first tap = audio can start)
+    if (settings.natureSound !== 'purr') playPurr();   // a short grounding purr as the player enters - skipped when the ambient is the purr itself, so the purr starts on the loading screen and simply CONTINUES into the game (Dani 2026-10-16)
     audioUnlocked = true;                           // iPhone audio is now unlocked by this tap
     applyNature(); updateMusic();                   // START the ambient (purr by default) now that it actually can play
     const w = document.getElementById('screenWelcome');
@@ -4162,7 +4196,7 @@ window.Sound = (function(){
   }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 16 · cupunapa c3';
+  var BUILD_TAG = 'Oct 16 · cupunapa c4';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
