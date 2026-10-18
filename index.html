@@ -3967,7 +3967,7 @@ function startupFlow(){
   // iOS starts its own cursor at the top and this can't override it). Same trick as
   // revealBoardForAT() for the board.
   moveATCursorTo('welCat');   // land VO on the cat (role=img, intro label); swipe → words → Begin
-  setTimeout(()=>{ try{ const l = document.getElementById('welLive'), c = document.getElementById('welCat'); if (l && c) l.textContent = c.getAttribute('aria-label') || ''; }catch(e){} }, 1600);   // ...and SPEAK the welcome by itself, without waiting for a touch
+  setTimeout(()=>{ try{ const l = document.getElementById('welLive'), c = document.getElementById('welCat'); if (l && c) l.textContent = c.getAttribute('aria-label') || ''; }catch(e){} try{ c.focus(); }catch(e){} }, 3500);   // ...and SPEAK the welcome by itself, without waiting for a touch
   // The Begin arrow fades in so the greeting is read before the arrow draws the
   // eye: a calm ~5s the first-ever launch, a brisk ~1.8s on repeat opens.
   const cancelWelArrow = revealArrowLater('welNext', firstLaunch ? 2500 : 900);   // halved 2026-10-12 (Dani: less to read now)
@@ -4247,7 +4247,7 @@ window.Sound = (function(){
   #testPanel button:last-child{ margin-bottom:0; background:#fffdf9; }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c22';
+  var BUILD_TAG = 'Oct 17 · cupunapa c23';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // the test menu (testing only)
   try {
