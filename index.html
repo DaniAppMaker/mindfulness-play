@@ -879,7 +879,7 @@
     #welBrand .tm{ width:auto; display:inline; }   /* here the TM counts as part of the title, so the right-most part of the text really sits on the margin */
     #welKind{ font-size:calc(200 * var(--u)); margin-top:calc(10 * var(--u)); }
     /* the Begin arrows (welcome + loading): identical size, bottom-right corner of the SCREEN, ~20px in */
-    .next-arrow{ position:absolute; right:max(36px, env(safe-area-inset-right, 0px)); bottom:max(64px, calc(240 * var(--u)), env(safe-area-inset-bottom, 0px));
+    .next-arrow{ position:absolute; right:max(36px, env(safe-area-inset-right, 0px)); bottom:max(64px, calc((100% - var(--boardH)) / 2 + 230 * var(--u)), env(safe-area-inset-bottom, 0px));
                  width:56px; height:56px; }   /* lifted off the bottom edge: at ~20px the iPhone app ignored taps (Dani 2026-10-12, a26/a27); 64px up worked in a24 */
     .next-arrow::after{ content:""; position:absolute; inset:-36px -12px -8px -36px; }   /* invisible extra tap room above and to the left */
     /* loading */
@@ -1146,6 +1146,7 @@
        stays reachable. The cat is a background image on #welCat (its picture has no
        separate a11y node; the intro comes from its aria-label). -->
   <div class="screen fade" id="screenWelcome">
+    <div id="welLive" class="visually-hidden" role="status" aria-live="polite"></div>   <!-- speaks the welcome as soon as the screen opens (VoiceOver ignores a timer-based focus, but it does speak live regions) - Dani 2026-10-17 -->
     <div class="screen-col">
       <div id="welNarration" style="position:absolute; inset:0; z-index:2;">
         <!-- STEP 1: the cat carries the spoken intro as its aria-label. Real full-size
@@ -3703,11 +3704,11 @@ const ARROW_FADE_MS = 1800;   // must match the .next-arrow opacity transition; 
 // Reveal a Begin arrow, then arm it (make it tappable) only once it has FINISHED fading
 // in — under reduce-motion it appears instantly, so it arms instantly too.
 function armArrow(el){
-  el.classList.add('revealed');
+  el.classList.add("revealed"); el.inert = false;
   clearTimeout(el._armT);
   el._armT = setTimeout(()=>el.classList.add('armed'), reducedMotion() ? 0 : ARROW_FADE_MS);
 }
-function disarmArrow(el){ el.classList.remove('revealed','armed'); clearTimeout(el._armT); }
+function disarmArrow(el){ el.classList.remove('revealed','armed'); clearTimeout(el._armT); el.inert = true; }   // inert = invisible to VoiceOver/keyboard until it has appeared, so the screen reader never keeps the old arrow selected
 
 /* While the welcome / loading screen is up, EVERYTHING else on the page (the hidden live regions, the board, the settings pages, the
    win/lose screens, the build label) is made inert, so a VoiceOver swipe can never wander onto something the player cannot see - it
@@ -3964,6 +3965,7 @@ function startupFlow(){
   // iOS starts its own cursor at the top and this can't override it). Same trick as
   // revealBoardForAT() for the board.
   moveATCursorTo('welCat');   // land VO on the cat (role=img, intro label); swipe → words → Begin
+  setTimeout(()=>{ try{ const l = document.getElementById('welLive'), c = document.getElementById('welCat'); if (l && c) l.textContent = c.getAttribute('aria-label') || ''; }catch(e){} }, 900);   // ...and SPEAK the welcome by itself, without waiting for a touch
   // The Begin arrow fades in so the greeting is read before the arrow draws the
   // eye: a calm ~5s the first-ever launch, a brisk ~1.8s on repeat opens.
   const cancelWelArrow = revealArrowLater('welNext', firstLaunch ? 2500 : 900);   // halved 2026-10-12 (Dani: less to read now)
@@ -3983,6 +3985,7 @@ function startupFlow(){
     // nothing, swipe jumped to Safari's buttons" bug).
     runLoading(()=> revealBoardForAT());            // sets the teaching line + narration first
     try { document.getElementById('loadCat').focus(); } catch(e){}   // VoiceOver starts speaking on the cat AT ONCE, in the gesture (Dani 2026-10-17: it stayed silent until she found the cat by touch)
+    setTimeout(()=>{ try{ document.getElementById('loadCat').focus(); }catch(e){} }, 150);
     w.classList.remove('show'); w.style.opacity='';
   };
   advanceScreen = proceed;
@@ -4240,7 +4243,7 @@ window.Sound = (function(){
   #testPanel button:last-child{ margin-bottom:0; background:#fffdf9; }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c20';
+  var BUILD_TAG = 'Oct 17 · cupunapa c21';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // the test menu (testing only)
   try {
