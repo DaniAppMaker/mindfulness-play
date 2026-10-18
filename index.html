@@ -789,6 +789,7 @@
      so the arrow simply appears (snaps in) at the reveal time — still visible.
      A screen-reader player is told to double-tap anywhere, so they don't hunt
      for it — but it's still a real, labelled "Begin" button they can land on. */
+  .next-arrow[hidden]{ display:none !important; }
   .next-arrow{
     position:absolute; right:calc((100% - var(--board)) / 2 + 84 * var(--u)); bottom:calc((100% - var(--boardH)) / 2 + 160 * var(--u));   /* a direct child of the screen (NOT the clipped column), so iPhones never lose its taps */
     width:calc(104 * var(--u)); height:calc(104 * var(--u));
@@ -1146,7 +1147,7 @@
        stays reachable. The cat is a background image on #welCat (its picture has no
        separate a11y node; the intro comes from its aria-label). -->
   <div class="screen fade" id="screenWelcome">
-    <div id="welLive" class="visually-hidden" role="status" aria-live="polite"></div>   <!-- speaks the welcome as soon as the screen opens (VoiceOver ignores a timer-based focus, but it does speak live regions) - Dani 2026-10-17 -->
+    <div id="welLive" class="visually-hidden" role="alert"></div>   <!-- speaks the welcome as soon as the screen opens (VoiceOver ignores a timer-based focus, but it does speak live regions) - Dani 2026-10-17 -->
     <div class="screen-col">
       <div id="welNarration" style="position:absolute; inset:0; z-index:2;">
         <!-- STEP 1: the cat carries the spoken intro as its aria-label. Real full-size
@@ -1183,6 +1184,7 @@
        is double-read. (Replaces the old one-blob role="img" narration, which on Dani's
        iPhone double-read the line and hid the Begin button.) -->
   <div class="screen fade" id="screenLoading">
+    <div id="loadLive" class="visually-hidden" role="status" aria-live="polite"></div>
     <div class="screen-col">
       <div id="loadNarration" style="position:absolute; inset:0; z-index:2;">
         <!-- STEP 1: the teaching line — visible AND read once. tabindex=-1 so the cursor
@@ -3704,11 +3706,11 @@ const ARROW_FADE_MS = 1800;   // must match the .next-arrow opacity transition; 
 // Reveal a Begin arrow, then arm it (make it tappable) only once it has FINISHED fading
 // in — under reduce-motion it appears instantly, so it arms instantly too.
 function armArrow(el){
-  el.classList.add("revealed"); el.inert = false;
+  el.hidden = false; void el.offsetWidth; el.classList.add("revealed");
   clearTimeout(el._armT);
   el._armT = setTimeout(()=>el.classList.add('armed'), reducedMotion() ? 0 : ARROW_FADE_MS);
 }
-function disarmArrow(el){ el.classList.remove('revealed','armed'); clearTimeout(el._armT); el.inert = true; }   // inert = invisible to VoiceOver/keyboard until it has appeared, so the screen reader never keeps the old arrow selected
+function disarmArrow(el){ el.classList.remove('revealed','armed'); clearTimeout(el._armT); el.hidden = true; }   // hidden = removed from the accessibility tree until it has appeared, so VoiceOver can never keep the old arrow selected
 
 /* While the welcome / loading screen is up, EVERYTHING else on the page (the hidden live regions, the board, the settings pages, the
    win/lose screens, the build label) is made inert, so a VoiceOver swipe can never wander onto something the player cannot see - it
@@ -3965,12 +3967,11 @@ function startupFlow(){
   // iOS starts its own cursor at the top and this can't override it). Same trick as
   // revealBoardForAT() for the board.
   moveATCursorTo('welCat');   // land VO on the cat (role=img, intro label); swipe → words → Begin
-  setTimeout(()=>{ try{ const l = document.getElementById('welLive'), c = document.getElementById('welCat'); if (l && c) l.textContent = c.getAttribute('aria-label') || ''; }catch(e){} }, 900);   // ...and SPEAK the welcome by itself, without waiting for a touch
+  setTimeout(()=>{ try{ const l = document.getElementById('welLive'), c = document.getElementById('welCat'); if (l && c) l.textContent = c.getAttribute('aria-label') || ''; }catch(e){} }, 1600);   // ...and SPEAK the welcome by itself, without waiting for a touch
   // The Begin arrow fades in so the greeting is read before the arrow draws the
   // eye: a calm ~5s the first-ever launch, a brisk ~1.8s on repeat opens.
   const cancelWelArrow = revealArrowLater('welNext', firstLaunch ? 2500 : 900);   // halved 2026-10-12 (Dani: less to read now)
   const proceed = ()=>{
-    cancelWelArrow();
     if (settings.natureSound !== 'purr') playPurr();   // a short grounding purr as the player enters - skipped when the ambient is the purr itself, so the purr starts on the loading screen and simply CONTINUES into the game (Dani 2026-10-16)
     audioUnlocked = true;                           // iPhone audio is now unlocked by this tap
     applyNature(); updateMusic();                   // START the ambient (purr by default) now that it actually can play
@@ -3987,6 +3988,9 @@ function startupFlow(){
     try { document.getElementById('loadCat').focus(); } catch(e){}   // VoiceOver starts speaking on the cat AT ONCE, in the gesture (Dani 2026-10-17: it stayed silent until she found the cat by touch)
     setTimeout(()=>{ try{ document.getElementById('loadCat').focus(); }catch(e){} }, 150);
     w.classList.remove('show'); w.style.opacity='';
+    cancelWelArrow();                               // hide the welcome arrow only NOW, after the cursor has moved (hiding it first orphaned VoiceOver)
+    // belt and braces for iPad: SPEAK the loading screen in order (cat, teaching line, loading line) whatever VoiceOver is sitting on
+    setTimeout(()=>{ try{ const l=document.getElementById('loadLive'); if(l) l.textContent = [LOAD_CAT_DESC, document.getElementById('loadPrompt').textContent, document.getElementById('loadTrack').getAttribute('aria-label')].join(' '); }catch(e){} }, 500);
   };
   advanceScreen = proceed;
   // Advance ONLY via the Begin button (see runLoading note) — never a whole-screen tap.
@@ -4243,7 +4247,7 @@ window.Sound = (function(){
   #testPanel button:last-child{ margin-bottom:0; background:#fffdf9; }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c21';
+  var BUILD_TAG = 'Oct 17 · cupunapa c22';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // the test menu (testing only)
   try {
