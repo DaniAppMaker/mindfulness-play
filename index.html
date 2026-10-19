@@ -4033,7 +4033,8 @@ startupFlow();
 <script>
 window.Sound = (function(){
   var AC = window.AudioContext || window.webkitAudioContext;
-  var ctx = null, SOFT = 0.42, AMB = 0.3;      // gentle overall ceiling; AMB = the ambient sounds are 70% quieter than before (Dani 2026-10-16: "way too loud even with my volume low")
+  var DESK = !(window.matchMedia && matchMedia('(pointer: coarse)').matches), MUSF = DESK ? 0.6 : 1, AMBF = DESK ? 1.6 : 1, GAMEF = DESK ? 2.2 : 1;   // computers only (Dani 2026-10-18, laptop at volume 40: music far louder than nature + game sounds): music 40% quieter, nature 60% louder, game sounds 2.2x louder (she could barely hear them). Phones/tablets unchanged.
+  var ctx = null, SOFT = 0.42, AMB = 0.3 * AMBF;      // gentle overall ceiling; AMB = the ambient sounds are 70% quieter than before (Dani 2026-10-16: "way too loud even with my volume low")
   function ensure(){ if(!AC) return null; try{ if(!ctx){ ctx=new AC(); loadGame(); } if(ctx.state==='suspended') ctx.resume(); }catch(e){ return null; } return ctx; }
   function ramp(g, v, secs){ var t=ctx.currentTime; v=Math.max(0.0001,v); g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(Math.max(0.0001,g.gain.value),t); g.gain.linearRampToValueAtTime(v, t+secs); }
 
@@ -4096,7 +4097,7 @@ window.Sound = (function(){
       mMaster=c.createGain(); mMaster.gain.value=0.0001; mMaster.connect(c.destination);
       var mine=mSrc, norm=mNorm;
       var begin=function(buf){ if(!mOn || !mMaster || mSrc!==mine) return; mBuf=buf;
-        ramp(mMaster, SOFT*0.75*(norm?normGain(buf):1), 1.2);          // quick gentle fade-in, level-matched for musician tracks
+        ramp(mMaster, SOFT*0.75*MUSF*(norm?normGain(buf):1), 1.2);          // quick gentle fade-in, level-matched for musician tracks
         mSchedule(c.currentTime+0.05); };
       if(mBufs[mine]){ begin(mBufs[mine]); }
       else { fetch(mine).then(function(r){return r.arrayBuffer();}).then(function(b){return c.decodeAudioData(b);}).then(function(buf){ mBufs[mine]=buf; begin(buf); }).catch(function(){}); }
@@ -4123,7 +4124,7 @@ window.Sound = (function(){
   var GDUR = { gather:0.4 };   // gather = ~ONE shuffle of the clip (Dani 2026-09-15, was 0.75 / two shuffles) — tune to taste
   var gBuf={}, gLoaded=false;
   function loadGame(){ if(gLoaded) return; gLoaded=true; Object.keys(GSRC).forEach(function(k){ fetch(GSRC[k]).then(function(r){return r.arrayBuffer();}).then(function(b){return ctx.decodeAudioData(b);}).then(function(ab){ gBuf[k]=ab; }).catch(function(){}); }); }
-  function playBuf(buf, vol, dur){ var s=ctx.createBufferSource(); s.buffer=buf; var g=ctx.createGain(); g.gain.value=vol; s.connect(g).connect(ctx.destination); try{ if(dur) s.start(0,0,dur); else s.start(); }catch(e){} }
+  function playBuf(buf, vol, dur){ var s=ctx.createBufferSource(); s.buffer=buf; var g=ctx.createGain(); g.gain.value=vol*GAMEF; s.connect(g).connect(ctx.destination); try{ if(dur) s.start(0,0,dur); else s.start(); }catch(e){} }
   function game(name){ var c=ensure(); if(!c || !GSRC[name]) return; var vol=GVOL[name]||0.5, dur=GDUR[name];
     if(gBuf[name]){ playBuf(gBuf[name], vol, dur); return; }
     fetch(GSRC[name]).then(function(r){return r.arrayBuffer();}).then(function(b){return c.decodeAudioData(b);}).then(function(ab){ gBuf[name]=ab; playBuf(ab, vol, dur); }).catch(function(){});
@@ -4152,7 +4153,7 @@ window.Sound = (function(){
   function cascade(on){
     var c=ensure(); if(!c) return;
     if(on){ if(cOn) return; cOn=true;
-      cMaster=c.createGain(); cMaster.gain.value=0.0001; cMaster.connect(c.destination); ramp(cMaster, CVOL, 0.12);
+      cMaster=c.createGain(); cMaster.gain.value=0.0001; cMaster.connect(c.destination); ramp(cMaster, CVOL*GAMEF, 0.12);
       var go=function(buf){ if(cOn && cMaster) cSchedule(buf, ctx.currentTime+0.02); };
       if(gBuf[CASCADE_CLIP]) go(gBuf[CASCADE_CLIP]);
       else fetch(GSRC[CASCADE_CLIP]).then(function(r){return r.arrayBuffer();}).then(function(b){return c.decodeAudioData(b);}).then(function(buf){ gBuf[CASCADE_CLIP]=buf; go(buf); }).catch(function(){});
@@ -4248,7 +4249,7 @@ window.Sound = (function(){
   #testPanel button:last-child{ margin-bottom:0; background:#fffdf9; }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c24';
+  var BUILD_TAG = 'Oct 17 · cupunapa c25';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // the test menu (testing only)
   try {
