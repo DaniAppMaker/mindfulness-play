@@ -1063,7 +1063,7 @@
   <p id="winStatus" class="visually-hidden" tabindex="-1"></p>
   <p id="sr-intro" class="visually-hidden" tabindex="-1">
     Listen to the game description, or tap anywhere (or click) to skip it. To hear it again
-    later, find the cat at the top of the screen and double-tap it (or press Enter, or
+    later, find the resting cat (the first item on the game screen) and double-tap it (or press Enter, or
     double-click it). Coopunahpah, a mindful game of solitaire. If you like, you can
     practice mindfulness while you play. You can wait for an invitation to arrive, or
     find and press the button An invitation to pause to receive one. Your goal is to
@@ -3883,7 +3883,7 @@ function runLoading(finish){
 // keep the approved text for a fresh deal (Dani 2026-09-20).
 const SR_INTRO_NEW = (document.getElementById('sr-intro') || {}).innerHTML || '';
 const SR_INTRO_RETURNING =
-  'Welcome back. You are returning to a game already in progress, and the board is just as you left it. To hear the game description, find the cat at the top of the screen and double-tap it (or press Enter, or double-click it).';
+  'Welcome back. You are returning to a game already in progress, and the board is just as you left it. To hear the game description, find the resting cat (the first item on the game screen) and double-tap it (or press Enter, or double-click it).';
 function applySrIntro(){
   const intro = document.getElementById('sr-intro');
   if (intro) intro.innerHTML = resumedGame ? SR_INTRO_RETURNING : SR_INTRO_NEW;
@@ -4255,7 +4255,7 @@ window.Sound = (function(){
   #testPanel button:last-child{ margin-bottom:0; background:#fffdf9; }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c33';
+  var BUILD_TAG = 'Oct 17 · cupunapa c34';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // the test menu (testing only)
   try {
