@@ -3715,10 +3715,16 @@ function disarmArrow(el){ el.classList.remove('revealed','armed'); clearTimeout(
 /* While the welcome / loading screen is up, EVERYTHING else on the page (the hidden live regions, the board, the settings pages, the
    win/lose screens, the build label) is made inert, so a VoiceOver swipe can never wander onto something the player cannot see - it
    used to land on an invisible "square" and read stray words and numbers (Dani 2026-10-17). Lifted again when the board is revealed. */
+const BACKDROP_USE_ARIA = !(window.matchMedia && matchMedia('(pointer: coarse)').matches);   // computers: aria-hidden (NVDA refreshes its reading view for it; it ignored `inert` and showed a stale page - Dani 2026-10-18). Touch devices keep `inert` (VoiceOver).
 function setBackdropInert(on, activeId){
   const keep = activeId ? document.getElementById(activeId) : null;
   Array.from(document.body.children).forEach(el=>{
     if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE') return;
+    if (BACKDROP_USE_ARIA){
+      if (on && el !== keep){ if (el.getAttribute('aria-hidden') !== 'true'){ el.setAttribute('aria-hidden','true'); el.dataset.bi = '1'; } }
+      else if (el.dataset.bi){ el.removeAttribute('aria-hidden'); delete el.dataset.bi; }
+      return;
+    }
     if (on && el !== keep) el.setAttribute('inert', ''); else el.removeAttribute('inert');
   });
 }
@@ -3968,7 +3974,7 @@ function startupFlow(){
   // revealBoardForAT() for the board.
   moveATCursorTo('welCat');   // land VO on the cat (role=img, intro label); swipe → words → Begin
   const _standalone = (window.navigator.standalone === true) || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);   // saved to the Home Screen: no Safari chrome, VoiceOver is already inside the page, so the hack below is skipped (Dani 2026-10-17: it broke the app version)
-  if (!_standalone) setTimeout(()=>{ try{ const l = document.getElementById('welLive'), c = document.getElementById('welCat'); if (l && c) l.textContent = c.getAttribute('aria-label') || ''; }catch(e){} try{ c.focus(); }catch(e){} }, 3500);   // ...and SPEAK the welcome by itself, without waiting for a touch
+  if (!_standalone) setTimeout(()=>{ try{ const l = document.getElementById('welLive'), c = document.getElementById('welCat'); if (BACKDROP_USE_ARIA){ c.blur(); c.focus(); } else { if (l && c) l.textContent = c.getAttribute("aria-label") || ""; c.focus(); } }catch(e){} }, BACKDROP_USE_ARIA ? 2500 : 3500);   // ...and SPEAK the welcome by itself, without waiting for a touch
   // The Begin arrow fades in so the greeting is read before the arrow draws the
   // eye: a calm ~5s the first-ever launch, a brisk ~1.8s on repeat opens.
   const cancelWelArrow = revealArrowLater('welNext', firstLaunch ? 2500 : 900);   // halved 2026-10-12 (Dani: less to read now)
@@ -3991,7 +3997,7 @@ function startupFlow(){
     w.classList.remove('show'); w.style.opacity='';
     cancelWelArrow();                               // hide the welcome arrow only NOW, after the cursor has moved (hiding it first orphaned VoiceOver)
     // belt and braces for iPad: SPEAK the loading screen in order (cat, teaching line, loading line) whatever VoiceOver is sitting on
-    setTimeout(()=>{ try{ const l=document.getElementById('loadLive'); if(l) l.textContent = [LOAD_CAT_DESC, document.getElementById('loadPrompt').textContent, document.getElementById('loadTrack').getAttribute('aria-label')].join(' '); }catch(e){} }, 500);
+    setTimeout(()=>{ try{ if (BACKDROP_USE_ARIA) return; const l=document.getElementById("loadLive"); if(l) l.textContent = [LOAD_CAT_DESC, document.getElementById('loadPrompt').textContent, document.getElementById('loadTrack').getAttribute('aria-label')].join(' '); }catch(e){} }, 500);
   };
   advanceScreen = proceed;
   // Advance ONLY via the Begin button (see runLoading note) — never a whole-screen tap.
@@ -4249,7 +4255,7 @@ window.Sound = (function(){
   #testPanel button:last-child{ margin-bottom:0; background:#fffdf9; }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c29';
+  var BUILD_TAG = 'Oct 17 · cupunapa c30';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // the test menu (testing only)
   try {
