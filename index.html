@@ -1482,7 +1482,7 @@ const SETTINGS_KEY = 'cozycat.settings';
 /* First-EVER open defaults (Dani 2026-09-14): cat purring + game sounds ON so a new
    player hears the app come alive; music + left-handed off. After the first open the
    player's own choices are remembered (saved to localStorage) and these no longer apply. */
-const DEFAULT_SETTINGS = { music:false, musicTrack:'none', gameSounds:true, natureSound:'purr',
+const DEFAULT_SETTINGS = { music:false, musicTrack:'none', gameSounds:true, natureSound:'none',
                            timedInvites:true, leftHanded:false, draw3:false };
 
 /* ---------- the MUSICIANS (Dani 2026-10-10) ----------
@@ -3972,14 +3972,14 @@ function startupFlow(){
   // when VoiceOver is already on as the page opens (if it's switched on afterwards,
   // iOS starts its own cursor at the top and this can't override it). Same trick as
   // revealBoardForAT() for the board.
-  moveATCursorTo('welCat');   // land VO on the cat (role=img, intro label); swipe → words → Begin
+  if (!BACKDROP_USE_ARIA) moveATCursorTo('welCat');   // (touch only: on computers NVDA reads the welcome from the page load, and a focus on top of that read the cat twice) land VO on the cat (role=img, intro label); swipe → words → Begin
   const _standalone = (window.navigator.standalone === true) || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);   // saved to the Home Screen: no Safari chrome, VoiceOver is already inside the page, so the hack below is skipped (Dani 2026-10-17: it broke the app version)
   if (!_standalone) setTimeout(()=>{ try{ const l = document.getElementById('welLive'), c = document.getElementById('welCat'); if (BACKDROP_USE_ARIA){ /* computers: the first focus (80ms) is enough - a second one made NVDA read the cat twice */ } else { if (l && c) l.textContent = c.getAttribute("aria-label") || ""; c.focus(); } }catch(e){} }, BACKDROP_USE_ARIA ? 2500 : 3500);   // ...and SPEAK the welcome by itself, without waiting for a touch
   // The Begin arrow fades in so the greeting is read before the arrow draws the
   // eye: a calm ~5s the first-ever launch, a brisk ~1.8s on repeat opens.
   const cancelWelArrow = revealArrowLater('welNext', firstLaunch ? 2500 : 900);   // halved 2026-10-12 (Dani: less to read now)
   const proceed = ()=>{
-    if (settings.natureSound !== 'purr') playPurr();   // a short grounding purr as the player enters - skipped when the ambient is the purr itself, so the purr starts on the loading screen and simply CONTINUES into the game (Dani 2026-10-16)
+    /* (no entry purr any more - Dani 2026-10-19: the default is game sounds only; ambient tracks and music are opt-in) */   // a short grounding purr as the player enters - skipped when the ambient is the purr itself, so the purr starts on the loading screen and simply CONTINUES into the game (Dani 2026-10-16)
     audioUnlocked = true;                           // iPhone audio is now unlocked by this tap
     applyNature(); updateMusic();                   // START the ambient (purr by default) now that it actually can play
     const w = document.getElementById('screenWelcome');
@@ -4255,7 +4255,7 @@ window.Sound = (function(){
   #testPanel button:last-child{ margin-bottom:0; background:#fffdf9; }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c32';
+  var BUILD_TAG = 'Oct 17 · cupunapa c33';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // the test menu (testing only)
   try {
