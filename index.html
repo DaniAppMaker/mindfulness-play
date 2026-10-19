@@ -820,7 +820,7 @@
      both are non-interactive (tabindex=-1, never keyboard-tabbable), so hide the blue
      focus ring. VoiceOver draws its own cursor, so this doesn't affect screen readers.
      (Same as #welCat:focus on the welcome screen.) */
-  #loadPrompt:focus, #loadCat:focus{ outline:none; }
+  #loadPrompt:focus, #loadCat:focus, #loadTrack:focus{ outline:none; }
   /* the loading line + walking mouse (Dani 2026-09-10). The line is SHORT (600u, from
      175u to 775u) so the mouse stops well left of the Begin arrow (whose left edge is
      ~892u) and never overlaps it. JS animates #loadFill width + #loadMouse left. */
@@ -1192,7 +1192,7 @@
         <!-- ORDER (Dani 2026-10-17): the cat FIRST (VoiceOver is put on it the moment the screen appears), then the teaching line,
              then the loading line, then Begin. Only the order in the code changed; both are placed by CSS, so nothing moves. -->
         <div class="scr-art" id="loadCat" role="img" tabindex="-1" aria-label=""></div>
-        <p class="scr-text" id="loadPrompt" tabindex="-1"></p>
+        <p class="scr-text" id="loadPrompt" tabindex="0"></p>
       </div>
       <!-- The mouse walks this line while the screen holds; when it reaches the end the
            Begin arrow appears (Dani 2026-09-10). Purely VISUAL — aria-hidden so it stays
@@ -1202,7 +1202,7 @@
       <!-- Now a spoken VoiceOver stop BETWEEN the cat and Begin (Dani 2026-09-12):
            cat → this loading line + mouse → Begin. The mouse stays a background
            image folded into THIS label, so it's described once, not double-read. -->
-      <div id="loadTrack" role="img" tabindex="-1" aria-label="There is a line showing the loading progress, with a cute watercolor and ink toy mouse moving along it."><div id="loadFill"></div></div>
+      <div id="loadTrack" role="img" tabindex="0" aria-label="There is a line showing the loading progress, with a cute watercolor and ink toy mouse moving along it."><div id="loadFill"></div></div>
       <div id="loadMouse" aria-hidden="true"></div>
       <!-- STEP 3: the Begin button. Plain sibling of the (now plain) narration div. Its
            label folds in the "you can skip the description" heads-up for new players. -->
@@ -4249,7 +4249,7 @@ window.Sound = (function(){
   #testPanel button:last-child{ margin-bottom:0; background:#fffdf9; }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c28';
+  var BUILD_TAG = 'Oct 17 · cupunapa c29';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // the test menu (testing only)
   try {
