@@ -1563,6 +1563,10 @@ function announce(msg){
   if (invitationHasFloor()) return;          // an invitation is speaking — don't talk over it
   const live = document.getElementById('live');
   if (!live || !msg) return;
+  if (BACKDROP_USE_ARIA){   // computers: a fresh alert element is spoken every time (NVDA sometimes missed the first update of the long-lived region - the first "Show me a move" was silent, Dani 2026-10-21)
+    const a = document.createElement('div'); a.className = 'visually-hidden'; a.setAttribute('role','alert'); a.textContent = msg; document.body.appendChild(a); setTimeout(()=>{ try{ a.remove(); }catch(e){} }, 6000);
+    return;
+  }
   live.textContent = '';
   requestAnimationFrame(()=>{ live.textContent = msg; });
   // Empty it after it's been spoken so the region never holds a stale move line that
@@ -3419,6 +3423,7 @@ function replayIntro(){
   // Double-tapping the cat ALWAYS reads the FULL game description - even in a resumed game, where the spoken text at the start was the short "welcome back" line (Dani 2026-10-17: it kept repeating the welcome-back line)
   const intro = document.getElementById('sr-intro');
   if (intro && typeof SR_INTRO_NEW === 'string' && SR_INTRO_NEW) intro.innerHTML = SR_INTRO_NEW;
+  if (intro) intro.removeAttribute('aria-hidden');   // computers hide it again once it has been heard (see below)
   moveATCursorTo('sr-intro');
 }
 (function(){
@@ -3465,7 +3470,7 @@ function updateLangLabel(){
     ? 'Language: English. More languages — Spanish and French — are coming soon.'
     : 'Language. Drop-down menu. Choose a language: swipe up or down (or use the arrow keys) to hear each one, then double-tap (or press Enter) to choose it.');
 }
-function openSettings(){ syncToggles(); updateLangLabel(); openOverlay('settings','settingsTitle'); }   // land VoiceOver on the "Settings" heading (the top), not the Done button (Dani 2026-09-12)
+function openSettings(){ syncToggles(); updateLangLabel(); openOverlay('settings', BACKDROP_USE_ARIA ? 'setHow' : 'settingsTitle'); }   // land VoiceOver on the "Settings" heading (the top), not the Done button (Dani 2026-09-12)
 function closeSettings(){ closeOverlay('settings'); document.getElementById('btnAppear').focus(); }
 document.getElementById('settingsDone').onclick = closeSettings;
 
@@ -3721,6 +3726,7 @@ function disarmArrow(el){ el.classList.remove('revealed','armed'); clearTimeout(
 const BACKDROP_USE_ARIA = !(window.matchMedia && matchMedia('(pointer: coarse)').matches);   // computers: aria-hidden (NVDA refreshes its reading view for it; it ignored `inert` and showed a stale page - Dani 2026-10-18). Touch devices keep `inert` (VoiceOver).
 if (BACKDROP_USE_ARIA){ const _a = document.getElementById('app'); if (_a) _a.setAttribute('role','application'); }   // computers: the game board is an 'application' so NVDA passes Enter/Space/Ctrl+Z straight to the game instead of turning Enter into a mouse-style click that only SELECTED the card (Dani 2026-10-20). Touch devices unchanged.
 if (BACKDROP_USE_ARIA){ document.querySelectorAll('.settings-body, .howtext').forEach(el=>el.setAttribute('role','document')); }   // computers: NVDA treats a dialog as 'focus mode' where the Down arrow does not read; a document inside lets it read line by line (Dani 2026-10-20: arrows did nothing in Settings)
+if (BACKDROP_USE_ARIA){ const _i = document.getElementById('sr-intro'); if (_i) _i.addEventListener('blur', ()=>{ _i.setAttribute('aria-hidden','true'); }); }   // computers: once the description has been heard (focus left it) hide it, so NVDA does not fall back to "Listen to the game description..." every time the board re-renders (Dani 2026-10-21)
 function setBackdropInert(on, activeId){
   const keep = activeId ? document.getElementById(activeId) : null;
   Array.from(document.body.children).forEach(el=>{
@@ -4261,7 +4267,7 @@ window.Sound = (function(){
   #testPanel button:last-child{ margin-bottom:0; background:#fffdf9; }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c36';
+  var BUILD_TAG = 'Oct 17 · cupunapa c37';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // the test menu (testing only)
   try {
