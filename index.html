@@ -3716,6 +3716,7 @@ function disarmArrow(el){ el.classList.remove('revealed','armed'); clearTimeout(
    win/lose screens, the build label) is made inert, so a VoiceOver swipe can never wander onto something the player cannot see - it
    used to land on an invisible "square" and read stray words and numbers (Dani 2026-10-17). Lifted again when the board is revealed. */
 const BACKDROP_USE_ARIA = !(window.matchMedia && matchMedia('(pointer: coarse)').matches);   // computers: aria-hidden (NVDA refreshes its reading view for it; it ignored `inert` and showed a stale page - Dani 2026-10-18). Touch devices keep `inert` (VoiceOver).
+if (BACKDROP_USE_ARIA){ const _a = document.getElementById('app'); if (_a) _a.setAttribute('role','application'); }   // computers: the game board is an 'application' so NVDA passes Enter/Space/Ctrl+Z straight to the game instead of turning Enter into a mouse-style click that only SELECTED the card (Dani 2026-10-20). Touch devices unchanged.
 function setBackdropInert(on, activeId){
   const keep = activeId ? document.getElementById(activeId) : null;
   Array.from(document.body.children).forEach(el=>{
@@ -3992,12 +3993,13 @@ function startupFlow(){
     // the cursor to the browser chrome (the 2026-09-08 "loading screen read
     // nothing, swipe jumped to Safari's buttons" bug).
     runLoading(()=> revealBoardForAT());            // sets the teaching line + narration first
-    if (!BACKDROP_USE_ARIA) try { document.getElementById('loadCat').focus(); } catch(e){}   // VoiceOver starts speaking on the cat AT ONCE, in the gesture (Dani 2026-10-17: it stayed silent until she found the cat by touch)
+    if (BACKDROP_USE_ARIA){ try{ document.getElementById('loadCat').setAttribute('aria-label', [LOAD_CAT_DESC, document.getElementById('loadPrompt').textContent, document.getElementById('loadTrack').getAttribute('aria-label'), document.getElementById('loadNext').getAttribute('aria-label')].join(' ')); }catch(e){} }   // computers: ONE spoken stop = the whole screen in order (cat, teaching line, loading line, Begin), read once when the cursor lands here, nothing after (a live alert was followed by NVDA re-reading the cat) - Dani 2026-10-20
+    try { document.getElementById('loadCat').focus(); } catch(e){}   // VoiceOver starts speaking on the cat AT ONCE, in the gesture (Dani 2026-10-17: it stayed silent until she found the cat by touch)
     if (!BACKDROP_USE_ARIA) setTimeout(()=>{ try{ document.getElementById('loadCat').focus(); }catch(e){} }, 150);   // touch only; on computers a second focus made NVDA read the cat twice
     w.classList.remove('show'); w.style.opacity='';
     cancelWelArrow();                               // hide the welcome arrow only NOW, after the cursor has moved (hiding it first orphaned VoiceOver)
     // belt and braces for iPad: SPEAK the loading screen in order (cat, teaching line, loading line) whatever VoiceOver is sitting on
-    setTimeout(()=>{ try{ const l=document.getElementById('loadLive'); if(!l) return; const parts=[LOAD_CAT_DESC, document.getElementById('loadPrompt').textContent, document.getElementById('loadTrack').getAttribute('aria-label')]; if (BACKDROP_USE_ARIA){ parts.push(document.getElementById('loadNext').getAttribute('aria-label')); l.setAttribute('role','alert'); } l.textContent = parts.join(' '); }catch(e){} }, BACKDROP_USE_ARIA ? 400 : 500);   // computers: the whole screen is spoken by itself in order (cat, teaching line, loading line, Begin), like the welcome - Dani 2026-10-18
+    setTimeout(()=>{ try{ const l=document.getElementById('loadLive'); if(!l || BACKDROP_USE_ARIA) return; const parts=[LOAD_CAT_DESC, document.getElementById('loadPrompt').textContent, document.getElementById('loadTrack').getAttribute('aria-label')]; if (BACKDROP_USE_ARIA){ parts.push(document.getElementById('loadNext').getAttribute('aria-label')); l.setAttribute('role','alert'); } l.textContent = parts.join(' '); }catch(e){} }, BACKDROP_USE_ARIA ? 400 : 500);   // computers: the whole screen is spoken by itself in order (cat, teaching line, loading line, Begin), like the welcome - Dani 2026-10-18
   };
   advanceScreen = proceed;
   // Advance ONLY via the Begin button (see runLoading note) — never a whole-screen tap.
@@ -4255,7 +4257,7 @@ window.Sound = (function(){
   #testPanel button:last-child{ margin-bottom:0; background:#fffdf9; }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c34';
+  var BUILD_TAG = 'Oct 17 · cupunapa c35';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // the test menu (testing only)
   try {
