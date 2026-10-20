@@ -2470,13 +2470,16 @@ function finishDraw(turned){
   const last = turned[turned.length - 1];
   const moveTail = cardHasMove('waste', 0, 0) ? ' This card has one or more moves available.' : ' This card has no moves available.';
   if (turned.length === 1){
-    announce(`Turned ${cardName(last)}.` + moveTail);
+    if (!BACKDROP_USE_ARIA) announce(`Turned ${cardName(last)}.` + moveTail);   // computers: the focused card says it instead (no double speech)
     noteMove(`Returning the ${cardName(last)} to the draw pile.`);
   } else {
     // Name every freshly-turned card so a VoiceOver player hears them all, then the top.
     const names = turned.map(cardName).join(', ');
     announce(`Turned ${turned.length} cards: ${names}. The top card is ${cardName(last)}.` + moveTail);
     noteMove(`Returning ${turned.length} cards to the draw pile.`);
+  }
+  if (BACKDROP_USE_ARIA){   // computers: re-rendering removes the draw pile NVDA was on and focus fell to the top; keep it on the card just turned so Enter moves it (Dani 2026-10-20)
+    setTimeout(()=>{ try{ const tops = [...document.querySelectorAll('#wasteFan .card')].filter(c=>c.tabIndex===0 && c.dataset.where==='waste'); const t = tops[tops.length-1]; if (t) t.focus(); }catch(e){} }, 120);
   }
   progressInvites();   // turning a card is a move too — let it count toward the next invitation
   saveGame();          // persist the board so a mid-game close resumes here
@@ -3710,13 +3713,14 @@ function armArrow(el){
   clearTimeout(el._armT);
   el._armT = setTimeout(()=>el.classList.add('armed'), reducedMotion() ? 0 : ARROW_FADE_MS);
 }
-function disarmArrow(el){ el.classList.remove('revealed','armed'); clearTimeout(el._armT); el.hidden = true; }   // hidden = removed from the accessibility tree until it has appeared, so VoiceOver can never keep the old arrow selected
+function disarmArrow(el){ el.classList.remove('revealed','armed'); clearTimeout(el._armT); if (!(BACKDROP_USE_ARIA && el.id === 'loadNext')) el.hidden = true; }   // hidden = removed from the accessibility tree until it has appeared, so VoiceOver can never keep the old arrow selected
 
 /* While the welcome / loading screen is up, EVERYTHING else on the page (the hidden live regions, the board, the settings pages, the
    win/lose screens, the build label) is made inert, so a VoiceOver swipe can never wander onto something the player cannot see - it
    used to land on an invisible "square" and read stray words and numbers (Dani 2026-10-17). Lifted again when the board is revealed. */
 const BACKDROP_USE_ARIA = !(window.matchMedia && matchMedia('(pointer: coarse)').matches);   // computers: aria-hidden (NVDA refreshes its reading view for it; it ignored `inert` and showed a stale page - Dani 2026-10-18). Touch devices keep `inert` (VoiceOver).
 if (BACKDROP_USE_ARIA){ const _a = document.getElementById('app'); if (_a) _a.setAttribute('role','application'); }   // computers: the game board is an 'application' so NVDA passes Enter/Space/Ctrl+Z straight to the game instead of turning Enter into a mouse-style click that only SELECTED the card (Dani 2026-10-20). Touch devices unchanged.
+if (BACKDROP_USE_ARIA){ document.querySelectorAll('.settings-body, .howtext').forEach(el=>el.setAttribute('role','document')); }   // computers: NVDA treats a dialog as 'focus mode' where the Down arrow does not read; a document inside lets it read line by line (Dani 2026-10-20: arrows did nothing in Settings)
 function setBackdropInert(on, activeId){
   const keep = activeId ? document.getElementById(activeId) : null;
   Array.from(document.body.children).forEach(el=>{
@@ -3993,8 +3997,8 @@ function startupFlow(){
     // the cursor to the browser chrome (the 2026-09-08 "loading screen read
     // nothing, swipe jumped to Safari's buttons" bug).
     runLoading(()=> revealBoardForAT());            // sets the teaching line + narration first
-    if (BACKDROP_USE_ARIA){ try{ document.getElementById('loadCat').setAttribute('aria-label', [LOAD_CAT_DESC, document.getElementById('loadPrompt').textContent, document.getElementById('loadTrack').getAttribute('aria-label'), document.getElementById('loadNext').getAttribute('aria-label')].join(' ')); }catch(e){} }   // computers: ONE spoken stop = the whole screen in order (cat, teaching line, loading line, Begin), read once when the cursor lands here, nothing after (a live alert was followed by NVDA re-reading the cat) - Dani 2026-10-20
-    try { document.getElementById('loadCat').focus(); } catch(e){}   // VoiceOver starts speaking on the cat AT ONCE, in the gesture (Dani 2026-10-17: it stayed silent until she found the cat by touch)
+    if (BACKDROP_USE_ARIA){ try{ const n = document.getElementById('loadNext'); if (!n.dataset.orig) n.dataset.orig = n.getAttribute('aria-label'); n.hidden = false; n.setAttribute('aria-label', [LOAD_CAT_DESC, document.getElementById('loadPrompt').textContent, document.getElementById('loadTrack').getAttribute('aria-label'), n.dataset.orig].join(' ')); n.focus(); }catch(e){} }   // computers: the cursor lands ON the Begin button, whose spoken name is the whole screen in order (cat, teaching line, loading line, Begin): read once, then Enter works at once, like the welcome screen (Dani 2026-10-20: after the last version NVDA repeated the cat and Enter did nothing)
+    else try { document.getElementById('loadCat').focus(); } catch(e){}
     if (!BACKDROP_USE_ARIA) setTimeout(()=>{ try{ document.getElementById('loadCat').focus(); }catch(e){} }, 150);   // touch only; on computers a second focus made NVDA read the cat twice
     w.classList.remove('show'); w.style.opacity='';
     cancelWelArrow();                               // hide the welcome arrow only NOW, after the cursor has moved (hiding it first orphaned VoiceOver)
@@ -4257,7 +4261,7 @@ window.Sound = (function(){
   #testPanel button:last-child{ margin-bottom:0; background:#fffdf9; }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c35';
+  var BUILD_TAG = 'Oct 17 · cupunapa c36';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // the test menu (testing only)
   try {
