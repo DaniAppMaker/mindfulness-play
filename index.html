@@ -3293,6 +3293,18 @@ function anyPileCardPlayable(){
   return false;
 }
 function clearHints(){ document.querySelectorAll('.hint').forEach(c=>c.classList.remove('hint')); }
+/* computers: say the hint through the lightbulb button itself - the cursor is re-seated on it with the hint as its spoken name, which NVDA reads every time
+   (a brand-new alert was still missed the very first time). The name goes back to "Show me a move" afterwards. (Dani 2026-10-21) */
+let hintLabelTimer = null;
+function speakViaHintButton(msg){
+  const b = document.getElementById('btnHint'); if (!b) return false;
+  if (!b.dataset.orig) b.dataset.orig = b.getAttribute('aria-label') || '';
+  b.setAttribute('aria-label', msg);
+  try{ b.blur(); b.focus(); }catch(e){}
+  clearTimeout(hintLabelTimer);
+  hintLabelTimer = setTimeout(()=>{ b.setAttribute('aria-label', b.dataset.orig); }, 9000);
+  return true;
+}
 function showHint(){
   clearHints();
   const moves = findAllMoves();
@@ -3305,7 +3317,7 @@ function showHint(){
   const shown = moves.slice(0, MAX).map(m=>m.text).join('; ');
   const more = moves.length > MAX ? `; and ${moves.length - MAX} more` : '';
   const n = moves.length;
-  announce(`${n} move${n>1?'s':''} you can make: ${shown}${more}. Find the card and double-tap it (or press Enter, or double-click it) to move it.`);
+  { const _msg = `${n} move${n>1?'s':''} you can make: ${shown}${more}. Find the card and double-tap it (or press Enter, or double-click it) to move it.`; if (!(BACKDROP_USE_ARIA && speakViaHintButton(_msg))) announce(_msg); }
   // still give the gentle visual pulse on the first move's card for sighted players
   const el = document.querySelector(`.card[data-id="${moves[0].id}"]`);
   if (el) el.classList.add('hint');
@@ -3319,8 +3331,8 @@ function hintDrawPile(){
   const pile = document.querySelector('.drawpile');
   if (pile && anyPileCardPlayable()){
     pile.classList.add('hint');
-    announce(state.stock.length ? 'Turn a card from the draw pile.'
-                                : 'Tap, click, or press Enter on the pile to gather the cards back.');
+    { const _m2 = (state.stock.length ? 'Turn a card from the draw pile.'
+                                : 'Tap, click, or press Enter on the pile to gather the cards back.'); if (!(BACKDROP_USE_ARIA && speakViaHintButton(_m2))) announce(_m2); }
     setTimeout(clearHints, 2500);
   } else {
     onNoMovesLeft();
@@ -3466,7 +3478,7 @@ for (const id in TOGGLES){
 function updateLangLabel(){
   const sel = document.getElementById('setLang');
   if (!sel) return;
-  sel.setAttribute('aria-label', sel.disabled
+  sel.setAttribute('aria-label', (sel.disabled || sel.getAttribute('aria-disabled') === 'true')
     ? 'Language: English. More languages — Spanish and French — are coming soon.'
     : 'Language. Drop-down menu. Choose a language: swipe up or down (or use the arrow keys) to hear each one, then double-tap (or press Enter) to choose it.');
 }
@@ -3727,6 +3739,7 @@ const BACKDROP_USE_ARIA = !(window.matchMedia && matchMedia('(pointer: coarse)')
 if (BACKDROP_USE_ARIA){ const _a = document.getElementById('app'); if (_a) _a.setAttribute('role','application'); }   // computers: the game board is an 'application' so NVDA passes Enter/Space/Ctrl+Z straight to the game instead of turning Enter into a mouse-style click that only SELECTED the card (Dani 2026-10-20). Touch devices unchanged.
 if (BACKDROP_USE_ARIA){ document.querySelectorAll('.settings-body, .howtext').forEach(el=>el.setAttribute('role','document')); }   // computers: NVDA treats a dialog as 'focus mode' where the Down arrow does not read; a document inside lets it read line by line (Dani 2026-10-20: arrows did nothing in Settings)
 if (BACKDROP_USE_ARIA){ const _i = document.getElementById('sr-intro'); if (_i) _i.addEventListener('blur', ()=>{ _i.setAttribute('aria-hidden','true'); }); }   // computers: once the description has been heard (focus left it) hide it, so NVDA does not fall back to "Listen to the game description..." every time the board re-renders (Dani 2026-10-21)
+if (BACKDROP_USE_ARIA){ const _l = document.getElementById('setLang'); if (_l){ _l.disabled = false; _l.setAttribute('aria-disabled','true'); ['keydown','mousedown','click','wheel'].forEach(ev=>_l.addEventListener(ev, e=>{ if (ev === 'keydown' && (e.key === 'Tab' || e.key === 'Escape' || e.key === 'F1')) return; e.preventDefault(); }, true)); _l.addEventListener('change', ()=>{ _l.value = 'en'; }); } }   // computers: Tab skips a disabled drop-down, so the Language row (with its "coming soon" words) was never reached by keyboard; keep it focusable but locked (Dani 2026-10-21)
 function setBackdropInert(on, activeId){
   const keep = activeId ? document.getElementById(activeId) : null;
   Array.from(document.body.children).forEach(el=>{
@@ -4267,7 +4280,7 @@ window.Sound = (function(){
   #testPanel button:last-child{ margin-bottom:0; background:#fffdf9; }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c37';
+  var BUILD_TAG = 'Oct 17 · cupunapa c38';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // the test menu (testing only)
   try {
