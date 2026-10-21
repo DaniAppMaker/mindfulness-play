@@ -3367,7 +3367,7 @@ function lostScreen(){
   clearLiveRegions();              // don't let a board line replay over the losing screen
   setBoardInert(true);              // trap VoiceOver in the dialog; stop it wandering into the board behind (the "c1 slash" stray read, Dani 2026-09-13)
   showScreen('screenLost', true);   // gentle fade-in over the stuck board
-  try{ Sound.screenPurr(true); }catch(e){}   // the losing-screen purr ALWAYS plays, independent of settings, while the screen is open (Dani 2026-09-15)
+  /* no purr on the no-moves screen any more (Dani 2026-10-21): sound only if the player turned it on */ // was: try{ Sound.screenPurr(true); }catch(e){}   // the losing-screen purr ALWAYS plays, independent of settings, while the screen is open (Dani 2026-09-15)
   // Land the VoiceOver cursor on the cat DESCRIPTION text (the cat image itself is now
   // decorative/aria-hidden to dodge VoiceOver's OCR); reads description -> message ->
   // New Game in order. (Dani 2026-09-13)
@@ -3382,7 +3382,7 @@ function winScreen(){
   clearLiveRegions();              // don't let a board line replay over the win screen
   setBoardInert(true);             // trap VoiceOver in the dialog, same as the lost screen (Dani 2026-09-13)
   showScreen('screenWin', true);   // gentle fade-in over the finished board
-  try{ Sound.screenPurr(true); }catch(e){}   // the winning-screen purr ALWAYS plays, independent of settings, while the screen is open (Dani 2026-09-15)
+  /* no purr on the winning screen any more (Dani 2026-10-21): sound only if the player turned it on */ // was: try{ Sound.screenPurr(true); }catch(e){}   // the winning-screen purr ALWAYS plays, independent of settings, while the screen is open (Dani 2026-09-15)
   // Land the cursor on the cat so VoiceOver reads cat (which opens with "You finished
   // the game") -> the message -> New Game, in order. (Was focusing the button, which
   // skipped the cat and message.) The 650ms delay matches the fade and is known to
@@ -4299,7 +4299,7 @@ window.Sound = (function(){
   #testPanel button:last-child{ margin-bottom:0; background:#fffdf9; }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c43';
+  var BUILD_TAG = 'Oct 17 · cupunapa c44';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // the test menu (testing only)
   try {
@@ -4308,6 +4308,12 @@ window.Sound = (function(){
     document.getElementById('tpClose').addEventListener('click', function(){ tp.classList.remove('open'); });
     document.getElementById('tpWin').addEventListener('click', function(){ tp.classList.remove('open'); dealTestWin(); setTimeout(function(){ try{ maybeAutoComplete(); }catch(e){} }, 700); });
     document.getElementById('tpLose').addEventListener('click', function(){ tp.classList.remove('open'); dealTestLose(); setTimeout(function(){ try{ document.getElementById('btnHint').click(); }catch(e){} }, 700); });
+    // keyboard test shortcuts for the blind-user tests (TESTING ONLY, removed with the test menu before launch): Ctrl+Alt+W = winning screen, Ctrl+Alt+L = no-moves screen
+    document.addEventListener('keydown', function(e){
+      if (!(e.ctrlKey && e.altKey) || document.querySelector('.screen.show')) return;
+      if (e.key === 'w' || e.key === 'W'){ e.preventDefault(); dealTestWin(); setTimeout(function(){ try{ maybeAutoComplete(); }catch(x){} }, 700); }
+      if (e.key === 'l' || e.key === 'L'){ e.preventDefault(); dealTestLose(); setTimeout(function(){ try{ document.getElementById('btnHint').click(); }catch(x){} }, 700); }
+    });
   } catch(e){}
   // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
   try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
