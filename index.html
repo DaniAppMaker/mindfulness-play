@@ -1612,7 +1612,7 @@ function announceInvite(msg){
   const DELAY = 1000;   // let the just-made move's announcement finish
   const HOLD  = 8000;   // then the invitation owns the floor: time to read it + a beat to enact
   invitationQuietUntil = Date.now() + DELAY + HOLD;
-  inviteSpeakTimer = setTimeout(()=>{ live.textContent = msg; }, DELAY);
+  inviteSpeakTimer = setTimeout(()=>{ if (BACKDROP_USE_ARIA){ const a = document.createElement('div'); a.className = 'visually-hidden'; a.setAttribute('role','alert'); a.textContent = msg; document.body.appendChild(a); setTimeout(()=>{ try{ a.remove(); }catch(e){} }, 12000); } else live.textContent = msg; }, DELAY);   // computers: a fresh alert is spoken every time (the long-lived region missed the first update, as with the first hint)
 }
 const RANK_NAMES = { A:'Ace', J:'Jack', Q:'Queen', K:'King' };
 const SUIT_NAMES = { '♠':'spades', '♥':'hearts', '♦':'diamonds', '♣':'clubs' };
@@ -2830,6 +2830,7 @@ function cleanupDrag(){
    NOT touched: for them one tap / Enter still auto-moves, exactly as approved. */
 let lastPointerType = 'touch';
 document.addEventListener('pointerdown', e=>{ lastPointerType = e.pointerType || 'mouse'; }, true);
+document.addEventListener('keydown', ()=>{ lastPointerType = 'touch'; }, true);   // any key press means the next click is not a mouse click, so an assistive-technology press always MOVES the card instead of only selecting it
 
 function selectRun(src){
   clearSelection();
@@ -4322,7 +4323,7 @@ window.Sound = (function(){
   #testPanel button:last-child{ margin-bottom:0; background:#fffdf9; }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c47';
+  var BUILD_TAG = 'Oct 17 · cupunapa c48';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // the test menu (testing only)
   try {
