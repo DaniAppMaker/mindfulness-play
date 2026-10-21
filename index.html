@@ -2457,6 +2457,7 @@ function afterMove(){
 }
 
 /* ================= stock ================= */
+let lastDrawAt = 0;
 let drawSeqActive = false;        // true while a 3-card deal is still dealing its cards
 const DRAW_DEAL_GAP = 130;        // ms between each card of a 3-card deal — a quick cascade
 
@@ -2464,7 +2465,7 @@ const DRAW_DEAL_GAP = 130;        // ms between each card of a 3-card deal — a
 // single-card draw (the newest card slides off the draw pile — see updateWaste). Returns it.
 function turnStockCard(){
   const c = state.stock.pop(); c.faceUp = true; state.waste.push(c);
-  render();
+  try{ render(); }catch(e){ try{ console.error(e); }catch(_){} }   // the card is already in state even if drawing it fails once
   playSound('tup');   // the same soft place sound a single draw makes
   return c;
 }
@@ -2492,6 +2493,7 @@ function finishDraw(turned){
 function drawStock(){
   if (autoCompleting) return;   // hands off while the auto-finish cascade is running
   if (drawSeqActive) return;    // a 3-card deal is still dealing — ignore extra taps
+  { const _t = Date.now(); if (_t - lastDrawAt < 400) return; lastDrawAt = _t; }   // one key press reached this twice (the draw pile's own key handler AND the generic card handler that clicks it), so a one-card draw turned TWO cards - the "first draw gives 2" bug (Dani 2026-10-22)
   clearSelection();
   if (state.stock.length){
     // One card (gentle default) or the classic three (Settings toggle). Each card is
@@ -2503,16 +2505,24 @@ function drawStock(){
     const turned = [ turnStockCard() ];          // first card, right now
     if (n === 1){ finishDraw(turned); return; }
     drawSeqActive = true;
+    let drawDone = false;
+    const finishOnce = ()=>{
+      if (drawDone) return; drawDone = true;
+      while (turned.length < n && state.stock.length){ try{ turned.push(turnStockCard()); }catch(e){ break; } }   // never short: a draw is always exactly 1 or 3 cards (Dani 2026-10-22: the first draw showed only 2)
+      drawSeqActive = false;
+      finishDraw(turned);
+    };
     const dealNext = ()=>{
+      if (drawDone) return;
       if (turned.length < n && state.stock.length){
-        turned.push(turnStockCard());
+        try{ turned.push(turnStockCard()); }catch(e){}
         setTimeout(dealNext, DRAW_DEAL_GAP);
       } else {
-        drawSeqActive = false;
-        finishDraw(turned);
+        finishOnce();
       }
     };
     setTimeout(dealNext, DRAW_DEAL_GAP);
+    setTimeout(finishOnce, 900);   // safety net: if a timer is ever late or skipped, finish the deal anyway
     return;
   }
   // ---- stock empty: recycle the used cards back into the draw pile ----
@@ -4280,7 +4290,7 @@ window.Sound = (function(){
   #testPanel button:last-child{ margin-bottom:0; background:#fffdf9; }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c38';
+  var BUILD_TAG = 'Oct 17 · cupunapa c39';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // the test menu (testing only)
   try {
