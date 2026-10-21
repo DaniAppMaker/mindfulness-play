@@ -3022,7 +3022,7 @@ function renderTopRow(){
         (cardHasMove('foundation', f, pile.length-1) ? ' This card has one or more moves available.' : ' This card has no moves available.'));
       el.dataset.where = 'foundation'; el.dataset.col = f; el.dataset.idx = pile.length-1;   // read by the computer-mouse click handler
       el.onclick = ()=> autoMove('foundation', f, pile.length-1);
-      el.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); autoMove('foundation', f, pile.length-1); } };
+      // (no separate keydown here: the generic card handler already turns Enter/Space into a click; a second handler moved the card twice - found by the 2026-10-22 pre-flight)
       makeDraggable(el, 'foundation', f, pile.length-1);   // drag a card back down to the columns
     } else {
       el = makeSlot({ paw:true });
@@ -3430,8 +3430,12 @@ function setBoardInert(hidden){
 }
 function openOverlay(id, focusId){
   clearLiveRegions();             // no stale board announcement should carry into the pop-up
-  setBoardInert(true);            // trap VoiceOver inside the pop-up
+  if (!BACKDROP_USE_ARIA) setBoardInert(true);            // trap VoiceOver inside the pop-up
   document.getElementById(id).classList.add('open');   // visibility-based show (see .overlay CSS)
+  if (BACKDROP_USE_ARIA){   // computers: put the cursor inside the pop-up FIRST, then lock the board, so it never drops to the page (the pre-flight saw ~30 ms on <body>)
+    try{ if (focusId) document.getElementById(focusId).focus({ preventScroll:true }); }catch(e){}
+    setBoardInert(true);
+  }
   // Focus AFTER the reveal settles — a synchronous focus right as the dialog appears is
   // dropped by iOS VoiceOver, leaving the cursor outside so swipe can't enter (Dani 2026-09-13).
   if (focusId) setTimeout(()=>{ try{ document.getElementById(focusId).focus(); }catch(e){} }, 60);
@@ -4318,7 +4322,7 @@ window.Sound = (function(){
   #testPanel button:last-child{ margin-bottom:0; background:#fffdf9; }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c46';
+  var BUILD_TAG = 'Oct 17 · cupunapa c47';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // the test menu (testing only)
   try {
