@@ -3360,6 +3360,16 @@ function hintDrawPile(){
    screen (art from ClaudeHandoff-AfterLosingScreen-v1). Player-invited only —
    this only ever fires from a hint press, never as an interruption. */
 function onNoMovesLeft(){ lostScreen(); }
+/* computers: the winning / no-moves screens are read as ONE stop - the cursor lands on New Game, whose spoken name is the cat description, the message, then "New Game"
+   (the dialog announcement + separate cat stop made NVDA say everything twice, Dani 2026-10-21). Enter then works at once. */
+function speakScreenOnButton(descId, promptId, btnId){
+  try{
+    const d = document.getElementById(descId), p = document.getElementById(promptId), b = document.getElementById(btnId);
+    const desc = d ? (d.getAttribute('aria-label') || d.textContent || '') : '';
+    b.setAttribute('aria-label', [desc, p ? p.textContent : '', 'New Game'].join(' ').replace(/\s+/g,' ').trim());
+    b.focus();
+  }catch(e){}
+}
 function lostScreen(){
   clearSavedGame();   // this game is over — don't resume the stuck board next launch
   const line = pick(LOST_LINES);
@@ -3371,7 +3381,8 @@ function lostScreen(){
   // Land the VoiceOver cursor on the cat DESCRIPTION text (the cat image itself is now
   // decorative/aria-hidden to dodge VoiceOver's OCR); reads description -> message ->
   // New Game in order. (Dani 2026-09-13)
-  setTimeout(()=>{ moveATCursorTo('lostCatDesc'); }, reducedMotion() ? 0 : 650);
+  if (BACKDROP_USE_ARIA) setTimeout(()=>{ speakScreenOnButton('lostCatDesc','lostPrompt','lostNewBtn'); }, reducedMotion() ? 0 : 650);
+  else setTimeout(()=>{ moveATCursorTo('lostCatDesc'); }, reducedMotion() ? 0 : 650);
 }
 
 /* ================= win ================= */
@@ -3387,7 +3398,8 @@ function winScreen(){
   // the game") -> the message -> New Game, in order. (Was focusing the button, which
   // skipped the cat and message.) The 650ms delay matches the fade and is known to
   // land on iOS (Dani's earlier test landed on the button at this timing).
-  setTimeout(()=>{ moveATCursorTo('winCatArt'); }, reducedMotion() ? 0 : 650);
+  if (BACKDROP_USE_ARIA) setTimeout(()=>{ speakScreenOnButton('winCatArt','winPrompt','winNewBtn'); }, reducedMotion() ? 0 : 650);
+  else setTimeout(()=>{ moveATCursorTo('winCatArt'); }, reducedMotion() ? 0 : 650);
 }
 
 /* ================= overlays & buttons ================= */
@@ -3754,6 +3766,7 @@ function disarmArrow(el){ el.classList.remove('revealed','armed'); clearTimeout(
    used to land on an invisible "square" and read stray words and numbers (Dani 2026-10-17). Lifted again when the board is revealed. */
 const BACKDROP_USE_ARIA = !(window.matchMedia && matchMedia('(pointer: coarse)').matches);   // computers: aria-hidden (NVDA refreshes its reading view for it; it ignored `inert` and showed a stale page - Dani 2026-10-18). Touch devices keep `inert` (VoiceOver).
 if (BACKDROP_USE_ARIA){ const _pc = document.getElementById('promptCat'); if (_pc) _pc.setAttribute('aria-roledescription', String.fromCharCode(8203)); }   // the cat that replays the description: no "button" after its words
+if (BACKDROP_USE_ARIA){ ['screenWin','screenLost'].forEach(id=>{ const s = document.getElementById(id); if (s){ s.removeAttribute('role'); s.removeAttribute('aria-modal'); s.removeAttribute('aria-label'); } }); }   // computers: no "dialog" announcement on the winning / no-moves screens (it made NVDA repeat them)
 if (BACKDROP_USE_ARIA){ const _a = document.getElementById('app'); if (_a){ _a.setAttribute('role','application'); _a.setAttribute('aria-roledescription', String.fromCharCode(8203)); } }   // computers: the game board is an 'application' so NVDA passes Enter/Space/Ctrl+Z straight to the game instead of turning Enter into a mouse-style click that only SELECTED the card (Dani 2026-10-20). Touch devices unchanged.
 if (BACKDROP_USE_ARIA){ document.querySelectorAll('.settings-body, .howtext').forEach(el=>el.setAttribute('role','document')); }   // computers: NVDA treats a dialog as 'focus mode' where the Down arrow does not read; a document inside lets it read line by line (Dani 2026-10-20: arrows did nothing in Settings)
 if (BACKDROP_USE_ARIA){ const _i = document.getElementById('sr-intro'); if (_i) _i.addEventListener('blur', ()=>{ _i.setAttribute('aria-hidden','true'); }); }   // computers: once the description has been heard (focus left it) hide it, so NVDA does not fall back to "Listen to the game description..." every time the board re-renders (Dani 2026-10-21)
@@ -4053,9 +4066,15 @@ document.addEventListener('keydown', (e)=>{
   if (advanceScreen && (e.key==='Enter' || e.key===' ' || e.key==='Escape')){ e.preventDefault(); fireAdvance(); }
 });
 
+/* computers: after New Game from the winning / no-moves screen, NVDA went back to the old "you solved the game, the cards are flying home" line (its cursor was still on that hidden message) - clear it and start on the first card of the fresh deal (Dani 2026-10-21) */
+function afterNewGameFocus(){
+  if (!BACKDROP_USE_ARIA) return;
+  try{ const ws = document.getElementById('winStatus'); if (ws) ws.textContent = ''; }catch(e){}
+  setTimeout(()=>{ try{ const c = document.querySelector('#tableau .card[tabindex="0"]'); if (c) c.focus({ preventScroll:true }); }catch(e){} }, 150);
+}
 /* win + losing screens: New Game deals a fresh game through the normal game logic */
-document.getElementById('winNewBtn').onclick  = ()=>{ try{Sound.screenPurr(false);}catch(e){} setBoardInert(false); deal(); hideScreen('screenWin'); };   // stop the screen purr + hand the fresh board back to VoiceOver
-document.getElementById('lostNewBtn').onclick = ()=>{ try{Sound.screenPurr(false);}catch(e){} setBoardInert(false); deal(); hideScreen('screenLost'); };
+document.getElementById('winNewBtn').onclick  = ()=>{ try{Sound.screenPurr(false);}catch(e){} setBoardInert(false); deal(); hideScreen('screenWin'); afterNewGameFocus(); };   // stop the screen purr + hand the fresh board back to VoiceOver
+document.getElementById('lostNewBtn').onclick = ()=>{ try{Sound.screenPurr(false);}catch(e){} setBoardInert(false); deal(); hideScreen('screenLost'); afterNewGameFocus(); };
 
 /* ================= start ================= */
 syncToggles();
@@ -4299,7 +4318,7 @@ window.Sound = (function(){
   #testPanel button:last-child{ margin-bottom:0; background:#fffdf9; }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c44';
+  var BUILD_TAG = 'Oct 17 · cupunapa c45';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // the test menu (testing only)
   try {
