@@ -2558,6 +2558,7 @@ function cardEl(card, reveal){
   el.className = 'card ' + (card.faceUp ? '' : 'down');
   el.dataset.id = card.id;
   el.setAttribute('role', 'button');
+  if (BACKDROP_USE_ARIA) el.setAttribute('aria-roledescription', String.fromCharCode(8203));   // computers: NVDA said "button" after every card; a zero-width role description stays silent (Dani 2026-10-21)
   if (reveal && card.faceUp){
     // two-sided flip: show the back, then turn to the face (both images real)
     el.classList.add('flipping');
@@ -2610,7 +2611,7 @@ function makeSlot(opts={}){
     slot.appendChild(ghost);
     slot.insertAdjacentHTML('beforeend', RECYCLE_SVG);   // circular "turn again" arrow
   }
-  if (opts.label){ slot.setAttribute('role','button'); slot.tabIndex = 0; slot.setAttribute('aria-label', opts.label); }
+  if (opts.label){ slot.setAttribute('role','button'); if (BACKDROP_USE_ARIA) slot.setAttribute('aria-roledescription', String.fromCharCode(8203)); slot.tabIndex = 0; slot.setAttribute('aria-label', opts.label); }
   return slot;
 }
 
@@ -4293,7 +4294,7 @@ window.Sound = (function(){
   #testPanel button:last-child{ margin-bottom:0; background:#fffdf9; }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c40';
+  var BUILD_TAG = 'Oct 17 · cupunapa c41';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // the test menu (testing only)
   try {
