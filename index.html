@@ -3753,6 +3753,7 @@ function disarmArrow(el){ el.classList.remove('revealed','armed'); clearTimeout(
    win/lose screens, the build label) is made inert, so a VoiceOver swipe can never wander onto something the player cannot see - it
    used to land on an invisible "square" and read stray words and numbers (Dani 2026-10-17). Lifted again when the board is revealed. */
 const BACKDROP_USE_ARIA = !(window.matchMedia && matchMedia('(pointer: coarse)').matches);   // computers: aria-hidden (NVDA refreshes its reading view for it; it ignored `inert` and showed a stale page - Dani 2026-10-18). Touch devices keep `inert` (VoiceOver).
+if (BACKDROP_USE_ARIA){ const _pc = document.getElementById('promptCat'); if (_pc) _pc.setAttribute('aria-roledescription', String.fromCharCode(8203)); }   // the cat that replays the description: no "button" after its words
 if (BACKDROP_USE_ARIA){ const _a = document.getElementById('app'); if (_a){ _a.setAttribute('role','application'); _a.setAttribute('aria-roledescription', String.fromCharCode(8203)); } }   // computers: the game board is an 'application' so NVDA passes Enter/Space/Ctrl+Z straight to the game instead of turning Enter into a mouse-style click that only SELECTED the card (Dani 2026-10-20). Touch devices unchanged.
 if (BACKDROP_USE_ARIA){ document.querySelectorAll('.settings-body, .howtext').forEach(el=>el.setAttribute('role','document')); }   // computers: NVDA treats a dialog as 'focus mode' where the Down arrow does not read; a document inside lets it read line by line (Dani 2026-10-20: arrows did nothing in Settings)
 if (BACKDROP_USE_ARIA){ const _i = document.getElementById('sr-intro'); if (_i) _i.addEventListener('blur', ()=>{ _i.setAttribute('aria-hidden','true'); }); }   // computers: once the description has been heard (focus left it) hide it, so NVDA does not fall back to "Listen to the game description..." every time the board re-renders (Dani 2026-10-21)
@@ -4298,7 +4299,7 @@ window.Sound = (function(){
   #testPanel button:last-child{ margin-bottom:0; background:#fffdf9; }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c42';
+  var BUILD_TAG = 'Oct 17 · cupunapa c43';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // the test menu (testing only)
   try {
