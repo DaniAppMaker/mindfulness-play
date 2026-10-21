@@ -2484,7 +2484,7 @@ function finishDraw(turned){
     noteMove(`Returning ${turned.length} cards to the draw pile.`);
   }
   if (BACKDROP_USE_ARIA){   // computers: re-rendering removes the draw pile NVDA was on and focus fell to the top; keep it on the card just turned so Enter moves it (Dani 2026-10-20)
-    setTimeout(()=>{ try{ const tops = [...document.querySelectorAll('#wasteFan .card')].filter(c=>c.tabIndex===0 && c.dataset.where==='waste'); const t = tops[tops.length-1]; if (t) t.focus(); }catch(e){} }, 120);
+    try{ const tops = [...document.querySelectorAll('#wasteFan .card')].filter(c=>c.tabIndex===0 && c.dataset.where==='waste'); const t = tops[tops.length-1]; if (t) t.focus({ preventScroll:true }); }catch(e){}
   }
   progressInvites();   // turning a card is a move too — let it count toward the next invitation
   saveGame();          // persist the board so a mid-game close resumes here
@@ -2979,6 +2979,7 @@ let drawEmptyShown = false;
 function renderTopRow(){
   const row = document.getElementById('topRow');
   // keep the persistent waste fan; rebuild only the foundations + draw pile
+  const _hadDrawFocus = BACKDROP_USE_ARIA && document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('drawpile');   // computers: keep the cursor from dropping to the page top when the pile is rebuilt (Dani 2026-10-22: NVDA said 'blank application, foundations, waste...' after every draw)
   row.querySelectorAll('.top-dyn').forEach(el=>el.remove());
   let fan = document.getElementById('wasteFan');
   if (!fan){ fan = document.createElement('div'); fan.id='wasteFan'; row.appendChild(fan); }
@@ -3056,6 +3057,7 @@ function renderTopRow(){
   draw.style.left = xpos(DRAW_X, CARD_W);
   draw.style.top = '0';
   row.appendChild(draw);
+  if (_hadDrawFocus){ try{ draw.focus({ preventScroll:true }); }catch(e){} }
 
   // the fanned waste (with its smooth slide) is managed separately so its
   // card elements survive between draws and can animate to new positions
@@ -3749,6 +3751,7 @@ const BACKDROP_USE_ARIA = !(window.matchMedia && matchMedia('(pointer: coarse)')
 if (BACKDROP_USE_ARIA){ const _a = document.getElementById('app'); if (_a) _a.setAttribute('role','application'); }   // computers: the game board is an 'application' so NVDA passes Enter/Space/Ctrl+Z straight to the game instead of turning Enter into a mouse-style click that only SELECTED the card (Dani 2026-10-20). Touch devices unchanged.
 if (BACKDROP_USE_ARIA){ document.querySelectorAll('.settings-body, .howtext').forEach(el=>el.setAttribute('role','document')); }   // computers: NVDA treats a dialog as 'focus mode' where the Down arrow does not read; a document inside lets it read line by line (Dani 2026-10-20: arrows did nothing in Settings)
 if (BACKDROP_USE_ARIA){ const _i = document.getElementById('sr-intro'); if (_i) _i.addEventListener('blur', ()=>{ _i.setAttribute('aria-hidden','true'); }); }   // computers: once the description has been heard (focus left it) hide it, so NVDA does not fall back to "Listen to the game description..." every time the board re-renders (Dani 2026-10-21)
+if (BACKDROP_USE_ARIA){ document.addEventListener('focusin', e=>{ const i = document.getElementById('sr-intro'); if (i && e.target !== i && !i.contains(e.target)) i.setAttribute('aria-hidden','true'); }); }   // computers: as soon as the cursor is anywhere else on the board, the description is hidden from NVDA, so "Listen to the game description..." is never read when the board is rebuilt; replayIntro() un-hides it
 if (BACKDROP_USE_ARIA){ const _l = document.getElementById('setLang'); if (_l){ _l.disabled = false; _l.setAttribute('aria-disabled','true'); ['keydown','mousedown','click','wheel'].forEach(ev=>_l.addEventListener(ev, e=>{ if (ev === 'keydown' && (e.key === 'Tab' || e.key === 'Escape' || e.key === 'F1')) return; e.preventDefault(); }, true)); _l.addEventListener('change', ()=>{ _l.value = 'en'; }); } }   // computers: Tab skips a disabled drop-down, so the Language row (with its "coming soon" words) was never reached by keyboard; keep it focusable but locked (Dani 2026-10-21)
 function setBackdropInert(on, activeId){
   const keep = activeId ? document.getElementById(activeId) : null;
@@ -4290,7 +4293,7 @@ window.Sound = (function(){
   #testPanel button:last-child{ margin-bottom:0; background:#fffdf9; }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c39';
+  var BUILD_TAG = 'Oct 17 · cupunapa c40';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // the test menu (testing only)
   try {
