@@ -2031,7 +2031,7 @@ function dealTestLose(){
   justRevealed.clear();
   clearPromptState();
   render();
-  announce('Test board with no moves. Press Show me a move to reach the losing screen.');
+  // (silenced 2026-10-21 so the win/lose tests sound like the real thing) announce('Test board with no moves. Press Show me a move to reach the losing screen.');
 }
 
 /* TEST-ONLY already-won board (open with ?test=win): four columns, one full suit
@@ -2057,7 +2057,7 @@ function dealTestWin(){
   clearPromptState();
   pendingTestWin = true;   // fire the winning cascade once the board is revealed (see revealBoardForAT)
   render();
-  announce('Test board ready to win. The cards will fly home in a moment.');
+  // (silenced 2026-10-21 so the win/lose tests sound like the real thing) announce('Test board ready to win. The cards will fly home in a moment.');
 }
 
 /* ================= undo (snapshot the whole board before each move) ========= */
@@ -4318,7 +4318,7 @@ window.Sound = (function(){
   #testPanel button:last-child{ margin-bottom:0; background:#fffdf9; }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c45';
+  var BUILD_TAG = 'Oct 17 · cupunapa c46';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // the test menu (testing only)
   try {
