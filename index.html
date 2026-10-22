@@ -3786,6 +3786,7 @@ const BACKDROP_USE_ARIA = !(window.matchMedia && matchMedia('(pointer: coarse)')
 const IS_MAC = BACKDROP_USE_ARIA && /Mac/i.test(navigator.platform || navigator.userAgent || '');   // Mac VoiceOver (Chrome/Safari): see SCREEN-READER-LESSONS.md section F
 if (IS_MAC){ ['topRow','tableau','buttons'].forEach(id=>{ const g = document.getElementById(id); if (g){ g.removeAttribute('role'); g.removeAttribute('aria-label'); } }); }   // Mac VoiceOver announced "Foundations, waste, and draw pile, group" after every card (Dani 2026-10-22); each card already says its column
 if (IS_MAC){ document.querySelectorAll('.panel[role="dialog"]').forEach(p=>{ p.removeAttribute('role'); p.removeAttribute('aria-modal'); p.removeAttribute('aria-labelledby'); p.removeAttribute('aria-label'); }); }   // Mac VoiceOver said "web dialog" on every pop-up (Dani 2026-10-22); the board behind is locked anyway, so the dialog role is not needed there
+if (IS_MAC){ const _ws = document.getElementById('winStatus'); if (_ws) _ws.setAttribute('role', 'text'); }   // Mac Safari: a focusable paragraph is announced "group"; role=text (WebKit) reads it as plain text (Dani 2026-10-22: the winning script ended with "group")
 if (IS_MAC){   // Safari's Tab skips real links, so the "Questions or ideas?" row was never reached by keyboard. On Mac they become focusable "link" elements that open the email when pressed (Dani 2026-10-22).
   document.querySelectorAll('a[href^="mailto:"]').forEach(a=>{
     const url = a.getAttribute('href'); a.removeAttribute('href'); a.setAttribute('role', 'link'); a.tabIndex = 0; a.style.cursor = 'pointer';
@@ -4357,7 +4358,7 @@ window.Sound = (function(){
   #testPanel button:last-child{ margin-bottom:0; background:#fffdf9; }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c56';
+  var BUILD_TAG = 'Oct 17 · cupunapa c57';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // the test menu (testing only)
   try {
