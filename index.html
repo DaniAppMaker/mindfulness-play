@@ -3776,7 +3776,7 @@ function armArrow(el){
   clearTimeout(el._armT);
   el._armT = setTimeout(()=>el.classList.add('armed'), reducedMotion() ? 0 : ARROW_FADE_MS);
 }
-function disarmArrow(el){ el.classList.remove('revealed','armed'); clearTimeout(el._armT); if (!(BACKDROP_USE_ARIA && el.id === 'loadNext')) el.hidden = true; }   // hidden = removed from the accessibility tree until it has appeared, so VoiceOver can never keep the old arrow selected
+function disarmArrow(el){ el.classList.remove('revealed','armed'); clearTimeout(el._armT); if (!(BACKDROP_USE_ARIA && (el.id === 'loadNext' || (IS_MAC && el.id === 'welNext')))) el.hidden = true; }   // hidden = removed from the accessibility tree until it has appeared, so VoiceOver can never keep the old arrow selected
 
 /* While the welcome / loading screen is up, EVERYTHING else on the page (the hidden live regions, the board, the settings pages, the
    win/lose screens, the build label) is made inert, so a VoiceOver swipe can never wander onto something the player cannot see - it
@@ -4054,6 +4054,9 @@ function startupFlow(){
   // iOS starts its own cursor at the top and this can't override it). Same trick as
   // revealBoardForAT() for the board.
   if (!BACKDROP_USE_ARIA) moveATCursorTo('welCat');   // (touch only: on computers NVDA reads the welcome from the page load, and a focus on top of that read the cat twice) land VO on the cat (role=img, intro label); swipe → words → Begin
+  if (IS_MAC){   // Mac VoiceOver does not read a page by itself: put the cursor ON the Begin button, whose spoken name is the whole welcome (cat description + "Begin the game"); read once, then Return. (Dani 2026-10-22: in Safari nothing was read and Tab only reached the button)
+    setTimeout(()=>{ try{ const n = document.getElementById('welNext'), c = document.getElementById('welCat'); if (!n.dataset.orig) n.dataset.orig = n.getAttribute('aria-label') || 'Begin the game'; n.hidden = false; n.setAttribute('aria-label', ((c && c.getAttribute('aria-label')) || '') + ' ' + n.dataset.orig); n.focus(); }catch(e){} }, 1200);
+  }
   const _standalone = (window.navigator.standalone === true) || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);   // saved to the Home Screen: no Safari chrome, VoiceOver is already inside the page, so the hack below is skipped (Dani 2026-10-17: it broke the app version)
   if (!_standalone) setTimeout(()=>{ try{ const l = document.getElementById('welLive'), c = document.getElementById('welCat'); if (BACKDROP_USE_ARIA){ /* computers: the first focus (80ms) is enough - a second one made NVDA read the cat twice */ } else { if (l && c) l.textContent = c.getAttribute("aria-label") || ""; c.focus(); } }catch(e){} }, BACKDROP_USE_ARIA ? 2500 : 3500);   // ...and SPEAK the welcome by itself, without waiting for a touch
   // The Begin arrow fades in so the greeting is read before the arrow draws the
@@ -4343,7 +4346,7 @@ window.Sound = (function(){
   #testPanel button:last-child{ margin-bottom:0; background:#fffdf9; }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c52';
+  var BUILD_TAG = 'Oct 17 · cupunapa c53';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // the test menu (testing only)
   try {
