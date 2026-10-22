@@ -3772,6 +3772,12 @@ function disarmArrow(el){ el.classList.remove('revealed','armed'); clearTimeout(
 const BACKDROP_USE_ARIA = !(window.matchMedia && matchMedia('(pointer: coarse)').matches);   // computers: aria-hidden (NVDA refreshes its reading view for it; it ignored `inert` and showed a stale page - Dani 2026-10-18). Touch devices keep `inert` (VoiceOver).
 const IS_MAC = BACKDROP_USE_ARIA && /Mac/i.test(navigator.platform || navigator.userAgent || '');   // Mac VoiceOver (Chrome/Safari): see SCREEN-READER-LESSONS.md section F
 if (IS_MAC){ ['topRow','tableau','buttons'].forEach(id=>{ const g = document.getElementById(id); if (g){ g.removeAttribute('role'); g.removeAttribute('aria-label'); } }); }   // Mac VoiceOver announced "Foundations, waste, and draw pile, group" after every card (Dani 2026-10-22); each card already says its column
+if (IS_MAC){   // Mac voice reads "Coopunahpah" like "cooperation"; Dani chose "Koopoonahpah" on the voice-test page (2026-10-22). Only the SPOKEN respelling changes, only on Mac; NVDA and iPhone keep "Coopunahpah".
+  const _rep = s => s.replace(/coopunahpah/g, 'koopoonahpah').replace(/Coopunahpah/g, 'Koopoonahpah');
+  document.querySelectorAll('[aria-label]').forEach(e=>{ const v = e.getAttribute('aria-label'); if (/coopunahpah/i.test(v)) e.setAttribute('aria-label', _rep(v)); });
+  const _w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); const _n = []; while (_w.nextNode()) _n.push(_w.currentNode);
+  _n.forEach(n=>{ const p = n.parentNode && n.parentNode.tagName; if (p === 'SCRIPT' || p === 'STYLE') return; if (/coopunahpah/i.test(n.nodeValue)) n.nodeValue = _rep(n.nodeValue); });
+}
 if (BACKDROP_USE_ARIA){ const _pc = document.getElementById('promptCat'); if (_pc) _pc.setAttribute('aria-roledescription', String.fromCharCode(8203)); }   // the cat that replays the description: no "button" after its words
 if (BACKDROP_USE_ARIA){ ['screenWin','screenLost'].forEach(id=>{ const s = document.getElementById(id); if (s){ s.removeAttribute('role'); s.removeAttribute('aria-modal'); s.removeAttribute('aria-label'); } }); }   // computers: no "dialog" announcement on the winning / no-moves screens (it made NVDA repeat them)
 if (BACKDROP_USE_ARIA){ const _a = document.getElementById('app'); if (_a){ _a.setAttribute('role','application'); _a.setAttribute('aria-roledescription', String.fromCharCode(8203)); } }   // computers: the game board is an 'application' so NVDA passes Enter/Space/Ctrl+Z straight to the game instead of turning Enter into a mouse-style click that only SELECTED the card (Dani 2026-10-20). Touch devices unchanged.
@@ -4325,7 +4331,7 @@ window.Sound = (function(){
   #testPanel button:last-child{ margin-bottom:0; background:#fffdf9; }
 </style>
 <script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c49';
+  var BUILD_TAG = 'Oct 17 · cupunapa c50';
   try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
   // the test menu (testing only)
   try {
