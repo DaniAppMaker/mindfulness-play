@@ -2005,61 +2005,6 @@ function deal(){
   saveGame();                            // remember this fresh board so a mid-game close resumes it
 }
 
-/* TEST-ONLY dead-end board (open with ?test=lose): seven black, non-Ace cards that
-   can never stack on one another (all one colour), no Ace to send home, and an empty
-   stock and waste — so there is genuinely no legal move. Press "Show me a move" and
-   the game goes straight to the "No moves left" screen, so Dani can test the real
-   losing FLOW (game screen → losing screen) without having to actually lose a game.
-   Remove this together with the temporary build-tag block when testing is done.
-   (Dani 2026-09-13) */
-function dealTestLose(){
-  const mk = (id,rank,suit,color)=>({ id, rank, suit, color, faceUp:true });
-  state = {
-    stock:[], waste:[], foundations:[[],[],[],[]],
-    tableau:[
-      [mk(0,'2','♠','black')],
-      [mk(1,'4','♠','black')],
-      [mk(2,'6','♠','black')],
-      [mk(3,'8','♣','black')],
-      [mk(4,'10','♣','black')],
-      [mk(5,'Q','♣','black')],
-      [mk(6,'9','♠','black')],
-    ],
-  };
-  selection = null;
-  undoStack = [];
-  justRevealed.clear();
-  clearPromptState();
-  render();
-  // (silenced 2026-10-21 so the win/lose tests sound like the real thing) announce('Test board with no moves. Press Show me a move to reach the losing screen.');
-}
-
-/* TEST-ONLY already-won board (open with ?test=win): four columns, one full suit
-   each, King at the bottom up to the Ace on top, everything face-up, empty stock +
-   waste. So the game is provably won the moment it deals — a moment after the board
-   is revealed (which is also when audio unlocks) the cards fly home on their own, so
-   Dani can test the WINNING flow (cascade -> win screen + sounds) without playing a
-   whole game. Remove this together with ?test=lose + the build-tag block before store
-   prep. (Dani 2026-09-15) */
-let pendingTestWin = false;
-function dealTestWin(){
-  const suits = [['♠','black'],['♥','red'],['♦','red'],['♣','black']];
-  const ranks = ['K','Q','J','10','9','8','7','6','5','4','3','2','A'];   // King at the bottom, Ace on top
-  let id = 0;
-  const cols = suits.map(([suit,color]) => ranks.map(rank => ({ id:id++, rank, suit, color, faceUp:true })));
-  state = {
-    stock:[], waste:[], foundations:[[],[],[],[]],
-    tableau:[ cols[0], cols[1], cols[2], cols[3], [], [], [] ],
-  };
-  selection = null;
-  undoStack = [];
-  justRevealed.clear();
-  clearPromptState();
-  pendingTestWin = true;   // fire the winning cascade once the board is revealed (see revealBoardForAT)
-  render();
-  // (silenced 2026-10-21 so the win/lose tests sound like the real thing) announce('Test board ready to win. The cards will fly home in a moment.');
-}
-
 /* ================= undo (snapshot the whole board before each move) ========= */
 let undoStack = [];
 function snapshot(){
@@ -3989,7 +3934,6 @@ function revealBoardForAT(){
   applySrIntro();                           // welcome-back script for a resumed game, else the approved new-game script
   try { if (intro) intro.focus(); } catch(e){}
   hideScreen('screenLoading');              // fade the cover away; board is already revealed + focused
-  if (pendingTestWin){ pendingTestWin = false; setTimeout(()=>{ try{ maybeAutoComplete(); }catch(e){} }, 900); }   // ?test=win: auto-play the winning cascade now that the board is up + audio is unlocked
 }
 
 /* every open -> welcome, then loading. (Dani, 2026-08-13: the welcome screen is
@@ -4120,11 +4064,7 @@ document.getElementById('lostNewBtn').onclick = ()=>{ try{Sound.screenPurr(false
 syncToggles();
 updateMusic();
 applyA11y();
-// ?test=lose / ?test=win deal rigged boards so Dani can test the losing / winning flow (temporary)
-const _testMode = new URLSearchParams(location.search).get('test');
-if (_testMode === 'lose') dealTestLose();
-else if (_testMode === 'win') dealTestWin();
-else {
+{
   const _saved = loadSavedGame();          // an in-progress game from a previous visit?
   if (_saved) resumeGame(_saved);          // yes → put it back exactly as they left it
   else deal();                             // no → a fresh deal (which clears the prompt space; invitations drift in during play)
@@ -4331,51 +4271,5 @@ window.Sound = (function(){
   }
 </script>
 
-<!-- TEMPORARY build tag, only for testing — a tiny faint label in the corner so
-     Dani can confirm which version loaded. Bump BUILD_TAG each publish. Delete
-     this whole block (and #buildTag) when testing is done. (Dani 2026-09-11) -->
-<div id="buildTag" aria-hidden="true"></div>
-<!-- TEST MENU (testing only - removed before launch together with the build label). Tap the little build label at the bottom of the
-     screen. It works inside the home-screen app too, so the winning / no-moves screens can be tried with VoiceOver there (Dani 2026-10-17). -->
-<div id="testPanel" role="group" aria-label="Test menu">
-  <p>TEST MENU. These replace the game you are playing.</p>
-  <button type="button" id="tpWin">Show the winning screen</button>
-  <button type="button" id="tpLose">Show the no-moves screen</button>
-  <button type="button" id="tpClose">Close this menu</button>
-</div>
-<style>
-  #buildTag{
-    position:fixed; right:7px; bottom:6px; z-index:9999;
-    font:11px/1.2 -apple-system,system-ui,sans-serif;
-    color:#9a8f86; opacity:.55; letter-spacing:.02em;
-    pointer-events:auto; user-select:none; padding:10px 8px; margin:-10px -8px; cursor:pointer;   /* tap it = the TEST MENU (testing only) */
-  }
-  #testPanel{ display:none; position:fixed; right:10px; bottom:36px; z-index:9998; width:min(300px, calc(100vw - 40px)); box-sizing:border-box;
-    background:#fffdf9; border:2px solid #e6b88c; border-radius:18px; padding:12px; box-shadow:0 6px 18px rgba(70,57,50,.25); font-family:"Quicksand","Segoe UI",sans-serif; }
-  #testPanel.open{ display:block; }
-  #testPanel p{ margin:0 0 8px; font-size:13px; color:#4f4540; line-height:1.3; }
-  #testPanel button{ display:block; width:100%; min-height:48px; margin:0 0 8px; font:600 16px "Quicksand","Segoe UI",sans-serif; color:#3b3532; background:#fbeedd; border:1px solid #e6b88c; border-radius:14px; cursor:pointer; }
-  #testPanel button:last-child{ margin-bottom:0; background:#fffdf9; }
-</style>
-<script>
-  var BUILD_TAG = 'Oct 17 · cupunapa c57';
-  try { document.getElementById('buildTag').textContent = BUILD_TAG; } catch(e){}
-  // the test menu (testing only)
-  try {
-    var tp = document.getElementById('testPanel');
-    document.getElementById('buildTag').addEventListener('click', function(){ tp.classList.toggle('open'); });
-    document.getElementById('tpClose').addEventListener('click', function(){ tp.classList.remove('open'); });
-    document.getElementById('tpWin').addEventListener('click', function(){ tp.classList.remove('open'); dealTestWin(); setTimeout(function(){ try{ maybeAutoComplete(); }catch(e){} }, 700); });
-    document.getElementById('tpLose').addEventListener('click', function(){ tp.classList.remove('open'); dealTestLose(); setTimeout(function(){ try{ document.getElementById('btnHint').click(); }catch(e){} }, 700); });
-    // keyboard test shortcuts for the blind-user tests (TESTING ONLY, removed with the test menu before launch): Ctrl+Alt+W = winning screen, Ctrl+Alt+L = no-moves screen
-    document.addEventListener('keydown', function(e){
-      if (!(e.ctrlKey && e.altKey) || document.querySelector('.screen.show')) return;
-      if (e.key === 'w' || e.key === 'W'){ e.preventDefault(); dealTestWin(); setTimeout(function(){ try{ maybeAutoComplete(); }catch(x){} }, 700); }
-      if (e.key === 'l' || e.key === 'L'){ e.preventDefault(); dealTestLose(); setTimeout(function(){ try{ document.getElementById('btnHint').click(); }catch(x){} }, 700); }
-    });
-  } catch(e){}
-  // ?clean on the address hides this label, for clean screenshots (Dani 2026-10-04)
-  try { if (/[?&]clean(&|=|$)/.test(location.search)) document.getElementById('buildTag').style.display = 'none'; } catch(e){}
-</script>
 </body>
 </html>
