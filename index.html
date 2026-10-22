@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c58">
+<meta name="build" content="c59">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -3730,6 +3730,7 @@ function disarmArrow(el){ el.classList.remove('revealed','armed'); clearTimeout(
    used to land on an invisible "square" and read stray words and numbers (Dani 2026-10-17). Lifted again when the board is revealed. */
 const BACKDROP_USE_ARIA = !(window.matchMedia && matchMedia('(pointer: coarse)').matches);   // computers: aria-hidden (NVDA refreshes its reading view for it; it ignored `inert` and showed a stale page - Dani 2026-10-18). Touch devices keep `inert` (VoiceOver).
 const IS_MAC = BACKDROP_USE_ARIA && /Mac/i.test(navigator.platform || navigator.userAgent || '');   // Mac VoiceOver (Chrome/Safari): see SCREEN-READER-LESSONS.md section F
+if (BACKDROP_USE_ARIA){ const _mp = document.querySelector('#menu .panel'); if (_mp){ _mp.removeAttribute('role'); _mp.removeAttribute('aria-modal'); _mp.removeAttribute('aria-label'); } }   // computers: the New game pop-up said "New game, dialog, New game" (its name + its first button); without the dialog label it reads "New game, button" (Dani 2026-10-22, NVDA)
 if (IS_MAC){ ['topRow','tableau','buttons'].forEach(id=>{ const g = document.getElementById(id); if (g){ g.removeAttribute('role'); g.removeAttribute('aria-label'); } }); }   // Mac VoiceOver announced "Foundations, waste, and draw pile, group" after every card (Dani 2026-10-22); each card already says its column
 if (IS_MAC){ document.querySelectorAll('.panel[role="dialog"]').forEach(p=>{ p.removeAttribute('role'); p.removeAttribute('aria-modal'); p.removeAttribute('aria-labelledby'); p.removeAttribute('aria-label'); }); }   // Mac VoiceOver said "web dialog" on every pop-up (Dani 2026-10-22); the board behind is locked anyway, so the dialog role is not needed there
 if (IS_MAC){ const _ws = document.getElementById('winStatus'); if (_ws) _ws.setAttribute('role', 'text'); }   // Mac Safari: a focusable paragraph is announced "group"; role=text (WebKit) reads it as plain text (Dani 2026-10-22: the winning script ended with "group")
