@@ -20,7 +20,7 @@
    ================================================================ */
 
 /* 👉 Bump this ONLY when card/interface images or sound files change or are added. */
-const CACHE_VERSION = 'v15';
+const CACHE_VERSION = 'v16';
 const CACHE_NAME = 'cozy-cat-' + CACHE_VERSION;
 
 /* The app shell — the few files needed to show *something* offline.
@@ -32,6 +32,7 @@ const APP_SHELL = [
   'manifest.webmanifest',
   'assets/fonts/quicksand-latin.woff2',
   'assets/fonts/caveat-latin.woff2',
+  'assets/interface/logo-cupunapa.png',     // welcome screen: Dani's handwritten logo (2026-10-23)
   'assets/interface/meditating-cat.png',   // welcome screen
   'assets/interface/loading-mouse.png',    // loading screen
   'assets/background/background-1-600dpi.jpg',

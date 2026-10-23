@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c63">
+<meta name="build" content="c64">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -779,7 +779,11 @@
   /* the ™ hangs off the right edge WITHOUT counting toward the centering, so the words
      "Mindfulness Play" sit exactly on the screen center, like "Solitaire" under them */
   #welBrand .tm{ font-size:.56em; font-weight:600; vertical-align:baseline; position:relative; top:-.46em; display:inline-block; width:0; overflow:visible; }
-  #welKind{    top:calc(1518 * var(--u)); font-family:"Caveat","Segoe Print","Bradley Hand",cursive; font-size:calc(150 * var(--u)); padding-right:.34em; font-weight:600; letter-spacing:.01em; line-height:1.05; color:#4C4644; }
+  /* Dani chose her handwritten logo no. 4 (2026-10-23): same width, centre and baseline as the typed word it replaces (4.79em wide, sits 0.288em below the line box), TM lowered to the corner of the last a */
+  #welBrand .logoWrap{ display:inline-block; position:relative; width:4.79em; height:0; margin:0 .075em 0 .047em; vertical-align:baseline; }
+  #welBrand .logoWrap img{ position:absolute; left:0; bottom:-.288em; width:100%; height:auto; display:block; }
+  #welBrand .tm{ top:-.27em; }
+  #welKind{    top:calc(1542.75 * var(--u)); font-family:"Quicksand","Segoe UI",sans-serif; font-size:calc(100 * var(--u)); padding-right:0; font-weight:600; letter-spacing:.005em; line-height:1.08; color:#3b3532; }   /* same font as the name (Dani 2026-10-23); was the Caveat script */
   #welSub{     top:calc(1456 * var(--u)); font-size:calc(46 * var(--u)); color:#4C4644; }
   /* the "next / begin" arrow, bottom-right of the welcome + loading screens.
      Same hand-drawn ink stroke as the recycle arrow; breathes gently (scale
@@ -880,7 +884,7 @@
     #welCat{ width:calc(760 * var(--u)); margin:0 calc(-0.017 * 760 * var(--u)) 0 calc(-0.018 * 760 * var(--u)); }
     #welBrand{ font-size:calc(90 * var(--u)); white-space:nowrap; }
     #welBrand .tm{ width:auto; display:inline; }   /* here the TM counts as part of the title, so the right-most part of the text really sits on the margin */
-    #welKind{ font-size:calc(200 * var(--u)); margin-top:calc(10 * var(--u)); }
+    #welKind{ font-size:calc(133 * var(--u)); margin-top:calc(10 * var(--u)); }
     /* the Begin arrows (welcome + loading): identical size, bottom-right corner of the SCREEN, ~20px in */
     .next-arrow{ position:absolute; right:max(36px, env(safe-area-inset-right, 0px)); bottom:max(64px, calc((100% - var(--boardH)) / 2 + 230 * var(--u)), env(safe-area-inset-bottom, 0px));
                  width:56px; height:56px; }   /* lifted off the bottom edge: at ~20px the iPhone app ignored taps (Dani 2026-10-12, a26/a27); 64px up worked in a24 */
@@ -1024,7 +1028,7 @@
     .scr-gap{ flex:none; width:calc(97 * var(--u)); }
     #welCat{ width:calc(638 * var(--u)); margin:0 calc(-0.017 * 638 * var(--u)) 0 calc(-0.018 * 638 * var(--u)); }
     #welBrand{ font-size:calc(63 * var(--u)); }
-    #welKind{ font-size:calc(140 * var(--u)); margin-top:calc(7 * var(--u)); }
+    #welKind{ font-size:calc(93 * var(--u)); margin-top:calc(7 * var(--u)); }
     /* loading */
     #loadCat{ left:calc(170.4 * var(--u)); top:calc(202.8 * var(--u)); width:calc(392 * var(--u)); }
     #loadPrompt{ left:calc(681 * var(--u)); width:calc(1120 * var(--u)); font-size:calc(62 * var(--u)); }
@@ -1159,7 +1163,7 @@
         <!-- STEP 2: the words on screen. Plain text, NOT inside a role="img", so read ONCE. -->
         <div class="scr-gap" aria-hidden="true"></div>
         <div class="scr-group" id="welGroup">
-        <p  class="scr-text" id="welBrand"><span aria-hidden="true">Cupunapa</span><span class="visually-hidden">Coopunahpah</span><sup class="tm" aria-hidden="true">&trade;</sup></p>
+        <p  class="scr-text" id="welBrand"><span class="logoWrap" aria-hidden="true"><img src="assets/interface/logo-cupunapa.png" alt=""></span><span class="visually-hidden">Coopunahpah</span><sup class="tm" aria-hidden="true">&trade;</sup></p>
         <!-- the tagline "Mindfulness, woven into everyday moments" is no longer on this screen (Dani, 2026-10-04); kept for the store page / website -->
         <p  class="scr-text" id="welKind">Mindful Solitaire</p>
         </div>
