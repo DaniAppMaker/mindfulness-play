@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c60">
+<meta name="build" content="c61">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -4174,11 +4174,14 @@ window.Sound = (function(){
   // Settings toggles + dropdowns keep the mellow bong too — Dani likes them (2026-09-14).
   var GDUR = { gather:0.4 };   // gather = ~ONE shuffle of the clip (Dani 2026-09-15, was 0.75 / two shuffles) — tune to taste
   var gBuf={}, gLoaded=false;
-  function loadGame(){ if(gLoaded) return; gLoaded=true; Object.keys(GSRC).forEach(function(k){ fetch(GSRC[k]).then(function(r){return r.arrayBuffer();}).then(function(b){return ctx.decodeAudioData(b);}).then(function(ab){ gBuf[k]=ab; }).catch(function(){}); }); }
+  /* Game sounds: the small .ogg files are the first choice, but an OLDER Safari (Dani's iPad, 2026-10-23) cannot play Ogg, which left every game sound silent. If decoding fails we load the .wav copy of the same sound instead (works everywhere). */
+  function decodeAny(b){ return new Promise(function(res, rej){ try{ var p = ctx.decodeAudioData(b, res, rej); if (p && p.then) p.then(res, rej); }catch(e){ rej(e); } }); }
+  function fetchSound(src){ return fetch(src).then(function(r){ return r.arrayBuffer(); }).then(decodeAny).catch(function(){ return fetch(src.replace(/\.ogg$/, '.wav')).then(function(r){ return r.arrayBuffer(); }).then(decodeAny); }); }
+  function loadGame(){ if(gLoaded) return; gLoaded=true; Object.keys(GSRC).forEach(function(k){ fetchSound(GSRC[k]).then(function(ab){ gBuf[k]=ab; }).catch(function(){}); }); }
   function playBuf(buf, vol, dur){ var s=ctx.createBufferSource(); s.buffer=buf; var g=ctx.createGain(); g.gain.value=vol*GAMEF; s.connect(g).connect(ctx.destination); try{ if(dur) s.start(0,0,dur); else s.start(); }catch(e){} }
   function game(name){ var c=ensure(); if(!c || !GSRC[name]) return; var vol=GVOL[name]||0.5, dur=GDUR[name];
     if(gBuf[name]){ playBuf(gBuf[name], vol, dur); return; }
-    fetch(GSRC[name]).then(function(r){return r.arrayBuffer();}).then(function(b){return c.decodeAudioData(b);}).then(function(ab){ gBuf[name]=ab; playBuf(ab, vol, dur); }).catch(function(){});
+    fetchSound(GSRC[name]).then(function(ab){ gBuf[name]=ab; playBuf(ab, vol, dur); }).catch(function(){});
   }
 
   /* ---- cascade: a SEAMLESS looping card sound for the solved-game fly-home ----
