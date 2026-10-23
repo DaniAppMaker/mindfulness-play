@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c59">
+<meta name="build" content="c60">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -4084,7 +4084,7 @@ startupFlow();
 <script>
 window.Sound = (function(){
   var AC = window.AudioContext || window.webkitAudioContext;
-  var DESK = !(window.matchMedia && matchMedia('(pointer: coarse)').matches), MUSF = DESK ? 1.3 : 1, AMBF = DESK ? 4 : 1, GAMEF = DESK ? 2.2 : 1;   // computers only (Dani 2026-10-18: Spotify at laptop volume 40 is far louder than the app): app music +30%, nature 4x, game sounds 2.2x louder (she could barely hear them). Phones/tablets unchanged.
+  var _coarse = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches), IPAD = _coarse && (/iPad/.test(navigator.userAgent) || (/Mac/.test(navigator.platform || '') && navigator.maxTouchPoints > 1)), DESK = !_coarse, MUSF = (DESK || IPAD) ? 1.3 : 1, AMBF = DESK ? 4 : (IPAD ? 3 : 1), GAMEF = DESK ? 2.2 : (IPAD ? 2 : 1);   // computers (Dani 2026-10-18: Spotify at laptop volume 40 is far louder than the app): music +30%, nature 4x, game sounds 2.2x. iPAD (2026-10-23: game sounds inaudible, nature only audible with her ear on the iPad - YouTube was fine): music +30%, nature 3x, game sounds 2x (first guess; iPhone unchanged and approved)
   var ctx = null, SOFT = 0.42, AMB = 0.3 * AMBF;      // gentle overall ceiling; AMB = the ambient sounds are 70% quieter than before (Dani 2026-10-16: "way too loud even with my volume low")
   function ensure(){ if(!AC) return null; try{ if(!ctx){ ctx=new AC(); loadGame(); } if(ctx.state==='suspended') ctx.resume(); }catch(e){ return null; } return ctx; }
   function ramp(g, v, secs){ var t=ctx.currentTime; v=Math.max(0.0001,v); g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(Math.max(0.0001,g.gain.value),t); g.gain.linearRampToValueAtTime(v, t+secs); }
