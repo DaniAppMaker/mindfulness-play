@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c61">
+<meta name="build" content="c62">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -685,6 +685,7 @@
   .setlabel{ font-size:19px; font-weight:600; color:var(--ink); }   /* bigger settings text (Dani 2026-09-14) */
   .sethint{ font-size:15px; color:#4f4540; margin-top:3px; line-height:1.3; }   /* darker + ~30% bigger so it is easy to read (Dani 2026-10-16) */
   a.setcontact{ text-decoration:none; color:inherit; }
+  .setver{ margin:6px 0 0; text-align:center; font-size:12px; color:#9a8f86; letter-spacing:.02em; }
   .setmail{ color:#b5601c; font-weight:700; text-decoration:underline; text-underline-offset:4px; font-size:19px; }   /* the email address: label-sized (19px), the deep orange of the turned-on switch (Dani 2026-10-16) */
   .abouttext .setmail{ font-size:inherit; }
   .setnote{ margin:15px 2px 2px; font-size:12px; color:var(--ink-soft); text-align:center; line-height:1.5; }
@@ -1336,6 +1337,7 @@
           <div><div class="setlabel">Questions or ideas?</div><div class="sethint">We'd love to hear from you: <span class="setmail">info@cupunapa.com</span></div></div>
         </a>
         <span id="setContactHint" class="visually-hidden">Double-tap, press Enter, or click to open your email app.</span>
+        <p class="setver" id="setVer"></p>
       </div>
 
       <button class="btn bloom" id="settingsDone">Done</button>
@@ -3734,6 +3736,7 @@ if (BACKDROP_USE_ARIA){ const _mp = document.querySelector('#menu .panel'); if (
 if (IS_MAC){ ['topRow','tableau','buttons'].forEach(id=>{ const g = document.getElementById(id); if (g){ g.removeAttribute('role'); g.removeAttribute('aria-label'); } }); }   // Mac VoiceOver announced "Foundations, waste, and draw pile, group" after every card (Dani 2026-10-22); each card already says its column
 if (IS_MAC){ document.querySelectorAll('.panel[role="dialog"]').forEach(p=>{ p.removeAttribute('role'); p.removeAttribute('aria-modal'); p.removeAttribute('aria-labelledby'); p.removeAttribute('aria-label'); }); }   // Mac VoiceOver said "web dialog" on every pop-up (Dani 2026-10-22); the board behind is locked anyway, so the dialog role is not needed there
 if (IS_MAC){ const _ws = document.getElementById('winStatus'); if (_ws) _ws.setAttribute('role', 'text'); }   // Mac Safari: a focusable paragraph is announced "group"; role=text (WebKit) reads it as plain text (Dani 2026-10-22: the winning script ended with "group")
+(function(){ try{ var m = document.querySelector('meta[name="build"]'), v = document.getElementById('setVer'); if (m && v) v.textContent = 'Version ' + m.getAttribute('content'); }catch(e){} })();   // Settings shows the build number (from <meta name="build">), so Dani can always confirm which version loaded
 if (IS_MAC){   // Safari's Tab skips real links, so the "Questions or ideas?" row was never reached by keyboard. On Mac they become focusable "link" elements that open the email when pressed (Dani 2026-10-22).
   document.querySelectorAll('a[href^="mailto:"]').forEach(a=>{
     const url = a.getAttribute('href'); a.removeAttribute('href'); a.setAttribute('role', 'link'); a.tabIndex = 0; a.style.cursor = 'pointer';
