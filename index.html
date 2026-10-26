@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c65">
+<meta name="build" content="c68">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -571,15 +571,14 @@
   /* a musician's page */
   .musback{ align-self:flex-start; flex:0 0 auto; width:48px; height:48px; border-radius:50%; border:1px solid var(--line, #e8dccb);
     background:rgba(255,253,249,.9); color:var(--ink); font-size:26px; line-height:1; cursor:pointer; margin:0 0 6px -6px; }
-  .mus-head{ flex:0 0 auto; text-align:center; display:flex; flex-direction:column; align-items:center; gap:6px; margin-bottom:4px; }   /* 10 -> 4: the bigger photo block gives back a little room (Dani 2026-10-25, design B) */
+  .mus-head{ flex:0 0 auto; text-align:center; display:flex; flex-direction:column; align-items:center; gap:6px; margin-bottom:10px; }
   .musphoto{ width:150px; height:150px; border-radius:50%; overflow:hidden; display:grid; place-items:center;
     background:radial-gradient(120% 120% at 30% 20%, #fbe3ea 0%, #f2c4d2 60%, #ecb2c4 100%);
     border:1px solid rgba(40,43,42,.35); box-shadow:0 6px 16px rgba(214,150,165,.28); }
   .musphoto img{ width:100%; height:100%; object-fit:cover; display:block; }
-  .musphoto .musinit{ font-family:"Quicksand","Segoe UI",sans-serif; font-weight:600; font-size:55px; color:var(--ink); letter-spacing:.02em; }   /* 46 -> 55: initials grow with the photo (Dani 2026-10-25, design B: photo + name + track 20% bigger) */
-  #musTitle{ margin:6px 0 0; font-size:27.6px; }
+  .musphoto .musinit{ font-family:"Quicksand","Segoe UI",sans-serif; font-weight:600; font-size:46px; color:var(--ink); letter-spacing:.02em; }
+  #musTitle{ margin:6px 0 0; }
   .mustrack{ margin:0; color:var(--ink-soft); font-size:15px; }
-  #musician .mustrack{ font-size:17.4px; }   /* +20% (was the generic .panel p size, 14.5px); only the size changes, spacing stays as it was (Dani 2026-10-25, design B) */
   .muslinks{ list-style:none; margin:4px 0 0; padding:0; display:flex; flex-direction:column; gap:8px; }
   .muslinks a{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; border-radius:16px;
     border:1px solid var(--line, #e8dccb); background:rgba(255,253,249,.8); color:var(--ink); text-decoration:none; font-weight:600; font-size:16px; min-height:48px; }
@@ -589,15 +588,16 @@
      same distance from the top and from the side edge as the arrow has on the left (Dani 2026-10-10) */
   .mus-head.mus-head{ display:flex; flex-direction:column; align-items:center; text-align:center; }
   .musident{ min-width:0; display:flex; flex-direction:column; align-items:center; gap:6px; }
-  .mus-head .musphoto{ width:158px; height:158px; }   /* 132 -> 158 (+20%) (Dani 2026-10-25, design B) */
-  .musphotowrap{ position:relative; }   /* the cat is pinned to the photo, so the two always stay a pair */
-  .muscat{ position:absolute; right:calc(100% + 2px); top:-8px; width:min(97px, calc(50vw - 91px)); height:auto; pointer-events:none; }   /* design B (Dani 2026-10-25): the new headphone cat sits just left of the photo, top-left of the page; shrinks on narrow phones so it keeps 10px from the edge */
-  .musmain{ flex:1 1 auto; display:flex; flex-direction:column; justify-content:flex-start; padding-top:10px; }   /* 32 -> 10 so the bigger photo fits without pushing the button down (Dani 2026-10-25) */   /* the block is anchored from the top, so the photo sits at the SAME height on every musician's page (Dani 2026-10-10) */   /* the whole block sits in the middle of the free space: half of it goes above the photo, half stays above the button */
+  .mus-head .musphoto{ width:132px; height:132px; }
+  .musbar{ flex:0 0 auto; height:48px; margin:0 0 6px; display:flex; justify-content:space-between; align-items:flex-start; }   /* the back arrow on the left + the cat on the right, on one row that is only as tall as the arrow */
+  .musbar .musback{ margin:0 0 0 -6px; }
+  .muscat{ flex:0 0 auto; margin-right:-6px; width:min(115px, calc(50vw - 80px)); height:auto; pointer-events:none; position:relative; z-index:1; }   /* Dani 2026-10-25: the headphone cat sits top-right, level with the back arrow, so the two balance each other (same 16px from the edge as the arrow); hangs down past the row, over the free space beside the photo; narrower on small phones so it clears the photo */
+  .musmain{ flex:1 1 auto; display:flex; flex-direction:column; justify-content:flex-start; padding-top:32px; }   /* the block is anchored from the top, so the photo sits at the SAME height on every musician's page (Dani 2026-10-10) */   /* the block is anchored from the top, so the photo sits at the SAME height on every musician's page (Dani 2026-10-10) */   /* the whole block sits in the middle of the free space: half of it goes above the photo, half stays above the button */
   #musician .howtext{ flex:0 0 auto; }   /* the bio stays put and the links sit directly under it (as in the first version Dani liked); only the button rests at the bottom */
   .mus-head.mus-head{ position:relative; }
   .musmouse{ grid-column:1; grid-row:1; justify-self:start; align-self:start; margin-left:1px; width:50px; height:auto; pointer-events:none; transform:translateY(calc(-100% + 1px)); }   /* design B (Dani 2026-10-25): the mouse now sits bottom-left, just above the button (was level with the Track line on the right) */   /* level with the Track line; 16px from the side edge (panel padding 22 - 6), like the arrow's 16px (Dani 2026-10-10) */
   /* bottom: the big button in the centre; a small blue yarn ball to its LEFT at the same height, centred in the space to the edge */
-  .musplaywrap{ flex:0 0 auto; display:grid; grid-template-columns:minmax(52px,1fr) minmax(0,270px) minmax(52px,1fr); align-items:center; margin-top:56px; padding-top:0; padding-bottom:28px; }   /* 72px minimum gap (was 44, 34: Dani 2026-10-10 'yarn too close to the links' on iPhone) above the button + yarn, so on short phones the yarn never touches the last link (Dani 2026-10-10); on tall screens nothing changes */
+  .musplaywrap{ flex:0 0 auto; display:grid; grid-template-columns:minmax(52px,1fr) minmax(0,270px) minmax(52px,1fr); align-items:center; margin-top:72px; padding-top:0; padding-bottom:28px; }   /* 72px minimum gap (was 44, 34: Dani 2026-10-10 'yarn too close to the links' on iPhone) above the button + yarn, so on short phones the yarn never touches the last link (Dani 2026-10-10); on tall screens nothing changes */
   #musPlay{ grid-column:2; }
   .musyarn{ grid-column:3; grid-row:1; justify-self:start; margin-left:-2px; align-self:end; width:45px; height:auto; pointer-events:none; transform:translateY(40px); }   /* design B (Dani 2026-10-25): the yarn moved to the bottom-right, under the button's right end (was left of the button) */   /* higher than the button's middle, close to the button (Dani 2026-10-10) */
   #musPlay.bloom{ background-image:url("assets/buttons/popup-new-game.png"); background-size:100% 100%; background-repeat:no-repeat;
@@ -1428,16 +1428,16 @@
        Music dropdown in Settings. (Dani 2026-10-10) -->
   <div id="musician" class="overlay overlay--full">
     <div class="panel panel--full" role="dialog" aria-modal="true" aria-labelledby="musTitle">
-      <button type="button" class="musback" id="musBack" aria-label="Back to the music list"><span aria-hidden="true">&larr;</span></button>
+      <div class="musbar">
+        <button type="button" class="musback" id="musBack" aria-label="Back to the music list"><span aria-hidden="true">&larr;</span></button>
+        <!-- decoration only (aria-hidden): the headphone cat, top-right, balancing the back arrow (Dani 2026-10-25) -->
+        <img class="muscat" src="assets/interface/mus-cat.png" alt="" aria-hidden="true">
+      </div>
       <div class="musmain">   <!-- photo + name + track + mouse + bio + links move as ONE block (Dani 2026-10-10) -->
       <div class="mus-head">
         <!-- photo + name, almost centred (just a little left) -->
         <div class="musident">
-          <div class="musphotowrap">
-            <div id="musPhoto" class="musphoto"></div>
-            <!-- decoration only (aria-hidden): the headphone cat, just left of the photo (design B, Dani 2026-10-25) -->
-            <img class="muscat" src="assets/interface/mus-cat.png" alt="" aria-hidden="true">
-          </div>
+          <div id="musPhoto" class="musphoto"></div>
           <h2 id="musTitle" tabindex="-1"></h2>
           <p id="musTrack" class="mustrack"></p>
         </div>
