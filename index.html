@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c72">
+<meta name="build" content="c73">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -4146,11 +4146,13 @@ window.Sound = (function(){
   var mBuf=null, mMaster=null, mTimers=[], mOn=false;
   var BUILTIN_MUSIC='assets/sounds/music-loop.flac', mSrc=BUILTIN_MUSIC, mBufs={}, mNorm=false;   // mSrc = the file now chosen; mNorm = level-match it (musician tracks), the built-in loop keeps its fixed level
   function mClear(){ mTimers.forEach(clearTimeout); mTimers=[]; }
-  function mSchedule(startAt){
+  /* Musician tracks get SHORT fades (Dani 2026-10-27, Cassie's track: "a shorter fade in, it seemed not to work at first" and "a shorter fade out so the wait to restart isn't so long"). The track already starts softly and dies away in its last ~2 s, so: loop crossfade MCF = 1.2 s (was 3.5), first start fades in over MFIRST = 0.6 s (was 3.5 + the 1.2 s master ramp). The built-in 34 s loop keeps its long 3.5 s crossfade. */
+  var MCF=1.2, MFIRST=0.6, MRAMP=0.5;
+  function mSchedule(startAt, first){
     if(!mOn || !mMaster || !mBuf) return;
-    var dur=mBuf.duration, cf=Math.min(3.5, dur/2-0.05);
+    var dur=mBuf.duration, cf=mNorm ? Math.min(MCF, dur/2-0.05) : Math.min(3.5, dur/2-0.05), fin=(first && mNorm) ? MFIRST : cf;
     var src=ctx.createBufferSource(); src.buffer=mBuf; var g=ctx.createGain(); src.connect(g).connect(mMaster);
-    g.gain.setValueAtTime(0.0001,startAt); g.gain.linearRampToValueAtTime(1,startAt+cf);
+    g.gain.setValueAtTime(0.0001,startAt); g.gain.linearRampToValueAtTime(1,startAt+fin);
     g.gain.setValueAtTime(1,startAt+dur-cf); g.gain.linearRampToValueAtTime(0.0001,startAt+dur);
     try{ src.start(startAt); src.stop(startAt+dur+0.1); }catch(e){}
     var nextAt=startAt+dur-cf;
@@ -4161,8 +4163,8 @@ window.Sound = (function(){
       mMaster=c.createGain(); mMaster.gain.value=0.0001; mMaster.connect(c.destination);
       var mine=mSrc, norm=mNorm;
       var begin=function(buf){ if(!mOn || !mMaster || mSrc!==mine) return; mBuf=buf;
-        ramp(mMaster, SOFT*0.75*MUSF*(norm?normGain(buf):1), 1.2);          // quick gentle fade-in, level-matched for musician tracks
-        mSchedule(c.currentTime+0.05); };
+        ramp(mMaster, SOFT*0.75*MUSF*(norm?normGain(buf):1), norm?MRAMP:1.2);          // quick gentle fade-in (shorter for musician tracks), level-matched for musician tracks
+        mSchedule(c.currentTime+0.05, true); };
       if(mBufs[mine]){ begin(mBufs[mine]); }
       else { fetch(mine).then(function(r){return r.arrayBuffer();}).then(function(b){return c.decodeAudioData(b);}).then(function(buf){ mBufs[mine]=buf; begin(buf); }).catch(function(){}); }
     } else { if(!mOn) return; mOn=false; mClear(); if(mMaster){ var m=mMaster; mMaster=null; var t=c.currentTime; m.gain.cancelScheduledValues(t); m.gain.setValueAtTime(Math.max(0.0001,m.gain.value),t); m.gain.linearRampToValueAtTime(0.0001,t+0.9); setTimeout(function(){ try{m.disconnect();}catch(e){} },1000); } }
