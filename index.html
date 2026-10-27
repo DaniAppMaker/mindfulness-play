@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c71">
+<meta name="build" content="c72">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -4099,7 +4099,7 @@ window.Sound = (function(){
   var AC = window.AudioContext || window.webkitAudioContext;
   var _coarse = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches), IPAD = _coarse && (/iPad/.test(navigator.userAgent) || (/Mac/.test(navigator.platform || '') && navigator.maxTouchPoints > 1)), DESK = !_coarse, MUSF = (DESK || IPAD) ? 1.3 : 1, AMBF = DESK ? 4 : (IPAD ? 3 : 1), GAMEF = DESK ? 2.2 : (IPAD ? 2 : 1);   // computers (Dani 2026-10-18: Spotify at laptop volume 40 is far louder than the app): music +30%, nature 4x, game sounds 2.2x. iPAD (2026-10-23: game sounds inaudible, nature only audible with her ear on the iPad - YouTube was fine): music +30%, nature 3x, game sounds 2x (first guess; iPhone unchanged and approved)
   var ctx = null, SOFT = 0.42, AMB = 0.3 * AMBF;      // gentle overall ceiling; AMB = the ambient sounds are 70% quieter than before (Dani 2026-10-16: "way too loud even with my volume low")
-  function ensure(){ if(!AC) return null; try{ if(!ctx){ ctx=new AC(); loadGame(); } if(ctx.state==='suspended') ctx.resume(); }catch(e){ return null; } return ctx; }
+  function ensure(){ if(!AC) return null; try{ if(!ctx){ ctx=new AC(); loadGame(); } if(ctx.state!=='running') ctx.resume(); }catch(e){ return null; } return ctx; }
   function ramp(g, v, secs){ var t=ctx.currentTime; v=Math.max(0.0001,v); g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(Math.max(0.0001,g.gain.value),t); g.gain.linearRampToValueAtTime(v, t+secs); }
 
   /* ---- nature: one at a time, SEAMLESS crossfade loop, per-clip level-matched ----
@@ -4265,13 +4265,17 @@ window.Sound = (function(){
   }
 
   /* ---- only play while the app is open ---- */
-  var _hiddenNature=null, _hiddenMusic=false;
+  var _hiddenNature=null, _hiddenMusic=false, _isHidden=false;
   // The screen purr is a BufferSource on the AudioContext, so suspending/resuming the
   // context pauses and resumes it automatically — no separate handling needed.
-  function hideAll(){ if(cOn) cascade(false); _hiddenNature=current; stopNature(); _hiddenMusic=mOn; if(mOn) music(false); try{ if(ctx) ctx.suspend(); }catch(e){} }
-  function showAll(){ try{ if(ctx) ctx.resume(); }catch(e){} if(_hiddenNature){ var id=_hiddenNature; _hiddenNature=null; nature(id); } if(_hiddenMusic){ _hiddenMusic=false; music(true); } }
+  /* Dani 2026-10-27 (iPhone, Cassie's track): leaving Safari for Spotify and coming back left the music OFF. iPhone can send BOTH 'visibilitychange' and 'pagehide' when the app is left; the second hideAll() overwrote the saved "was playing" notes with "nothing" (everything was already stopped), so showAll() restored nothing. Fix: hideAll/showAll only run once per leave/return (_isHidden), and pageshow also counts as a return. */
+  function hideAll(){ if(_isHidden) return; _isHidden=true; if(cOn) cascade(false); _hiddenNature=current; stopNature(); _hiddenMusic=mOn; if(mOn) music(false); try{ if(ctx) ctx.suspend(); }catch(e){} }
+  function showAll(){ if(!_isHidden) return; _isHidden=false; try{ if(ctx) ctx.resume(); }catch(e){} if(_hiddenNature){ var id=_hiddenNature; _hiddenNature=null; nature(id); } if(_hiddenMusic){ _hiddenMusic=false; music(true); } }
   document.addEventListener('visibilitychange', function(){ if(document.hidden) hideAll(); else showAll(); });
   window.addEventListener('pagehide', hideAll);
+  window.addEventListener('pageshow', showAll);
+  /* After another app (Spotify) used the audio, iPhone leaves the AudioContext 'interrupted' until the player touches the screen; ensure() only restarted a 'suspended' one. The first touch/click/key after returning now wakes it. */
+  ['touchend','pointerup','click','keydown'].forEach(function(ev){ document.addEventListener(ev, function(){ try{ if(ctx && !_isHidden && ctx.state!=='running') ctx.resume(); }catch(e){} }, true); });
 
   return { nature:nature, music:music, musicTrack:musicTrack, game:game, purr:purr, screenPurr:screenPurr, cascade:cascade };
 })();
