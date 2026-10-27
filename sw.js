@@ -20,7 +20,7 @@
    ================================================================ */
 
 /* 👉 Bump this ONLY when card/interface images or sound files change or are added. */
-const CACHE_VERSION = 'v18';
+const CACHE_VERSION = 'v19';
 const CACHE_NAME = 'cozy-cat-' + CACHE_VERSION;
 
 /* The app shell — the few files needed to show *something* offline.
@@ -106,6 +106,7 @@ const ASSETS = [
   'assets/sounds/g-confirm.ogg',
   'assets/sounds/g-bong.ogg',
   'assets/sounds/music-loop.flac',
+  'assets/sounds/cassie-1.mp3',   // Cassie Emmott's first track (2026-10-27), 128 kbps
 ];
 
 /* ---- install: save the app onto the phone ---- */
