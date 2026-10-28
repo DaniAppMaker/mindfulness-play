@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c73">
+<meta name="build" content="c74">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -687,7 +687,7 @@
   .settings-body > .setrow:first-child{ border-top:none; }   /* a soft orange line between EVERY row, none above the first */
   .setlabel{ font-size:19px; font-weight:600; color:var(--ink); }   /* bigger settings text (Dani 2026-09-14) */
   .sethint{ font-size:15px; color:#4f4540; margin-top:3px; line-height:1.3; }   /* darker + ~30% bigger so it is easy to read (Dani 2026-10-16) */
-  a.setcontact{ text-decoration:none; color:inherit; }
+  a.setcontact, a.setprivacy{ text-decoration:none; color:inherit; }
   .verTag{ position:absolute; right:7px; bottom:6px; z-index:5; font:11px/1.2 -apple-system,system-ui,sans-serif; color:#9a8f86; opacity:.55; letter-spacing:.02em; pointer-events:none; user-select:none; }   /* the version, only on the welcome screen (Dani 2026-10-23) */
   .setmail{ color:#b5601c; font-weight:700; text-decoration:underline; text-underline-offset:4px; font-size:19px; }   /* the email address: label-sized (19px), the deep orange of the turned-on switch (Dani 2026-10-16) */
   .abouttext .setmail{ font-size:inherit; }
@@ -1337,6 +1337,11 @@
           <div><div class="setlabel">About</div></div>
           <span class="chev" aria-hidden="true">&rsaquo;</span>
         </button>
+        <!-- privacy-policy row (Apple 5.1.1(i) wants a link inside the app). Label only, no hint (Dani 2026-10-27/28); VoiceOver says the label, then "link" itself. -->
+        <a class="setrow setprivacy" id="setPrivacy" href="https://cupunapa.com/privacy.html" target="_blank" rel="noopener" aria-label="Privacy policy">
+          <div><div class="setlabel">Privacy policy</div></div>
+          <span class="chev" aria-hidden="true">&rsaquo;</span>
+        </a>
         <!-- contact row — info@ is the ONE public address (Dani 2026-09-24). VoiceOver wording is
              Dani's exact words; VO adds "link" itself, then reads the describedby hint. -->
         <a class="setrow setcontact" id="setContact" href="mailto:info@cupunapa.com?subject=Cupunapa"
@@ -3755,6 +3760,15 @@ if (IS_MAC){   // Safari's Tab skips real links, so the "Questions or ideas?" ro
     a.addEventListener('click', e=>{ e.preventDefault(); go(); });
     a.addEventListener('keydown', e=>{ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); go(); } });
   });
+}
+if (IS_MAC){   // same Safari-Tab fix for the Privacy policy row: focusable "link" that opens the page
+  const _pv = document.getElementById('setPrivacy');
+  if (_pv){
+    const url = _pv.getAttribute('href'); _pv.removeAttribute('href'); _pv.setAttribute('role', 'link'); _pv.tabIndex = 0; _pv.style.cursor = 'pointer';
+    const go = ()=>{ window.open(url, '_blank', 'noopener'); };
+    _pv.addEventListener('click', e=>{ e.preventDefault(); go(); });
+    _pv.addEventListener('keydown', e=>{ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); go(); } });
+  }
 }
 if (IS_MAC){   // Mac voice reads "Coopunahpah" like "cooperation"; Dani chose "Koopoonahpah" on the voice-test page (2026-10-22). Only the SPOKEN respelling changes, only on Mac; NVDA and iPhone keep "Coopunahpah".
   const _rep = s => s.replace(/coopunahpah/g, 'koopoonahpah').replace(/Coopunahpah/g, 'Koopoonahpah');
