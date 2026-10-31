@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c78">
+<meta name="build" content="c79">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -3995,7 +3995,7 @@ function runLoading(finish){
   // Advance ONLY via the Begin arrow — and only once it has faded in (it's
   // pointer-events:none until then, see .next-arrow), so an accidental touch, or the
   // stray second tap of a welcome double-tap, can never skip the loading screen.
-  document.getElementById('loadNext').onclick = (e)=>{ e.stopPropagation(); fireAdvance(); };
+  document.getElementById('loadNext').onclick = (e)=>{ e.stopPropagation(); playSound('tap'); fireAdvance(); };   // soft bong on the Begin arrow (Dani 2026-10-31)
 }
 
 // Advance from the loading screen to the board. Reveal the board to VoiceOver and
@@ -4132,7 +4132,7 @@ function startupFlow(){
   };
   advanceScreen = proceed;
   // Advance ONLY via the Begin button (see runLoading note) — never a whole-screen tap.
-  document.getElementById('welNext').onclick = (e)=>{ e.stopPropagation(); fireAdvance(); };
+  document.getElementById('welNext').onclick = (e)=>{ e.stopPropagation(); playSound('tap'); fireAdvance(); };   // soft bong on the Begin arrow (Dani 2026-10-31)
 }
 
 /* Enter / Space / Escape advance a skippable companion screen */
