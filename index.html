@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c79">
+<meta name="build" content="c80">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -2492,7 +2492,7 @@ const DRAW_DEAL_GAP = 130;        // ms between each card of a 3-card deal — a
 function turnStockCard(){
   const c = state.stock.pop(); c.faceUp = true; state.waste.push(c);
   try{ render(); }catch(e){ try{ console.error(e); }catch(_){} }   // the card is already in state even if drawing it fails once
-  playSound('tup');   // the same soft place sound a single draw makes
+  playSound(settings.draw3 ? 'tupsoft' : 'tup');   // regular bong for a single draw, soft bong for each card of a 3-card draw (Dani 2026-10-31)
   return c;
 }
 
@@ -4261,8 +4261,8 @@ window.Sound = (function(){
   // shuffle, buttons/toggle/select=mellow bong, win cascade=card fan.
   var GSRC = { tup:'assets/sounds/g-tup.ogg', flourish:'assets/sounds/g-flourish.ogg', gather:'assets/sounds/g-shuffle.ogg', tap:'assets/sounds/g-bong.ogg', 'switch':'assets/sounds/g-bong.ogg', confirm:'assets/sounds/g-bong.ogg' };
   var GVOL = { tup:0.26, flourish:0.55, gather:0.5, tap:0.5, 'switch':0.5, confirm:0.5 };   // tup (card-place thump) lowered 0.4→0.26 (Dani 2026-09-15)
-  /* TEST-ONLY (Daniel on AppleVis, 2026-10-03; Dani 2026-10-31): ?cardsound=bong or ?cardsound=softbong plays the Settings bong when PLACING and DRAWING cards instead of the card thump. Default play is unchanged; remove this line if the idea is dropped. */
-  (function(){ var cs = new URLSearchParams(location.search).get('cardsound'); if (cs === 'bong' || cs === 'softbong'){ GSRC.tup = GSRC.tap; GVOL.tup = (cs === 'bong') ? 0.5 : 0.25; } })();
+  /* Daniel on AppleVis (2026-10-03) suggested the Settings bong for cards; Dani chose it 2026-10-31: the regular bong when PLACING a card or drawing ONE card, the soft bong (half strength) for each card of a THREE-card draw. The old card thump (g-tup) is no longer used. */
+  GSRC.tup = GSRC.tap; GVOL.tup = 0.5; GSRC.tupsoft = GSRC.tap; GVOL.tupsoft = 0.25;
   // Settings toggles + dropdowns keep the mellow bong too — Dani likes them (2026-09-14).
   var GDUR = { gather:0.4 };   // gather = ~ONE shuffle of the clip (Dani 2026-09-15, was 0.75 / two shuffles) — tune to taste
   var gBuf={}, gLoaded=false;
