@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c76">
+<meta name="build" content="c77">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -1416,7 +1416,7 @@
         </section>
 
         <h3 class="abouth">Music</h3>
-        <p>Cassie Emmott, cellOboe, and Christian Hardy created music for this game. Choose a track in Settings to meet each of them.</p>
+        <p>Cassie Hubert, cellOboe, and Christian Hardy created music for this game. Choose a track in Settings to meet each of them.</p>
 
         <h3 class="abouth">Sounds</h3>
         <p>The ambient sounds are real recordings shared freely on Pixabay: rain by Liecio, ocean waves by DRAGON-STUDIO, forest birds by Dany_photo, and a stream by Pixabay user 26327991. The cat purring is by Islabonita. The soft card sounds and the gentle bell come from Kenney (kenney.nl).</p>
@@ -1575,10 +1575,10 @@ const DEFAULT_SETTINGS = { music:false, musicTrack:'none', gameSounds:true, natu
 const MUSICIANS_ON = !/[?&]musicians=(0|off|no)(&|$)/.test(location.search);   // ON for everyone (Dani 2026-10-10: testers should see the musicians being added); ?musicians=off hides it for comparison
 const PLACEHOLDER_TRACK = null;   // placeholders are SILENT until the real files arrive (Dani 2026-10-10: the old loop must never be mistaken for a musician's music)
 const MUSICIANS = [
-  { id:'cassie', name:'Cassie Emmott', photo:null, photoAlt:'A photo of Cassie Emmott. (Description to come.)',
-    bio:'This is where Cassie’s short bio will go: a few warm sentences about her and her music, in her own words.',
-    links:[ {label:'Instagram', url:'#'}, {label:'Spotify', url:'#'} ],
-    tracks:[ {id:'cassie-1', title:'Track name', file:'assets/sounds/cassie-1.mp3'} ] },   // real track (2026-10-27); the title is still the placeholder until Cassie sends it
+  { id:'cassie', name:'Cassie Hubert', photo:'assets/musicians/cassie.jpg', photoAlt:'A photo of Cassie Hubert: a smiling white woman with brown hair, looking whimsically off to her right',
+    bio:'Cassie Hubert is a professional actress, singer, songwriter, artist, talker, and all around creative woman, raising her children and staying alive to beauty, wonder and joy.',
+    links:[ {label:'Facebook', url:'https://www.facebook.com/creativeperformermum'}, {label:'Podcast: Connecting the Dots', url:'https://connectingthedotspodcast.buzzsprout.com'} ],
+    tracks:[ {id:'cassie-1', title:'Innesfree Contemplation', file:'assets/sounds/cassie-1.mp3'} ] },   // real track + photo + bio (Cassie 2026-10-31); professional name Cassie Hubert
   { id:'erin', name:'cellOboe', photo:'assets/musicians/erin-cody.jpg', photoAlt:'A photo of cellOboe: two smiling people kneeling on a lawn. One holds an oboe and the other holds a cello',   // the duo Erin and Cody Flory Robertson (Dani 2026-10-30: the name under the photo is cellOboe; their own names are in the bio)
     bio:'Erin and Cody Flory Robertson formed the folk/classical duo cellOboe in 2013 out of a desire to sing together while exploring folk music, songwriting, and music improvisation. Classically trained musicians and active performers, they’ve developed a unique sound combining oboe melodies and blending vocals with rich harmonies and textures on the cello. Their music centers around themes of life with three young boys, eco justice and inter-spirituality. They live in Wichita, Kansas, with their children, numerous pets, and a thriving herb garden.',
     links:[ {label:'Instagram', url:'#'}, {label:'Spotify', url:'#'} ],
