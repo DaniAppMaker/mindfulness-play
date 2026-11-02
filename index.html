@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c87">
+<meta name="build" content="c88">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -541,8 +541,8 @@
   #about .settings-head, #privacy .settings-head, #howto .settings-head{ text-align:center; align-items:center; }
   #about .settings-head h2, #privacy .settings-head h2, #howto .settings-head h2{ text-align:center; margin-left:0; }
   #about .aboutbrand, #privacy .aboutbrand, #howto .aboutbrand{ justify-content:center; }
-  #about .aboutbrand{ margin-bottom:6px; }   /* the tagline sits right under the name (Dani 2026-11-02) */
-  #about .abouttag{ margin:0 0 26px; text-align:center; color:#6b665d; font-size:17px; line-height:1.3; }
+  #about .aboutbrand, #privacy .aboutbrand, #howto .aboutbrand{ margin-bottom:6px; }   /* the tagline sits right under the name (Dani 2026-11-02) */
+  #about .abouttag, #privacy .abouttag, #howto .abouttag{ margin:0 0 26px; text-align:center; color:#6b665d; font-size:17px; line-height:1.3; font-style:italic; }   /* italic, on About, How to play and Privacy policy (Dani 2026-11-02) */
   #about .abouttext .abouth, #privacy .abouttext .abouth, #howto .howtext .howsub{ text-align:center; }
   #howto .howtext p, #howto .howtext li{ text-align:left; }
   /* proper bullets, like a Word document: a solid round bullet, clearly visible, with the text hanging to the right of it */
@@ -914,7 +914,56 @@
       .screen{ container-type:size; --u: min(calc(100cqw / 1920), calc(100cqh / 1080)); }   /* the real visible screen, as above */
     }
   }
-  /* Wide screens: the painting is turned a quarter-turn, so its soft torn top edge fades in
+  /* ===== TABLETS + LAPTOPS, sideways (Dani 2026-11-02, from her iPad check): welcome + loading screens =====
+     Cat and words sit as ONE group with equal space to the left and right screen edges and a smaller gap between them.
+     "About 2 cm" is worked out as 148 units (u) here; the Begin arrows sit 2 cm up and 2 cm in from the corner, the loading
+     line 2 cm from the bottom, and the loading-screen arrow 2 cm above the mouse. Sideways phones keep their own layout. */
+  @media (min-aspect-ratio: 13/10) and (min-height: 600px){
+    .screen-col{ overflow:visible; }
+    #welGroup{ width:min-content; max-width:none; }                         /* the box now hugs the words, so the side spaces really are equal */
+    #welNarration .scr-gap{ flex:0 0 calc(100 * var(--u)); }
+    #loadNarration{ display:flex; align-items:center; box-sizing:border-box; padding-bottom:calc(182 * var(--u)); }
+    #loadNarration::before, #loadNarration::after{ content:""; flex:1 1 0; }
+    #loadCat{ position:relative; left:auto; top:auto; flex:none; margin:0 calc(100 * var(--u)) 0 0; }
+    #loadPrompt{ position:relative; left:auto; right:auto; top:auto; transform:none; flex:none; width:max-content; max-width:calc(900 * var(--u)); }
+    .next-arrow{ right:calc(148 * var(--u)); bottom:max(64px, calc(148 * var(--u))); }
+  }
+  @supports (width: 1cqw){
+    @media (min-aspect-ratio: 13/10) and (min-height: 600px){
+      #loadTrack{ top:calc(var(--boardH) - 148 * var(--u) + (100cqh - var(--boardH)) / 2); }                 /* 2 cm up from the real bottom edge */
+      #loadMouse{ top:calc(var(--boardH) - 241 * var(--u) + (100cqh - var(--boardH)) / 2); }                 /* stands on the line */
+      #loadNext{ bottom:max(64px, calc(389 * var(--u))); }                                                      /* 2 cm above the mouse */
+    }
+  }
+  /* ===== TABLETS + LAPTOPS, sideways: the game screen (Dani 2026-11-02) =====
+     1 cm is worked out as 78 units (u). The five buttons are faded like on the phone and sit 1 cm closer to the right edge;
+     the block of cards moves right so it is 1 cm from the buttons (no card moves relative to another); the cat + mouse move
+     0.5 cm right, 1 cm below the invitation, and the middle of that 1 cm gap is the exact vertical centre of the screen. */
+  @supports (width: 1cqw){
+    @media (min-aspect-ratio: 13/10) and (min-height: 600px){
+      .ctrl img{ opacity:.7; }
+      #buttons{ transform:translateX(calc(78 * var(--u))); }
+      #topRow, #tableau{ left:calc(75% - 864 * var(--u)); }
+      #promptText{ position:absolute; top:auto; left:calc(24 * var(--u)); right:calc(24 * var(--u)); width:auto; max-width:none; transform:none;
+                   bottom:calc(50% + 39 * var(--u)); height:calc(330 * var(--u)); min-height:0; margin:0; align-items:flex-end; }
+      #promptPets{ position:absolute; left:50%; top:calc(50% + 39 * var(--u)); transform:translateX(calc(-50% - 21 * var(--u))); }
+    }
+    @media (min-aspect-ratio: 155/100) and (min-height: 600px){
+      #promptPets{ transform:translateX(calc(-50% - 13 * var(--u))); }
+    }
+  }
+  .musback{ display:grid; place-items:center; padding:0; }   /* the arrow sits exactly in the middle of its circle (Dani 2026-11-02) */
+  /* ===== TABLETS + LAPTOPS (Dani 2026-11-02): Settings, How to play, About and Privacy policy share ONE wider page, wide enough that the
+     Draw-three-cards line fits on one row; the musician pages get a bigger photo, the block (photo, name, track, bio, links) sits 0.5 cm above the mouse,
+     and the mouse and the yarn are the same distance (28px) from the "Back to the game" button. Phones are untouched. */
+  @media (min-width: 760px) and (min-height: 600px){
+    .panel.panel--full{ max-width:720px; }
+    #musician .mus-head .musphoto{ width:176px; height:176px; }
+    #musician .musmain{ justify-content:flex-end; padding-top:0; }
+    #musician .musplaywrap{ margin-top:55px; }                                  /* with the mouse (32px tall) this leaves 24px (0.5 cm) between the links and the mouse */
+    #musician .musmouse{ justify-self:end; margin:0 28px 0 0; }
+    #musician .musyarn{ margin-left:28px; }
+  }  /* Wide screens: the painting is turned a quarter-turn, so its soft torn top edge fades in
      from the LEFT edge (like the top of the tall phone view) and the colour runs all the way
      to the right edge (no white/grey scanner margin). Same wash strength as everywhere else. */
   @media (min-aspect-ratio: 13/10){
@@ -1368,6 +1417,7 @@
     <div class="panel panel--full" role="dialog" aria-modal="true" aria-labelledby="howtoTitle">
       <div class="settings-head">
         <p class="aboutbrand"><img class="aboutpaw" src="assets/interface/about-paw.png" alt="" aria-hidden="true"><span aria-hidden="true">Cupunapa</span><span class="visually-hidden">Coopunahpah</span>&trade;</p>
+        <p class="abouttag">Mindfulness, through play.</p>
         <h2 id="howtoTitle" tabindex="-1">How to play</h2>
       </div>
       <div class="howtext">
@@ -1442,6 +1492,7 @@
     <div class="panel panel--full" role="dialog" aria-modal="true" aria-labelledby="privacyTitle">
       <div class="settings-head">
         <p class="aboutbrand"><img class="aboutpaw" src="assets/interface/about-paw.png" alt="" aria-hidden="true"><span aria-hidden="true">Cupunapa</span><span class="visually-hidden">Coopunahpah</span>&trade;</p>
+        <p class="abouttag">Mindfulness, through play.</p>
         <h2 id="privacyTitle" tabindex="-1">Privacy policy</h2>
       </div>
       <div class="howtext abouttext">
@@ -1501,7 +1552,7 @@
   <div id="musician" class="overlay overlay--full">
     <div class="panel panel--full" role="dialog" aria-modal="true" aria-labelledby="musTitle">
       <div class="musbar">
-        <button type="button" class="musback" id="musBack" aria-label="Back to the music list"><span aria-hidden="true">&larr;</span></button>
+        <button type="button" class="musback" id="musBack" aria-label="Back to the music list"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="11 6 5 12 11 18"/></svg></button>
         <!-- decoration only (aria-hidden): the headphone cat, top-right, balancing the back arrow (Dani 2026-10-25) -->
         <img class="muscat" src="assets/interface/mus-cat.png" alt="" aria-hidden="true">
       </div>
@@ -3951,7 +4002,21 @@ let loadingAssetsReady = false;
   urls.forEach(u=>{ const im = new Image(); im.onload = ()=>{ (im.decode ? im.decode() : Promise.resolve()).then(one, one); }; im.onerror = one; im.src = u; });
   setTimeout(()=>{ loadingAssetsReady = true; }, 20000);
 })();
+/* Tablets + laptops: the loading line runs from the cat's left edge to the words' right edge, wherever the centred group lands (Dani 2026-11-02) */
+function fitLoadLine(){
+  try{
+    if (!window.matchMedia('(min-aspect-ratio: 13/10) and (min-height: 600px)').matches) return;
+    const col = document.querySelector('#screenLoading .screen-col'), cat = document.getElementById('loadCat'), pr = document.getElementById('loadPrompt');
+    if (!col || !cat || !pr) return;
+    const c = col.getBoundingClientRect(), a = cat.getBoundingClientRect(), p = pr.getBoundingClientRect();
+    if (!c.width || !a.width || !p.width) return;
+    const u = c.width / 1920;
+    col.style.setProperty('--ltStart', ((a.left - c.left) / u).toFixed(1));
+    col.style.setProperty('--ltLen', ((p.right - a.left) / u).toFixed(1));
+  }catch(e){}
+}
 function startMouseWalk(onArrive, gate){
+  fitLoadLine(); setTimeout(fitLoadLine, 400); window.addEventListener('resize', fitLoadLine);
   const fill  = document.getElementById('loadFill');
   const mouse = document.getElementById('loadMouse');
   const setP = (p)=>{
