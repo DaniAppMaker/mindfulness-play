@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c88">
+<meta name="build" content="c89">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -777,7 +777,7 @@
     padding:0 calc(40 * var(--u));
   }
   /* ---- Welcome (spec Screen 1) ---- */
-  #welCat{     left:calc(256 * var(--u)); top:calc(490 * var(--u));  width:calc(700 * var(--u)); aspect-ratio:1444 / 1399; background:url("assets/interface/meditating-cat.png") center/contain no-repeat; }
+  #welCat{     left:calc(256 * var(--u)); top:calc(490 * var(--u));  width:calc(700 * var(--u)); aspect-ratio:1444 / 1399; background:url("assets/interface/meditating-cat.webp") center/contain no-repeat; }
   /* #welCat is focused programmatically (moveATCursorTo) to seat the VoiceOver cursor
      on the spoken intro; it's a decorative picture with tabindex=-1 (never keyboard-
      tabbable), so suppress the browser's blue focus ring. VoiceOver draws its own
@@ -829,7 +829,7 @@
   }
   /* ---- Loading (spec Screen 2) ---- */
   #loadPrompt{ top:calc(500 * var(--u));  font-size:calc(60 * var(--u)); line-height:1.22; white-space:pre-line; }
-  #loadCat{    left:calc(300 * var(--u)); top:calc(840 * var(--u));  width:calc(480 * var(--u)); aspect-ratio:1371 / 1727; background:url("assets/interface/paw-licking-cat.png") center/contain no-repeat; }
+  #loadCat{    left:calc(300 * var(--u)); top:calc(840 * var(--u));  width:calc(480 * var(--u)); aspect-ratio:1371 / 1727; background:url("assets/interface/paw-licking-cat.webp") center/contain no-repeat; }
   /* #loadPrompt and #loadCat are focused programmatically to seat the VoiceOver cursor;
      both are non-interactive (tabindex=-1, never keyboard-tabbable), so hide the blue
      focus ring. VoiceOver draws its own cursor, so this doesn't affect screen readers.
@@ -848,10 +848,10 @@
   /* (the timed loading bar + mouse were retired 2026-09-06 — the screen now
      waits for a tap, so there is nothing to "load") */
   /* ---- After winning (spec Screen 3) ---- */
-  #winCatArt{  left:calc(195 * var(--u)); top:calc(460 * var(--u));  width:calc(650 * var(--u)); aspect-ratio:1823 / 1640; background:url("assets/interface/stretching-cat.png") center/contain no-repeat; }
+  #winCatArt{  left:calc(195 * var(--u)); top:calc(460 * var(--u));  width:calc(650 * var(--u)); aspect-ratio:1823 / 1640; background:url("assets/interface/stretching-cat.webp") center/contain no-repeat; }
   #winPrompt{  top:calc(1275 * var(--u)); font-size:calc(60 * var(--u)); line-height:1.28; white-space:pre-line; }
   /* ---- No moves left (after-losing, ClaudeHandoff-AfterLosingScreen-v1) ---- */
-  #lostCatArt{ left:calc(249 * var(--u)); top:calc(500 * var(--u));  width:calc(760 * var(--u)); aspect-ratio:2102 / 1057; background:url("assets/interface/after-losing-cat.png") center/contain no-repeat; }
+  #lostCatArt{ left:calc(249 * var(--u)); top:calc(500 * var(--u));  width:calc(760 * var(--u)); aspect-ratio:2102 / 1057; background:url("assets/interface/after-losing-cat.webp") center/contain no-repeat; }
   #winCatArt:focus, #lostCatArt:focus{ outline:none; }   /* focused only to seat the VoiceOver cursor */
   #lostPrompt{ top:calc(1344 * var(--u)); font-size:calc(60 * var(--u)); line-height:1.28; white-space:pre-line; }
   /* the New Game bloom is identical on the win and losing screens (same spec bbox) */
@@ -921,7 +921,7 @@
   @media (min-aspect-ratio: 13/10) and (min-height: 600px){
     .screen-col{ overflow:visible; }
     #welGroup{ width:min-content; max-width:none; }                         /* the box now hugs the words, so the side spaces really are equal */
-    #welNarration .scr-gap{ flex:0 0 calc(100 * var(--u)); }
+    #welNarration .scr-gap, #screenLost .scr-gap{ flex:0 0 calc(100 * var(--u)); }
     #loadNarration{ display:flex; align-items:center; box-sizing:border-box; padding-bottom:calc(182 * var(--u)); }
     #loadNarration::before, #loadNarration::after{ content:""; flex:1 1 0; }
     #loadCat{ position:relative; left:auto; top:auto; flex:none; margin:0 calc(100 * var(--u)) 0 0; }
@@ -932,7 +932,7 @@
     @media (min-aspect-ratio: 13/10) and (min-height: 600px){
       #loadTrack{ top:calc(var(--boardH) - 148 * var(--u) + (100cqh - var(--boardH)) / 2); }                 /* 2 cm up from the real bottom edge */
       #loadMouse{ top:calc(var(--boardH) - 241 * var(--u) + (100cqh - var(--boardH)) / 2); }                 /* stands on the line */
-      #loadNext{ bottom:max(64px, calc(389 * var(--u))); }                                                      /* 2 cm above the mouse */
+      #loadNext{ bottom:max(64px, calc(290 * var(--u))); right:calc(110 * var(--u)); }   /* about 0.65 cm above the mouse (was 2 cm), 1.5 cm from the right edge (was 2 cm) */                                                      /* 2 cm above the mouse */
     }
   }
   /* ===== TABLETS + LAPTOPS, sideways: the game screen (Dani 2026-11-02) =====
@@ -943,13 +943,14 @@
     @media (min-aspect-ratio: 13/10) and (min-height: 600px){
       .ctrl img{ opacity:.7; }
       #buttons{ transform:translateX(calc(78 * var(--u))); }
-      #topRow, #tableau{ left:calc(75% - 864 * var(--u)); }
-      #promptText{ position:absolute; top:auto; left:calc(24 * var(--u)); right:calc(24 * var(--u)); width:auto; max-width:none; transform:none;
+      #topRow, #tableau{ left:calc(37.5% - 100.5 * var(--u)); }   /* centred between the invitation text's right edge and the buttons' left edge: equal gaps */
+      #promptText{ position:absolute; top:auto; left:calc(78 * var(--u)); right:auto; width:calc(507 * var(--u)); max-width:none; transform:none; font-size:calc(36 * var(--u));
                    bottom:calc(50% + 39 * var(--u)); height:calc(330 * var(--u)); min-height:0; margin:0; align-items:flex-end; }
-      #promptPets{ position:absolute; left:50%; top:calc(50% + 39 * var(--u)); transform:translateX(calc(-50% - 21 * var(--u))); }
+      #promptText.long{ font-size:calc(31 * var(--u)); }
+      #promptPets{ position:absolute; left:calc(331.5 * var(--u)); top:calc(50% + 39 * var(--u)); transform:translateX(calc(-135 * var(--u))); }   /* the cat's left edge to the mouse's right edge is 270u: centred on the text (78u + 507u/2) */
     }
     @media (min-aspect-ratio: 155/100) and (min-height: 600px){
-      #promptPets{ transform:translateX(calc(-50% - 13 * var(--u))); }
+      #promptPets{ transform:translateX(calc(-201.5 * var(--u))); }   /* bigger cat + mouse on wide screens: 403u across */
     }
   }
   .musback{ display:grid; place-items:center; padding:0; }   /* the arrow sits exactly in the middle of its circle (Dani 2026-11-02) */
@@ -1155,7 +1156,7 @@
              VoiceOver players (Dani 2026-09-12): reaching #sr-intro by swiping is
              impractical (it sits behind all 52 cards), so double-tapping this cat
              re-reads the whole game description. Wired in JS (replayIntro). -->
-        <img id="promptCat" src="assets/interface/prompt-cat.png" role="button" tabindex="0"
+        <img id="promptCat" src="assets/interface/prompt-cat.webp" role="button" tabindex="0"
              aria-label="The resting cat: playfully upside down on its back in lilac-and-pink watercolor, paws curled, gazing at you. Double-tap, press Enter, or double-click to hear the game description again."
              alt="A cute cat playfully upside down on its back, paws curled, gazing at you; a lilac-and-pink watercolor splotch turned into a playful critter with ink.">
         <img id="promptMouse" src="assets/interface/prompt-mouse.png" alt="A tiny watercolor mouse in soft blue — a round ear, a dot for an eye, whiskers, and a long curly tail — resting quietly near the cat, the two of them at ease together.">
@@ -1319,7 +1320,7 @@
   <!-- small menu (opened by the menu button) -->
   <div id="menu" class="overlay">
     <div class="panel" role="dialog" aria-modal="true" aria-label="New game">
-      <img class="panelArt cat" src="assets/interface/newgame-cat.png" alt="" aria-hidden="true">
+      <img class="panelArt cat" src="assets/interface/newgame-cat.webp" alt="" aria-hidden="true">
       <!-- The dialog is named by aria-label="New game" above. The old visually-hidden
            "Cozy Cat" heading was removed: VoiceOver landed on it as a stray little
            rectangle reading "cozy cat" on the New Game / Back buttons (Dani 2026-09-13). -->
@@ -1989,7 +1990,7 @@ function setPrompt(text, opts={}){
     if (has) el.removeAttribute('aria-hidden'); else el.setAttribute('aria-hidden', 'true');
     return;
   }
-  if (has && !opts.long){
+  if (has && !opts.long && !window.matchMedia('(min-aspect-ratio: 13/10) and (min-height: 600px)').matches){   // tablets + laptops size the note in CSS (36u, three lines in the wider space; Dani 2026-11-02)
     const lines = text.split('\n').length;
     const u = parseFloat(getComputedStyle(el).fontSize) / 58;   // px per design unit
     const fits = ()=>{
@@ -3465,7 +3466,7 @@ function speakScreenOnButton(descId, promptId, btnId){
 }
 function lostScreen(){
   clearSavedGame();   // this game is over — don't resume the stuck board next launch
-  const line = pick(LOST_LINES);
+  const line = lostLine(pick(LOST_LINES));
   document.getElementById('lostPrompt').textContent = line;
   clearLiveRegions();              // don't let a board line replay over the losing screen
   setBoardInert(true);              // trap VoiceOver in the dialog; stop it wandering into the board behind (the "c1 slash" stray read, Dani 2026-09-13)
@@ -3781,6 +3782,8 @@ const LOST_LINES = [                                        // Dani's chosen wor
   "No moves left! Start a new game?"
 ];
 const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+/* tablets + laptops: the no-moves message goes on two lines, the button centred under both (Dani 2026-11-02); the words themselves are unchanged */
+function lostLine(s){ try{ if (window.matchMedia('(min-aspect-ratio: 13/10) and (min-height: 600px)').matches) return s.replace('! ', '!\n'); }catch(e){} return s; }
 // loading teaching: a shuffled deck — every line once before any repeats, remembered
 // across app reloads (cozycat.loadDeck), and never the same one twice in a row.
 // (Dani 2026-09-26.) The very first loading screen a brand-new player ever sees opens
@@ -3931,8 +3934,12 @@ function hideScreen(id, cb){
    is ~260KB, so loading on demand made freshly-revealed cards appear late. We warm
    the browser cache during the welcome/loading pause; images stay cached after. */
 let deckPreloaded = false;
+let deckWaitTries = 0;
 function preloadDeck(){
   if (deckPreloaded) return;
+  /* the loading screen's cat + mouse get the connection first; the 52 cards start afterwards (or after 8 s), so the cat never waits in line behind them (Dani 2026-11-02) */
+  let catPending = false; try{ catPending = !loadingAssetsReady; }catch(e){}
+  if (catPending && deckWaitTries++ < 40){ setTimeout(preloadDeck, 200); return; }
   deckPreloaded = true;
   const urls = [CARD_BACK];
   for (const suitObj of SUITS)
@@ -3996,7 +4003,7 @@ const LOAD_TRACK_START = 175, LOAD_TRACK_LEN = 730, LOAD_MOUSE_HALF = 66;   // r
    just short of the end until they are ready (or 20s, so nothing can ever hang). */
 let loadingAssetsReady = false;
 (function(){
-  const urls = ['assets/interface/paw-licking-cat.png', 'assets/interface/loading-mouse.png'];
+  const urls = ['assets/interface/paw-licking-cat.webp', 'assets/interface/loading-mouse.png'];
   let left = urls.length;
   const one = ()=>{ if (--left <= 0) loadingAssetsReady = true; };
   urls.forEach(u=>{ const im = new Image(); im.onload = ()=>{ (im.decode ? im.decode() : Promise.resolve()).then(one, one); }; im.onerror = one; im.src = u; });
@@ -4145,7 +4152,7 @@ function startupFlow(){
   if (pv === 'welcome' || pv === 'loading' || pv === 'win' || pv === 'lost'){
     if (pv === 'loading') setLoadingScreenText();
     if (pv === 'win')     document.getElementById('winPrompt').textContent  = pick(WIN_LINES);
-    if (pv === 'lost')    document.getElementById('lostPrompt').textContent = pick(LOST_LINES);
+    if (pv === 'lost')    document.getElementById('lostPrompt').textContent = lostLine(pick(LOST_LINES));
     const screenId = pv === 'welcome' ? 'screenWelcome' : pv === 'loading' ? 'screenLoading'
                    : pv === 'win' ? 'screenWin' : 'screenLost';
     showScreen(screenId);
