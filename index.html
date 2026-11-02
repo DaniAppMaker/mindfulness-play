@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c85">
+<meta name="build" content="c86">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -541,6 +541,8 @@
   #about .settings-head, #privacy .settings-head, #howto .settings-head{ text-align:center; align-items:center; }
   #about .settings-head h2, #privacy .settings-head h2, #howto .settings-head h2{ text-align:center; margin-left:0; }
   #about .aboutbrand, #privacy .aboutbrand, #howto .aboutbrand{ justify-content:center; }
+  #about .aboutbrand{ margin-bottom:6px; }   /* the tagline sits right under the name (Dani 2026-11-02) */
+  #about .abouttag{ margin:0 0 26px; text-align:center; color:#6b665d; font-size:17px; line-height:1.3; }
   #about .abouttext .abouth, #privacy .abouttext .abouth, #howto .howtext .howsub{ text-align:center; }
   #howto .howtext p, #howto .howtext li{ text-align:left; }
   /* proper bullets, like a Word document: a solid round bullet, clearly visible, with the text hanging to the right of it */
@@ -1397,16 +1399,16 @@
     <div class="panel panel--full" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
       <div class="settings-head">
         <p class="aboutbrand"><img class="aboutpaw" src="assets/interface/about-paw.png" alt="" aria-hidden="true"><span aria-hidden="true">Cupunapa</span><span class="visually-hidden">Coopunahpah</span>&trade;</p>
+        <p class="abouttag">Mindfulness, through play.</p>
         <h2 id="aboutTitle" tabindex="-1">About</h2>
       </div>
       <div class="howtext abouttext">
-        <p>Mindfulness, through play.</p>
         <p><span aria-hidden="true">Cupunapa</span><span class="visually-hidden">Coopunahpah</span>&trade; Mindful Solitaire is designed to take the pressure off, to bring some ease. While most apps use rewards and other pressures to keep you engaged, this one has no streaks, no scores, and no guilt. It also has no ads, accounts, tracking, or subscription, and it works fully offline.</p>
         <p>Mindfulness often begins in sitting meditation. The hope is to carry that sense of presence into everyday life, but it's easy to forget. <span aria-hidden="true">Cupunapa</span><span class="visually-hidden">Coopunahpah</span>&trade; Mindful Solitaire is that bridge from the cushion to everyday life. You play a familiar game of solitaire, and playful hand-painted watercolor cats invite you into mindfulness: A pause&hellip; notice your jaw. Soften as you exhale. As you bring mindfulness into your solitaire break, it can become easier to carry that sense of ease into other parts of your day.</p>
 
         <h3 class="abouth">Roots</h3>
-        <p>The ideas in this game stem from many sources, beginning with Buddhism and yoga, which are both rooted in deep spiritual and cultural practices for the mind and body, cultivated over thousands of years in Asia. I learned these practices from many teachers, most deeply from the Vietnamese Zen teacher Thich Nhat Hanh, and from Tara Brach and Andy Puddicombe, who trained in the Theravada and Tibetan traditions. I have also spent many years learning about the nervous system from modern science, such as how our bodies shift between fight-or-flight and rest-and-digest, as well as how gentle noticing and dropping into our bodies can help us settle.</p>
-        <p>Over many years I've also learned from yoga teachers, from trauma-informed practice, from learning about neurodivergence and disability, from self-directed education, and from many books, courses and apps. I'm grateful to all of the people who teach these practices with such care. I come to this as an educator with more than twenty years of experience and with a PhD in education. I kept feeling stuck. I did the practices and felt good, but then struggled to apply what I learned to my everyday life, as a parent with chronic illness and a 24/7 caregiver. So I built a stepping stone for myself, the app I needed. And I thought others might like it too.</p>
+        <p>The ideas in this game stem from many sources, beginning with Buddhism and yoga, which are both rooted in deep spiritual and cultural practices for the mind and body, cultivated over thousands of years in Asia. I learned these practices from many teachers, most deeply from Thich Nhat Hanh. I have spent many years learning about these practices and about the nervous system from modern science, such as how our bodies shift between fight-or-flight and rest-and-digest, as well as how gentle noticing and dropping into our bodies can help us settle. Over many years I&rsquo;ve also learned from trauma-informed practice, neurodivergence and disability, self-directed education and more. I come to this as an educator with more than twenty years of experience and with a PhD in education.</p>
+        <p>I kept feeling stuck. I did the practices and felt good, but then struggled to apply what I learned to my everyday life, as a parent with chronic illness and a 24/7 caregiver. So I built a stepping stone for myself, the app I needed. And I thought others might like it too.</p>
         <p>This game is a small bridge, not the whole path. If a moment of noticing feels good here, I warmly invite you to explore the traditions it comes from.</p>
 
         <h3 class="abouth">Accessibility</h3>
@@ -1415,10 +1417,7 @@
         <!-- Giving back: shown since Dani approved the no-names wording and her art sentence (2026-10-10) -->
         <section id="aboutGiving">
           <h3 class="abouth">Giving back</h3>
-          <p>As a way of giving back, I plan to donate 10% of app earnings after store fees.</p>
-          <p>As a small gesture in gratitude to the deep spiritual and cultural traditions from which this work draws, half goes to an organization that supports disabled people in Vietnam.</p>
-          <p>The other half goes to an organization working to keep AI safe for people and the earth: I deeply care about how AI is used. I created the concept, the ideas, the art and the wording. AI helped with the coding.</p>
-          <p>As the game grows, I hope to give more to both.</p>
+          <p>As a way of giving back, I plan to donate 10% of app earnings after store fees. As a small gesture in gratitude to the deep spiritual and cultural traditions from which this work draws, half goes to an organization that supports disabled people in Vietnam. The other half goes to an organization working to keep AI safe for people and the earth: I deeply care about how AI is used. I created the concept, the ideas, the art and the wording. AI helped with the coding. As the game grows, I hope to give more to both.</p>
         </section>
 
         <h3 class="abouth">Music</h3>
@@ -1429,8 +1428,6 @@
 
         <h3 class="abouth">Acknowledgements</h3>
         <p id="aboutThanks"></p>
-
-        <p><span aria-hidden="true">Cupunapa</span><span class="visually-hidden">Coopunahpah</span> is a small independent game, made by one person in Ecuador.</p>
 
         <p class="aboutcontact"><strong>Questions or ideas?</strong> <a class="setmail" href="mailto:info@cupunapa.com?subject=Cupunapa" aria-label="info at coopunahpah dot com">info@cupunapa.com</a></p>
         <p class="aboutsign">With gratitude, Dani</p>
@@ -3588,8 +3585,8 @@ document.getElementById('howto').addEventListener('click', (e)=>{ if (e.target.i
 /* ---- About (Dani 2026-10-10): opens from the "About" row in Settings; Done / Esc return to Settings ---- */
 const ABOUT_TESTERS = ['Daniel Angus MacDonald'];   // early testers who agreed to be named; add the others as they say yes
 (function(){
-  const n = ABOUT_TESTERS, list = n.length <= 1 ? n.join('') : n.slice(0,-1).join(', ') + ', and ' + n[n.length-1];
-  document.getElementById('aboutThanks').textContent = 'Thank you to all of the early testers for their time and kind feedback, including those from the AppleVis community: ' + list + '.';
+  const list = ABOUT_TESTERS.join(', ');
+  document.getElementById('aboutThanks').textContent = 'Thank you to all of the early testers for their time and kind feedback, including those from the AppleVis community: ' + list + ' and others who didn’t submit their names to be directly credited, and helped so much with their feedback.';
 })();
 function openAbout(){ closeOverlay('settings'); openOverlay('about', 'aboutTitle'); }
 function closeAbout(){ closeOverlay('about'); openSettings(); }
