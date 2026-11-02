@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c90">
+<meta name="build" content="c91">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -964,6 +964,11 @@
     #musician .musplaywrap{ margin-top:55px; }                                  /* with the mouse (32px tall) this leaves 24px (0.5 cm) between the links and the mouse */
     #musician .musmouse{ justify-self:end; margin:0 28px 0 0; }
     #musician .musyarn{ margin-left:28px; }
+  }
+  /* short laptop windows (about 600-790px tall): the photo goes back to its smaller size and the bottom space shrinks, so the "Back to the game" button is not pushed below the fold (checked at 1280x720, 1536x730) */
+  @media (min-width: 760px) and (min-height: 600px) and (max-height: 790px){
+    #musician .mus-head .musphoto{ width:132px; height:132px; }
+    #musician .musplaywrap{ padding-bottom:14px; }
   }  /* Wide screens: the painting is turned a quarter-turn, so its soft torn top edge fades in
      from the LEFT edge (like the top of the tall phone view) and the colour runs all the way
      to the right edge (no white/grey scanner margin). Same wash strength as everywhere else. */
