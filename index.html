@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c89">
+<meta name="build" content="c90">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -943,7 +943,7 @@
     @media (min-aspect-ratio: 13/10) and (min-height: 600px){
       .ctrl img{ opacity:.7; }
       #buttons{ transform:translateX(calc(78 * var(--u))); }
-      #topRow, #tableau{ left:calc(37.5% - 100.5 * var(--u)); }   /* centred between the invitation text's right edge and the buttons' left edge: equal gaps */
+      #topRow, #tableau{ left:calc(37.5% - 120.5 * var(--u)); }   /* centred between where the invitation WORDS usually end (545u: three quarters of the invitations end before it, measured on all of them) and the buttons' left edge: equal gaps. (The text box itself is wider than most of the words, so centring on the box looked too close to the buttons - Dani 2026-11-02) */
       #promptText{ position:absolute; top:auto; left:calc(78 * var(--u)); right:auto; width:calc(507 * var(--u)); max-width:none; transform:none; font-size:calc(36 * var(--u));
                    bottom:calc(50% + 39 * var(--u)); height:calc(330 * var(--u)); min-height:0; margin:0; align-items:flex-end; }
       #promptText.long{ font-size:calc(31 * var(--u)); }
