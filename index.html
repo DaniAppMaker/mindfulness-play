@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c97">
+<meta name="build" content="c98">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -693,7 +693,7 @@
   .setlabel{ font-size:19px; font-weight:600; color:var(--ink); }   /* bigger settings text (Dani 2026-09-14) */
   .sethint{ font-size:15px; color:#4f4540; margin-top:3px; line-height:1.3; }   /* darker + ~30% bigger so it is easy to read (Dani 2026-10-16) */
   a.setcontact{ text-decoration:none; color:inherit; }
-  .verTag{ position:absolute; right:7px; bottom:6px; z-index:5; font:11px/1.2 -apple-system,system-ui,sans-serif; color:#9a8f86; opacity:.55; letter-spacing:.02em; pointer-events:none; user-select:none; }   /* the version, only on the welcome screen (Dani 2026-10-23) */
+  .verTag{ position:fixed; right:10px; bottom:calc(8px + env(safe-area-inset-bottom, 0px)); z-index:70; font:600 13px/1.2 -apple-system,system-ui,sans-serif; color:#5f5850; opacity:.9; background:rgba(251,248,243,.85); padding:3px 7px; border-radius:6px; letter-spacing:.02em; pointer-events:none; user-select:none; }   /* bigger + darker + above everything (Dani 2026-11-03: could not see it on the small iPad) */   /* the version, only on the welcome screen (Dani 2026-10-23) */
   .setmail{ color:#b5601c; font-weight:700; text-decoration:underline; text-underline-offset:4px; font-size:19px; }   /* the email address: label-sized (19px), the deep orange of the turned-on switch (Dani 2026-10-16) */
   .abouttext .setmail{ font-size:inherit; }
   .setnote{ margin:15px 2px 2px; font-size:12px; color:var(--ink-soft); text-align:center; line-height:1.5; }
@@ -2131,10 +2131,13 @@ function resumeGame(s){
   undoStack = [];
   justRevealed.clear();
   clearPromptState();
-  resumedGame = true;   // spoken intro will welcome the player back, not re-read the new-game script
+  // a board nobody has touched yet (just dealt, no card played, nothing drawn) is a NEW game, not "a previous game" (Dani 2026-11-03: the small iPad said "returning to a previous game" on a new game)
+  const untouched = s.waste.length === 0 && s.foundations.every(f=>f.length === 0) && s.stock.length === 24 &&
+                    s.tableau.every((c, i)=>c.length === i + 1 && c.every((x, j)=>!!x.faceUp === (j === i)));
+  resumedGame = !untouched;   // spoken intro will welcome the player back, not re-read the new-game script
   render();
   applyNature(); updateMusic();
-  announce('Picking up your game where you left off.');
+  if (!untouched) announce('Picking up your game where you left off.');
 }
 
 function deal(){
@@ -3643,8 +3646,14 @@ function replayIntro(){
   cat.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); replayIntro(); } };
 })();
 
-document.getElementById('menuNew').onclick   = ()=>{ closeOverlay('menu'); deal(); };
-document.getElementById('menuClose').onclick = ()=>{ closeOverlay('menu'); document.getElementById('btnMenu').focus(); };
+/* After a pop-up closes, put the screen-reader cursor on a real, visible control NOW (inside the tap). The board was hidden (display:none) while the pop-up was open and is shown again in the same moment, so iOS may not yet count it as focusable: force the layout first, focus, and on iPad try once more a moment later. Without this the cursor stayed where the closed button had been and swiping only said "button" (Dani 2026-11-03, small iPad: Back to the game AND New game). */
+function seatCursor(id){
+  const el = document.getElementById(id); if (!el) return;
+  try{ void document.body.offsetHeight; void el.offsetWidth; el.focus({ preventScroll:true }); }catch(e){}
+  if (IS_IPAD) setTimeout(()=>{ try{ el.focus({ preventScroll:true }); }catch(e){} }, 150);
+}
+document.getElementById('menuNew').onclick   = ()=>{ closeOverlay('menu'); deal(); seatCursor('btnMenu'); };
+document.getElementById('menuClose').onclick = ()=>{ closeOverlay('menu'); seatCursor('btnMenu'); };
 document.getElementById('menu').addEventListener('click', e=>{ if(e.target.id==='menu') closeOverlay('menu'); });
 
 /* ================= settings panel wiring ================= */
@@ -3681,7 +3690,7 @@ function updateLangLabel(){
     : 'Language. Drop-down menu. Choose a language: swipe up or down (or use the arrow keys) to hear each one, then double-tap (or press Enter) to choose it.');
 }
 function openSettings(returnId){ syncToggles(); updateLangLabel(); openOverlay('settings', (IS_IPAD && returnId) ? returnId : (BACKDROP_USE_ARIA ? 'setHow' : 'settingsTitle')); }   // iPad: coming back from a page, the cursor lands on the row you came from (returnId), so swiping on carries down the list (Dani 2026-11-03)   // land VoiceOver on the "Settings" heading (the top), not the Done button (Dani 2026-09-12)
-function closeSettings(){ closeOverlay('settings'); document.getElementById('btnAppear').focus(); }
+function closeSettings(){ closeOverlay('settings'); seatCursor('btnAppear'); }
 document.getElementById('settingsDone').onclick = closeSettings;
 
 /* ---- How to play (Dani's words, 2026-10-10): F1 on a computer, first row of Settings on a phone/tablet ---- */
@@ -3784,7 +3793,7 @@ if (MUSICIANS_ON){
     closeOverlay('musician'); pendingTrackId = null;
     updateMusic(); playSound('confirm');
     if (f.track.file) announce('Now playing ' + f.track.title + ', by ' + f.musician.name + '.');   // placeholder tracks have no sound yet, so nothing is announced
-    try{ document.getElementById('btnAppear').focus(); }catch(e){}
+    seatCursor('btnAppear');
   };
 }
 document.getElementById('settings').addEventListener('click', (e)=>{ if (e.target.id === 'settings') closeSettings(); });
@@ -3931,8 +3940,23 @@ const ARROW_FADE_MS = 1800;   // must match the .next-arrow opacity transition; 
                               // after '.revealed' the arrow is fully visible and tappable ('.armed').
 // Reveal a Begin arrow, then arm it (make it tappable) only once it has FINISHED fading
 // in — under reduce-motion it appears instantly, so it arms instantly too.
+/* The loading arrow must NEVER sit on top of the mouse, on any screen size (Dani 2026-11-03: it did on the small iPad). After the CSS has placed it, measure; if the two touch, lift the arrow just above the mouse. */
+function keepLoadArrowClear(){
+  try{
+    const a = document.getElementById('loadNext'), m = document.getElementById('loadMouse');
+    if (!a || !m) return;
+    a.style.bottom = '';                                    // start from the CSS position every time
+    const ar = a.getBoundingClientRect(), mr = m.getBoundingClientRect();
+    if (!ar.width || !mr.width) return;
+    const gap = 14;
+    const hit = ar.left < mr.right + gap && ar.right > mr.left - gap && ar.top < mr.bottom + gap && ar.bottom > mr.top - gap;
+    if (hit){ const cur = parseFloat(getComputedStyle(a).bottom) || 0; a.style.bottom = (cur + (ar.bottom - (mr.top - gap))) + 'px'; }
+  }catch(e){}
+}
+window.addEventListener('resize', keepLoadArrowClear);
+window.addEventListener('orientationchange', ()=>setTimeout(keepLoadArrowClear, 300));
 function armArrow(el){
-  el.hidden = false; void el.offsetWidth; el.classList.add("revealed");
+  el.hidden = false; void el.offsetWidth; if (el.id === 'loadNext') keepLoadArrowClear(); el.classList.add("revealed");
   clearTimeout(el._armT);
   el._armT = setTimeout(()=>el.classList.add('armed'), reducedMotion() ? 0 : ARROW_FADE_MS);
 }
