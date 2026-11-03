@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c95">
+<meta name="build" content="c96">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -2235,12 +2235,24 @@ function undo(){
   if (drawSeqActive) return;   // don't unwind while a 3-card deal is still dealing its cards
   if (!undoStack.length){ clearSpokenForUndo(); announceNow('Nothing to take back yet.'); return; }
   const entry = undoStack.pop();
+  // taking back a draw: the cards that were turned over fly back to the draw pile (same sweep + flip as the recycle). Capture them BEFORE the re-render removes them.
+  let drawFly = null;
+  if (!reducedMotion()){
+    try{
+      const stockIds = new Set(JSON.parse(entry.snap).stock.map(c=>c.id));
+      drawFly = [...trackedWaste].filter(([id])=>stockIds.has(id)).map(([id, el])=>{
+        const img = el.querySelector('img');
+        return { rect: el.getBoundingClientRect(), face: img ? img.src : CARD_BACK };
+      }).filter(x=>x.rect && x.rect.width).reverse();   // the top card leaves first
+    }catch(e){ drawFly = null; }
+  }
   state = JSON.parse(entry.snap);
   clearSelection();
   justRevealed.clear();
   clearSpokenForUndo();
   undoRender = true;   // cards that come back into the waste fan appear exactly in place, no slide-in (Dani 2026-11-03)
   try{ render(); } finally { undoRender = false; }
+  if (drawFly && drawFly.length) animateRecycleFly(drawFly);
   // assertive, so it interrupts any stale move line / invitation still being spoken —
   // the player hears ONLY what was undone, nothing before it (Dani 2026-09-12).
   // desc is already a full "Returning … to …" sentence (Dani 2026-09-13).
