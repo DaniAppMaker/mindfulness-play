@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c98">
+<meta name="build" content="c99">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -263,6 +263,7 @@
     50%    { transform:translateY(calc(-12 * var(--u))) scale(1.06); }
   }
   .card.hint, .slot.hint{ animation:hintBreathe .8s ease-in-out 3; z-index:6; }
+  body.hinting #tableau{ overflow:visible; }   /* while a hint flashes, the column area stops clipping, so a top-row card that grows is not cut off by the "ledge" above it (Dani 2026-11-03) */
   /* the draw pile when it's an empty "gather back" slot (no card img to glow) */
   .slot.hint{
     box-shadow:0 0 calc(14 * var(--u)) rgba(215,168,110,.95),
@@ -3458,10 +3459,13 @@ function anyPileCardPlayable(){
   }
   return false;
 }
-function clearHints(){ document.querySelectorAll('.hint').forEach(c=>c.classList.remove('hint')); }
+function clearHints(){
+  document.body.classList.remove('hinting');
+  document.querySelectorAll('.hint').forEach(c=>{ c.classList.remove('hint'); c.style.animation = 'none'; void c.offsetWidth; c.style.animation = ''; });   // restart from the plain state and repaint, so a card never stays raised with a halo after the flash (Dani 2026-11-03, Safari on the small iPad)
+}
 /* computers: say the hint through the lightbulb button itself - the cursor is re-seated on it with the hint as its spoken name, which NVDA reads every time
    (a brand-new alert was still missed the very first time). The name goes back to "Show me a move" afterwards. (Dani 2026-10-21) */
-let hintLabelTimer = null;
+let hintLabelTimer = null, hintClearTimer = null;
 function speakViaHintButton(msg){
   const b = document.getElementById('btnHint'); if (!b) return false;
   if (!b.dataset.orig) b.dataset.orig = b.getAttribute('aria-label') || '';
@@ -3475,7 +3479,9 @@ function speakViaHintButton(msg){
 function speakViaTempButton(msg){
   const hb = document.getElementById('btnHint'); if (!hb || !hb.parentNode) return false;
   const old = document.getElementById('hintSpeak'); if (old) old.remove();
-  const b = document.createElement('button'); b.type = 'button'; b.id = 'hintSpeak'; b.className = 'visually-hidden'; b.setAttribute('aria-label', msg);
+  const b = document.createElement('button'); b.type = 'button'; b.id = 'hintSpeak'; b.setAttribute('aria-label', msg);
+  // same size and place as the lightbulb (invisible), so the screen reader's black cursor box looks like normal selection around the lightbulb, not a stray dot on the paw button (Dani 2026-11-03)
+  b.style.cssText = 'position:absolute; left:' + hb.offsetLeft + 'px; top:' + hb.offsetTop + 'px; width:' + hb.offsetWidth + 'px; height:' + hb.offsetHeight + 'px; margin:0; padding:0; border:0; background:none; opacity:0; pointer-events:none;';
   b.addEventListener('blur', ()=>{ setTimeout(()=>{ try{ b.remove(); }catch(e){} }, 50); });
   b.addEventListener('click', ()=>{ try{ hb.focus(); }catch(e){} });
   hb.parentNode.insertBefore(b, hb.nextSibling);
@@ -3504,8 +3510,8 @@ function showHint(){
   { const _msg = `${n} move${n>1?'s':''} you can make: ${shown}${more}. Find the card and double-tap it (or press Enter, or click it) to move it.`; if (!speakHint(_msg)) announce(_msg); }
   // still give the gentle visual pulse on the first move's card for sighted players
   const el = document.querySelector(`.card[data-id="${moves[0].id}"]`);
-  if (el) el.classList.add('hint');
-  setTimeout(clearHints, 2500);
+  if (el){ document.body.classList.add('hinting'); el.classList.add('hint'); }
+  clearTimeout(hintClearTimer); hintClearTimer = setTimeout(clearHints, 2500);
 }
 /* when the only move is to draw, point at the pile itself with the same gentle
    breathing hint, instead of showing words. Only falls back to the soft note if
@@ -3549,6 +3555,10 @@ function lostScreen(){
   // decorative/aria-hidden to dodge VoiceOver's OCR); reads description -> message ->
   // New Game in order. (Dani 2026-09-13)
   if (BACKDROP_USE_ARIA) setTimeout(()=>{ speakScreenOnButton('lostCatDesc','lostPrompt','lostNewBtn'); }, reducedMotion() ? 0 : 650);
+  else if (IS_IPAD){   // iPad: the cat description is spoken by a fresh alert (a hidden paragraph the cursor was sent to was skipped); it is then hidden so a swipe starts at the message and is not read twice (Dani 2026-11-03)
+    const d = document.getElementById('lostCatDesc'); if (d) d.removeAttribute('aria-hidden');
+    setTimeout(()=>{ try{ if (!d) return; const a = document.createElement('div'); a.className = 'visually-hidden'; a.setAttribute('role','alert'); a.textContent = d.textContent; document.body.appendChild(a); d.setAttribute('aria-hidden','true'); setTimeout(()=>{ try{ a.remove(); }catch(e){} }, 20000); }catch(e){} }, reducedMotion() ? 0 : 650);
+  }
   else setTimeout(()=>{ moveATCursorTo('lostCatDesc'); }, reducedMotion() ? 0 : 650);
 }
 
@@ -3596,10 +3606,15 @@ function setBoardInert(hidden){
   });
 }
 function openOverlay(id, focusId){
+  { const _hs = document.getElementById('hintSpeak'); if (_hs) _hs.remove(); }   // the short-lived hint button must not still hold the cursor when the board is hidden behind the page
   clearLiveRegions();             // no stale board announcement should carry into the pop-up
   if (!BACKDROP_USE_ARIA) setBoardInert(true);            // trap VoiceOver inside the pop-up
   document.getElementById(id).classList.add('open');   // visibility-based show (see .overlay CSS)
-  if (IS_IPAD && focusId){ try{ document.getElementById(focusId).focus({ preventScroll:true }); }catch(e){} }   // iPad: put the cursor there NOW, inside the tap that opened the page (a timer-only focus was ignored, so it stayed where Done had been)
+  if (IS_IPAD && focusId){   // iPad: put the cursor there NOW, inside the tap that opened the page (a timer-only focus was ignored, so it stayed where Done had been); force the layout first, and try again if it did not stick (Dani 2026-11-03: Settings started at "Draw three cards")
+    const _t = document.getElementById(focusId);
+    try{ void document.body.offsetHeight; _t.focus({ preventScroll:true }); }catch(e){}
+    [60, 250].forEach(ms=>setTimeout(()=>{ try{ if (document.activeElement !== _t) _t.focus({ preventScroll:true }); }catch(e){} }, ms));
+  }
   if (BACKDROP_USE_ARIA){   // computers: put the cursor inside the pop-up FIRST, then lock the board, so it never drops to the page (the pre-flight saw ~30 ms on <body>)
     try{ if (focusId) document.getElementById(focusId).focus({ preventScroll:true }); }catch(e){}
     setBoardInert(true);
@@ -3689,7 +3704,7 @@ function updateLangLabel(){
     ? 'Language: English. More languages — Spanish and French — are coming soon.'
     : 'Language. Drop-down menu. Choose a language: swipe up or down (or use the arrow keys) to hear each one, then double-tap (or press Enter) to choose it.');
 }
-function openSettings(returnId){ syncToggles(); updateLangLabel(); openOverlay('settings', (IS_IPAD && returnId) ? returnId : (BACKDROP_USE_ARIA ? 'setHow' : 'settingsTitle')); }   // iPad: coming back from a page, the cursor lands on the row you came from (returnId), so swiping on carries down the list (Dani 2026-11-03)   // land VoiceOver on the "Settings" heading (the top), not the Done button (Dani 2026-09-12)
+function openSettings(returnId){ syncToggles(); updateLangLabel(); openOverlay('settings', (IS_IPAD && typeof returnId === 'string') ? returnId : (BACKDROP_USE_ARIA ? 'setHow' : 'settingsTitle')); }   // (typeof: the Settings button passes its click event here; c97 took it for an id, so the cursor was never put on the title - Dani 2026-11-03: Settings started at "Draw three cards")   // iPad: coming back from a page, the cursor lands on the row you came from (returnId), so swiping on carries down the list (Dani 2026-11-03)   // land VoiceOver on the "Settings" heading (the top), not the Done button (Dani 2026-09-12)
 function closeSettings(){ closeOverlay('settings'); seatCursor('btnAppear'); }
 document.getElementById('settingsDone').onclick = closeSettings;
 
@@ -3750,6 +3765,10 @@ function openMusician(m, t){
   else { const ini = document.createElement('span'); ini.className = 'musinit'; ini.setAttribute('aria-hidden','true');
          ini.textContent = m.initials || m.name.split(/\s+/).filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase(); ph.appendChild(ini);
          ph.setAttribute('role','img'); ph.setAttribute('aria-label', m.photoAlt || m.name); }
+  if (IS_IPAD){   // the cursor starts on the PHOTO (its description), then the name, track and bio (Dani 2026-11-03)
+    ph.setAttribute('role','img'); ph.setAttribute('aria-label', m.photoAlt || m.name); ph.tabIndex = -1;
+    const _im = ph.querySelector('img'); if (_im){ _im.alt = ''; _im.setAttribute('aria-hidden','true'); }
+  }
   document.getElementById('musBio').textContent = m.bio;
   const ul = document.getElementById('musLinks'); ul.textContent = '';
   (m.links || []).forEach(l=>{
@@ -3761,7 +3780,7 @@ function openMusician(m, t){
     li.appendChild(a); ul.appendChild(li);
   });
   closeOverlay('settings');                   // swap Settings for the musician's page
-  openOverlay('musician', 'musTitle');
+  openOverlay('musician', IS_IPAD ? 'musPhoto' : 'musTitle');
 }
 if (MUSICIANS_ON){
   (function(){
@@ -3965,7 +3984,7 @@ function disarmArrow(el){ el.classList.remove('revealed','armed'); clearTimeout(
 /* While the welcome / loading screen is up, EVERYTHING else on the page (the hidden live regions, the board, the settings pages, the
    win/lose screens, the build label) is made inert, so a VoiceOver swipe can never wander onto something the player cannot see - it
    used to land on an invisible "square" and read stray words and numbers (Dani 2026-10-17). Lifted again when the board is revealed. */
-const BACKDROP_USE_ARIA = !(window.matchMedia && matchMedia('(pointer: coarse)').matches);   // computers: aria-hidden (NVDA refreshes its reading view for it; it ignored `inert` and showed a stale page - Dani 2026-10-18). Touch devices keep `inert` (VoiceOver).
+const BACKDROP_USE_ARIA = /[?&]touch=1(&|$)/.test(location.search) ? false : !(window.matchMedia && matchMedia('(pointer: coarse)').matches);   // ?touch=1 = TEST ONLY: run the touch-screen (iPhone/iPad) code path in a desktop browser   // computers: aria-hidden (NVDA refreshes its reading view for it; it ignored `inert` and showed a stale page - Dani 2026-10-18). Touch devices keep `inert` (VoiceOver).
 const IS_MAC = BACKDROP_USE_ARIA && /Mac/i.test(navigator.platform || navigator.userAgent || '');   // Mac VoiceOver (Chrome/Safari): see SCREEN-READER-LESSONS.md section F
 /* iPad (any iPadOS Safari, which says it is a Mac but has a touch screen). The computer fixes below were written for NVDA and Mac VoiceOver only; the iPad
    used the touch path and never got them (Dani 2026-11-03: "web dialog", heading words, the hint, focus after closing a page...). ?ipad=1 turns this on for testing. */
@@ -3973,13 +3992,8 @@ const IS_IPAD = /[?&]ipad=1(&|$)/.test(location.search) || (/Mac/i.test(navigato
 if (IS_IPAD){
   document.querySelectorAll('.panel[role="dialog"]').forEach(p=>{ p.removeAttribute('role'); p.removeAttribute('aria-modal'); p.removeAttribute('aria-labelledby'); p.removeAttribute('aria-label'); });   // no "web dialog" on any pop-up
   ['settingsTitle','howtoTitle','aboutTitle','privacyTitle','musTitle'].forEach(id=>{ const t = document.getElementById(id); if (t) t.setAttribute('role', 'text'); });   // the page title is read as plain words, no "heading level 2"
-  // long pages: a Done button right after the title (hidden on screen) so a screen-reader player can leave at any point, without swiping to the very end
-  [['howtoTitle','howtoDone'],['aboutTitle','aboutDone'],['privacyTitle','privacyDone']].forEach(([t, d])=>{
-    const title = document.getElementById(t), done = document.getElementById(d), head = title && title.closest('.settings-head'); if (!head || !done) return;
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'visually-hidden'; b.id = d + 'Top'; b.setAttribute('aria-label', 'Done');
-    b.addEventListener('click', ()=>{ playSound('tap'); done.onclick(); });
-    head.parentNode.insertBefore(b, head.nextSibling);
-  });
+  // long pages: when the cursor reaches the bottom Done, scroll it fully into view first, so VoiceOver's double-tap has a real place to press (Dani 2026-11-03: Done could not be reached / pressed after the email link). (The extra hidden Done at the top was removed: it was read after the first swipe.)
+  ['howtoDone','aboutDone','privacyDone','settingsDone'].forEach(d=>{ const done = document.getElementById(d); if (done) done.addEventListener('focus', ()=>{ try{ done.scrollIntoView({ block:'center' }); }catch(e){} }); });
   // the two drop-downs: while the picker is open the rest of Settings is hidden from VoiceOver, so the first swipe cannot wander to the next row
   ['setNature','setMusicTrack'].forEach(id=>{ const s = document.getElementById(id); if (!s) return; let safety = null;
     const rest = ()=> [...document.querySelectorAll('#settings .settings-head, #settings .settings-body > *, #settingsDone')].filter(el=>!el.contains(s));
