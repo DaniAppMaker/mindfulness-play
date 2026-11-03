@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c99">
+<meta name="build" content="c100">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -3610,7 +3610,7 @@ function openOverlay(id, focusId){
   clearLiveRegions();             // no stale board announcement should carry into the pop-up
   if (!BACKDROP_USE_ARIA) setBoardInert(true);            // trap VoiceOver inside the pop-up
   document.getElementById(id).classList.add('open');   // visibility-based show (see .overlay CSS)
-  if (IS_IPAD && focusId){   // iPad: put the cursor there NOW, inside the tap that opened the page (a timer-only focus was ignored, so it stayed where Done had been); force the layout first, and try again if it did not stick (Dani 2026-11-03: Settings started at "Draw three cards")
+  if (IPAD_X && focusId){   // (experimental, ?lab=1 only) iPad: put the cursor there NOW, inside the tap that opened the page (a timer-only focus was ignored, so it stayed where Done had been); force the layout first, and try again if it did not stick (Dani 2026-11-03: Settings started at "Draw three cards")
     const _t = document.getElementById(focusId);
     try{ void document.body.offsetHeight; _t.focus({ preventScroll:true }); }catch(e){}
     [60, 250].forEach(ms=>setTimeout(()=>{ try{ if (document.activeElement !== _t) _t.focus({ preventScroll:true }); }catch(e){} }, ms));
@@ -3664,10 +3664,11 @@ function replayIntro(){
 /* After a pop-up closes, put the screen-reader cursor on a real, visible control NOW (inside the tap). The board was hidden (display:none) while the pop-up was open and is shown again in the same moment, so iOS may not yet count it as focusable: force the layout first, focus, and on iPad try once more a moment later. Without this the cursor stayed where the closed button had been and swiping only said "button" (Dani 2026-11-03, small iPad: Back to the game AND New game). */
 function seatCursor(id){
   const el = document.getElementById(id); if (!el) return;
-  try{ void document.body.offsetHeight; void el.offsetWidth; el.focus({ preventScroll:true }); }catch(e){}
-  if (IS_IPAD) setTimeout(()=>{ try{ el.focus({ preventScroll:true }); }catch(e){} }, 150);
+  if (!IPAD_X){ try{ el.focus(); }catch(e){} return; }   // normal: exactly the approved c96 behaviour (a plain focus)
+  try{ void document.body.offsetHeight; void el.offsetWidth; el.focus({ preventScroll:true }); }catch(e){}   // (experimental, ?lab=1 only)
+  setTimeout(()=>{ try{ el.focus({ preventScroll:true }); }catch(e){} }, 150);
 }
-document.getElementById('menuNew').onclick   = ()=>{ closeOverlay('menu'); deal(); seatCursor('btnMenu'); };
+document.getElementById('menuNew').onclick   = ()=>{ closeOverlay('menu'); deal(); if (IPAD_X) seatCursor('btnMenu'); };   // (c96: nothing after deal())
 document.getElementById('menuClose').onclick = ()=>{ closeOverlay('menu'); seatCursor('btnMenu'); };
 document.getElementById('menu').addEventListener('click', e=>{ if(e.target.id==='menu') closeOverlay('menu'); });
 
@@ -3704,7 +3705,7 @@ function updateLangLabel(){
     ? 'Language: English. More languages — Spanish and French — are coming soon.'
     : 'Language. Drop-down menu. Choose a language: swipe up or down (or use the arrow keys) to hear each one, then double-tap (or press Enter) to choose it.');
 }
-function openSettings(returnId){ syncToggles(); updateLangLabel(); openOverlay('settings', (IS_IPAD && typeof returnId === 'string') ? returnId : (BACKDROP_USE_ARIA ? 'setHow' : 'settingsTitle')); }   // (typeof: the Settings button passes its click event here; c97 took it for an id, so the cursor was never put on the title - Dani 2026-11-03: Settings started at "Draw three cards")   // iPad: coming back from a page, the cursor lands on the row you came from (returnId), so swiping on carries down the list (Dani 2026-11-03)   // land VoiceOver on the "Settings" heading (the top), not the Done button (Dani 2026-09-12)
+function openSettings(returnId){ syncToggles(); updateLangLabel(); openOverlay('settings', (IPAD_X && typeof returnId === 'string') ? returnId : (BACKDROP_USE_ARIA ? 'setHow' : 'settingsTitle')); }   // (typeof: the Settings button passes its click event here; c97 took it for an id, so the cursor was never put on the title - Dani 2026-11-03: Settings started at "Draw three cards")   // iPad: coming back from a page, the cursor lands on the row you came from (returnId), so swiping on carries down the list (Dani 2026-11-03)   // land VoiceOver on the "Settings" heading (the top), not the Done button (Dani 2026-09-12)
 function closeSettings(){ closeOverlay('settings'); seatCursor('btnAppear'); }
 document.getElementById('settingsDone').onclick = closeSettings;
 
@@ -3765,7 +3766,7 @@ function openMusician(m, t){
   else { const ini = document.createElement('span'); ini.className = 'musinit'; ini.setAttribute('aria-hidden','true');
          ini.textContent = m.initials || m.name.split(/\s+/).filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase(); ph.appendChild(ini);
          ph.setAttribute('role','img'); ph.setAttribute('aria-label', m.photoAlt || m.name); }
-  if (IS_IPAD){   // the cursor starts on the PHOTO (its description), then the name, track and bio (Dani 2026-11-03)
+  if (IPAD_X){   // (experimental, ?lab=1 only) the cursor starts on the PHOTO (its description), then the name, track and bio (Dani 2026-11-03)
     ph.setAttribute('role','img'); ph.setAttribute('aria-label', m.photoAlt || m.name); ph.tabIndex = -1;
     const _im = ph.querySelector('img'); if (_im){ _im.alt = ''; _im.setAttribute('aria-hidden','true'); }
   }
@@ -3780,7 +3781,7 @@ function openMusician(m, t){
     li.appendChild(a); ul.appendChild(li);
   });
   closeOverlay('settings');                   // swap Settings for the musician's page
-  openOverlay('musician', IS_IPAD ? 'musPhoto' : 'musTitle');
+  openOverlay('musician', IPAD_X ? 'musPhoto' : 'musTitle');
 }
 if (MUSICIANS_ON){
   (function(){
@@ -3989,7 +3990,10 @@ const IS_MAC = BACKDROP_USE_ARIA && /Mac/i.test(navigator.platform || navigator.
 /* iPad (any iPadOS Safari, which says it is a Mac but has a touch screen). The computer fixes below were written for NVDA and Mac VoiceOver only; the iPad
    used the touch path and never got them (Dani 2026-11-03: "web dialog", heading words, the hint, focus after closing a page...). ?ipad=1 turns this on for testing. */
 const IS_IPAD = /[?&]ipad=1(&|$)/.test(location.search) || (/Mac/i.test(navigator.platform || '') && (navigator.maxTouchPoints || 0) > 1) || /iPad/i.test(navigator.userAgent || '');
-if (IS_IPAD){
+/* IPAD_X = the experimental iPad focus / pop-up changes of c97-c99. They are OFF (the iPad behaves exactly as in the approved c95/c96 build) unless the link has ?lab=1.
+   On Dani's small iPad (2026-11-03) they broke the pop-ups (the cursor jumped to Safari's "new tab", stuck on a dead "button"), so they stay parked here until the VoiceOver lab page (voiceover-lab.html) shows which method works. */
+const IPAD_X = IS_IPAD && /[?&]lab=1(&|$)/.test(location.search);
+if (IPAD_X){
   document.querySelectorAll('.panel[role="dialog"]').forEach(p=>{ p.removeAttribute('role'); p.removeAttribute('aria-modal'); p.removeAttribute('aria-labelledby'); p.removeAttribute('aria-label'); });   // no "web dialog" on any pop-up
   ['settingsTitle','howtoTitle','aboutTitle','privacyTitle','musTitle'].forEach(id=>{ const t = document.getElementById(id); if (t) t.setAttribute('role', 'text'); });   // the page title is read as plain words, no "heading level 2"
   // long pages: when the cursor reaches the bottom Done, scroll it fully into view first, so VoiceOver's double-tap has a real place to press (Dani 2026-11-03: Done could not be reached / pressed after the email link). (The extra hidden Done at the top was removed: it was read after the first swipe.)
@@ -4002,7 +4006,7 @@ if (IS_IPAD){
     ['blur','change','focusout'].forEach(ev=>s.addEventListener(ev, ()=>setTimeout(()=>lock(false), 400)));
   });
 }
-if (BACKDROP_USE_ARIA || IS_IPAD){ const _mp = document.querySelector('#menu .panel'); if (_mp){ _mp.removeAttribute('role'); _mp.removeAttribute('aria-modal'); _mp.removeAttribute('aria-label'); } }   // computers: the New game pop-up said "New game, dialog, New game" (its name + its first button); without the dialog label it reads "New game, button" (Dani 2026-10-22, NVDA)
+if (BACKDROP_USE_ARIA || IPAD_X){ const _mp = document.querySelector('#menu .panel'); if (_mp){ _mp.removeAttribute('role'); _mp.removeAttribute('aria-modal'); _mp.removeAttribute('aria-label'); } }   // computers: the New game pop-up said "New game, dialog, New game" (its name + its first button); without the dialog label it reads "New game, button" (Dani 2026-10-22, NVDA)
 if (IS_MAC){ ['topRow','tableau','buttons'].forEach(id=>{ const g = document.getElementById(id); if (g){ g.removeAttribute('role'); g.removeAttribute('aria-label'); } }); }   // Mac VoiceOver announced "Foundations, waste, and draw pile, group" after every card (Dani 2026-10-22); each card already says its column
 if (IS_MAC){ document.querySelectorAll('.panel[role="dialog"]').forEach(p=>{ p.removeAttribute('role'); p.removeAttribute('aria-modal'); p.removeAttribute('aria-labelledby'); p.removeAttribute('aria-label'); }); }   // Mac VoiceOver said "web dialog" on every pop-up (Dani 2026-10-22); the board behind is locked anyway, so the dialog role is not needed there
 if (IS_MAC){ const _ws = document.getElementById('winStatus'); if (_ws) _ws.setAttribute('role', 'text'); }   // Mac Safari: a focusable paragraph is announced "group"; role=text (WebKit) reads it as plain text (Dani 2026-10-22: the winning script ended with "group")
