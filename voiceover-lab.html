@@ -19,13 +19,15 @@
 
 <div id="home" hidden>
   <h1>VoiceOver lab</h1>
-  <p>There is no game here. These are six small pop-ups, each opened and closed in a different way, to find the way VoiceOver likes best on your iPad. Do the tests in order. Each takes about one minute.</p>
-  <p><a href="?v=1">Test 1 of 6</a></p>
-  <p><a href="?v=2">Test 2 of 6</a></p>
-  <p><a href="?v=3">Test 3 of 6</a></p>
-  <p><a href="?v=4">Test 4 of 6</a></p>
-  <p><a href="?v=5">Test 5 of 6</a></p>
-  <p><a href="?v=6">Test 6 of 6</a></p>
+  <p>There is no game here. These are eight small pop-ups, each opened and closed in a different way behind the scenes, to find the way VoiceOver likes best on your iPad. Each takes about one minute. If you are short of time, do Tests 7, 8 and 1 first.</p>
+  <p><a href="?v=7">Test 7 of 8</a></p>
+  <p><a href="?v=8">Test 8 of 8</a></p>
+  <p><a href="?v=1">Test 1 of 8</a></p>
+  <p><a href="?v=2">Test 2 of 8</a></p>
+  <p><a href="?v=3">Test 3 of 8</a></p>
+  <p><a href="?v=4">Test 4 of 8</a></p>
+  <p><a href="?v=5">Test 5 of 8</a></p>
+  <p><a href="?v=6">Test 6 of 8</a></p>
 </div>
 
 <div id="stage" hidden>
@@ -60,8 +62,8 @@
   var home = document.getElementById('home'), stage = document.getElementById('stage');
   if (!V){ home.hidden = false; return; }
   stage.hidden = false;
-  document.title = 'Test ' + V + ' of 6';
-  document.getElementById('ttl').textContent = 'Test ' + V + ' of 6';
+  document.title = 'Test ' + V + ' of 8';
+  document.getElementById('ttl').textContent = 'Test ' + V + ' of 8';
   var board = document.getElementById('board'), ov = document.getElementById('ov'), panel = document.getElementById('panel');
   var trigger = document.getElementById('trigger'), opt = document.getElementById('opt'), back = document.getElementById('back');
   var dlg = document.getElementById('dlg'), dopt = document.getElementById('dopt'), dback = document.getElementById('dback');
@@ -69,13 +71,22 @@
   var later = function(fn, ms){ setTimeout(function(){ try{ fn(); }catch(e){} }, ms); };
 
   /* Tests 1 and 4 keep the "dialog" label on the pop-up (VoiceOver says "dialog"); the others have no label. */
-  if (V === 1 || V === 4){ panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-modal', 'true'); panel.setAttribute('aria-label', 'The pop-up'); }
+  if (V === 1 || V === 4 || V === 8){ panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-modal', 'true'); panel.setAttribute('aria-label', 'The pop-up'); }
 
   function hideBoard(ariaOnly){ board.setAttribute('aria-hidden', 'true'); board.inert = true; if (!ariaOnly) board.style.display = 'none'; }
   function showBoard(){ board.removeAttribute('aria-hidden'); board.inert = false; board.style.display = ''; }
 
+  /* Tests 7 and 8 (from the research): (a) the board is hidden with visibility, never display:none (iOS VoiceOver will not move to something that was display:none a moment ago);
+     (b) the cursor goes to a button INSIDE the pop-up first; (c) on close the board comes back first and the cursor is put back on the opener, then checked again for half a second,
+     because iOS VoiceOver can jump to whatever lies behind the closed pop-up a few milliseconds after a one-time focus call. 7 = no "dialog" label, 8 = with the dialog label. */
+  function hideBoardV(){ board.setAttribute('aria-hidden', 'true'); board.inert = true; board.style.visibility = 'hidden'; }
+  function showBoardV(){ board.removeAttribute('aria-hidden'); board.inert = false; board.style.visibility = ''; }
+  function settle(el){ try{ el.blur(); el.focus(); }catch(e){} var n = 0; var t = setInterval(function(){ try{ if (document.activeElement !== el) el.focus(); }catch(e){} if (++n >= 20) clearInterval(t); }, 25); }
+
   function openPop(){
-    if (V === 1){            // the way the game worked in build c96: hide the board first, label = dialog, move the cursor a moment later
+    if (V === 7 || V === 8){
+      ov.style.transition = 'none'; ov.classList.add('open'); opt.focus(); hideBoardV(); later(function(){ ov.style.transition = ''; }, 80);
+    } else if (V === 1){            // the way the game worked in build c96: hide the board first, label = dialog, move the cursor a moment later
       hideBoard(); ov.classList.add('open'); later(function(){ opt.focus(); }, 60);
     } else if (V === 2){     // the way of builds c97-c99: no label, hide the board first, move the cursor at once and again later
       hideBoard(); ov.classList.add('open'); reflow(); opt.focus();
@@ -91,7 +102,9 @@
     }
   }
   function closePop(){
-    if (V === 1){
+    if (V === 7 || V === 8){
+      showBoardV(); ov.classList.remove('open'); settle(trigger);
+    } else if (V === 1){
       ov.classList.remove('open'); showBoard(); trigger.focus();
     } else if (V === 2){
       ov.classList.remove('open'); showBoard(); reflow(); trigger.focus(); later(function(){ trigger.focus(); }, 150);
