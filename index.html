@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c94">
+<meta name="build" content="c95">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -2230,6 +2230,7 @@ function clearSpokenForUndo(){
   const lv = document.getElementById('live');       if (lv) lv.textContent = '';
   if (promptShowing) hideInvitation();
 }
+let undoRender = false;
 function undo(){
   if (drawSeqActive) return;   // don't unwind while a 3-card deal is still dealing its cards
   if (!undoStack.length){ clearSpokenForUndo(); announceNow('Nothing to take back yet.'); return; }
@@ -2238,7 +2239,8 @@ function undo(){
   clearSelection();
   justRevealed.clear();
   clearSpokenForUndo();
-  render();
+  undoRender = true;   // cards that come back into the waste fan appear exactly in place, no slide-in (Dani 2026-11-03)
+  try{ render(); } finally { undoRender = false; }
   // assertive, so it interrupts any stale move line / invitation still being spoken —
   // the player hears ONLY what was undone, nothing before it (Dani 2026-09-12).
   // desc is already a full "Returning … to …" sentence (Dani 2026-09-13).
@@ -3252,8 +3254,9 @@ function updateWaste(){
         const dp = document.querySelector('.drawpile');
         if (dp) fromX = (dp.getBoundingClientRect().left - fan.getBoundingClientRect().left) + 'px';
       }
+      if (undoRender) fromX = targetX;   // taking a move back: the earlier cards were here all along, so they simply reappear in their own slots
       el.style.left = fromX;
-      el.style.opacity = (card.id === newestId) ? '1' : '0';
+      el.style.opacity = (card.id === newestId || undoRender) ? '1' : '0';
       fan.appendChild(el);
       trackedWaste.set(card.id, el);
       // commit the start position (forced reflow), then set the slot so the CSS
