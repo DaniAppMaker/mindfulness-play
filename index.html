@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c96">
+<meta name="build" content="c97">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -3480,6 +3480,12 @@ function speakViaTempButton(msg){
   setTimeout(()=>{ try{ if (document.getElementById('hintSpeak') === b && document.activeElement !== b) b.remove(); }catch(e){} }, 12000);
   return true;
 }
+/* one place decides how a hint is spoken: iPad + Mac = a short-lived focused button (a real focus change inside the tap); NVDA = the lightbulb's own name; touch phones = the live region */
+function speakHint(msg){
+  if (IS_IPAD || (BACKDROP_USE_ARIA && IS_MAC)) return speakViaTempButton(msg);
+  if (BACKDROP_USE_ARIA) return speakViaHintButton(msg);
+  return false;
+}
 function showHint(){
   clearHints();
   const moves = findAllMoves();
@@ -3492,7 +3498,7 @@ function showHint(){
   const shown = moves.slice(0, MAX).map(m=>m.text).join('; ');
   const more = moves.length > MAX ? `; and ${moves.length - MAX} more` : '';
   const n = moves.length;
-  { const _msg = `${n} move${n>1?'s':''} you can make: ${shown}${more}. Find the card and double-tap it (or press Enter, or click it) to move it.`; if (!(BACKDROP_USE_ARIA && (IS_MAC ? speakViaTempButton(_msg) : speakViaHintButton(_msg)))) announce(_msg); }
+  { const _msg = `${n} move${n>1?'s':''} you can make: ${shown}${more}. Find the card and double-tap it (or press Enter, or click it) to move it.`; if (!speakHint(_msg)) announce(_msg); }
   // still give the gentle visual pulse on the first move's card for sighted players
   const el = document.querySelector(`.card[data-id="${moves[0].id}"]`);
   if (el) el.classList.add('hint');
@@ -3507,7 +3513,7 @@ function hintDrawPile(){
   if (pile && anyPileCardPlayable()){
     pile.classList.add('hint');
     { const _m2 = (state.stock.length ? 'Turn a card from the draw pile.'
-                                : 'Tap, click, or press Enter on the pile to gather the cards back.'); if (!(BACKDROP_USE_ARIA && (IS_MAC ? speakViaTempButton(_m2) : speakViaHintButton(_m2)))) announce(_m2); }
+                                : 'Tap, click, or press Enter on the pile to gather the cards back.'); if (!speakHint(_m2)) announce(_m2); }
     setTimeout(clearHints, 2500);
   } else {
     onNoMovesLeft();
@@ -3590,6 +3596,7 @@ function openOverlay(id, focusId){
   clearLiveRegions();             // no stale board announcement should carry into the pop-up
   if (!BACKDROP_USE_ARIA) setBoardInert(true);            // trap VoiceOver inside the pop-up
   document.getElementById(id).classList.add('open');   // visibility-based show (see .overlay CSS)
+  if (IS_IPAD && focusId){ try{ document.getElementById(focusId).focus({ preventScroll:true }); }catch(e){} }   // iPad: put the cursor there NOW, inside the tap that opened the page (a timer-only focus was ignored, so it stayed where Done had been)
   if (BACKDROP_USE_ARIA){   // computers: put the cursor inside the pop-up FIRST, then lock the board, so it never drops to the page (the pre-flight saw ~30 ms on <body>)
     try{ if (focusId) document.getElementById(focusId).focus({ preventScroll:true }); }catch(e){}
     setBoardInert(true);
@@ -3673,7 +3680,7 @@ function updateLangLabel(){
     ? 'Language: English. More languages — Spanish and French — are coming soon.'
     : 'Language. Drop-down menu. Choose a language: swipe up or down (or use the arrow keys) to hear each one, then double-tap (or press Enter) to choose it.');
 }
-function openSettings(){ syncToggles(); updateLangLabel(); openOverlay('settings', BACKDROP_USE_ARIA ? 'setHow' : 'settingsTitle'); }   // land VoiceOver on the "Settings" heading (the top), not the Done button (Dani 2026-09-12)
+function openSettings(returnId){ syncToggles(); updateLangLabel(); openOverlay('settings', (IS_IPAD && returnId) ? returnId : (BACKDROP_USE_ARIA ? 'setHow' : 'settingsTitle')); }   // iPad: coming back from a page, the cursor lands on the row you came from (returnId), so swiping on carries down the list (Dani 2026-11-03)   // land VoiceOver on the "Settings" heading (the top), not the Done button (Dani 2026-09-12)
 function closeSettings(){ closeOverlay('settings'); document.getElementById('btnAppear').focus(); }
 document.getElementById('settingsDone').onclick = closeSettings;
 
@@ -3687,7 +3694,7 @@ function openHowTo(fromSettings){
 }
 function closeHowTo(){
   closeOverlay('howto');
-  if (howtoFromSettings){ howtoFromSettings = false; openSettings(); return; }
+  if (howtoFromSettings){ howtoFromSettings = false; openSettings('setHow'); return; }
   const back = howtoReturnEl && document.contains(howtoReturnEl) ? howtoReturnEl : document.getElementById('btnAppear');
   try { back.focus(); } catch(e){}
 }
@@ -3702,9 +3709,9 @@ const ABOUT_TESTERS = ['Daniel Angus MacDonald'];   // early testers who agreed 
   document.getElementById('aboutThanks').textContent = 'Thank you to all of the early testers for their time and kind feedback, including those from the AppleVis community: ' + list + ' and others who didn’t submit their names to be directly credited, and helped so much with their feedback.';
 })();
 function openAbout(){ closeOverlay('settings'); openOverlay('about', 'aboutTitle'); }
-function closeAbout(){ closeOverlay('about'); openSettings(); }
+function closeAbout(){ closeOverlay('about'); openSettings('setAbout'); }
 function openPrivacy(){ closeOverlay('settings'); openOverlay('privacy', 'privacyTitle'); }
-function closePrivacy(){ closeOverlay('privacy'); openSettings(); }
+function closePrivacy(){ closeOverlay('privacy'); openSettings('setPrivacy'); }
 /* The "About" row in Settings (Dani 2026-10-10: yes to this place) */
 const ABOUT_ON = !/[?&]about=(0|off|no)(&|$)/.test(location.search);   // ON for everyone since Dani said yes to the Settings row (2026-10-10); ?about=off hides it
 if (!ABOUT_ON) document.getElementById('setAbout').style.display = 'none';
@@ -3721,7 +3728,7 @@ function closeMusician(backToList){
   closeOverlay('musician');
   pendingTrackId = null;
   if (backToList){
-    openSettings();
+    openSettings('setMusicTrack');
     setTimeout(()=>{ const s = document.getElementById('setMusicTrack'); if (s) { try{ s.focus(); }catch(e){} } }, 220);   // land on the dropdown they came from
   }
 }
@@ -3936,7 +3943,28 @@ function disarmArrow(el){ el.classList.remove('revealed','armed'); clearTimeout(
    used to land on an invisible "square" and read stray words and numbers (Dani 2026-10-17). Lifted again when the board is revealed. */
 const BACKDROP_USE_ARIA = !(window.matchMedia && matchMedia('(pointer: coarse)').matches);   // computers: aria-hidden (NVDA refreshes its reading view for it; it ignored `inert` and showed a stale page - Dani 2026-10-18). Touch devices keep `inert` (VoiceOver).
 const IS_MAC = BACKDROP_USE_ARIA && /Mac/i.test(navigator.platform || navigator.userAgent || '');   // Mac VoiceOver (Chrome/Safari): see SCREEN-READER-LESSONS.md section F
-if (BACKDROP_USE_ARIA){ const _mp = document.querySelector('#menu .panel'); if (_mp){ _mp.removeAttribute('role'); _mp.removeAttribute('aria-modal'); _mp.removeAttribute('aria-label'); } }   // computers: the New game pop-up said "New game, dialog, New game" (its name + its first button); without the dialog label it reads "New game, button" (Dani 2026-10-22, NVDA)
+/* iPad (any iPadOS Safari, which says it is a Mac but has a touch screen). The computer fixes below were written for NVDA and Mac VoiceOver only; the iPad
+   used the touch path and never got them (Dani 2026-11-03: "web dialog", heading words, the hint, focus after closing a page...). ?ipad=1 turns this on for testing. */
+const IS_IPAD = /[?&]ipad=1(&|$)/.test(location.search) || (/Mac/i.test(navigator.platform || '') && (navigator.maxTouchPoints || 0) > 1) || /iPad/i.test(navigator.userAgent || '');
+if (IS_IPAD){
+  document.querySelectorAll('.panel[role="dialog"]').forEach(p=>{ p.removeAttribute('role'); p.removeAttribute('aria-modal'); p.removeAttribute('aria-labelledby'); p.removeAttribute('aria-label'); });   // no "web dialog" on any pop-up
+  ['settingsTitle','howtoTitle','aboutTitle','privacyTitle','musTitle'].forEach(id=>{ const t = document.getElementById(id); if (t) t.setAttribute('role', 'text'); });   // the page title is read as plain words, no "heading level 2"
+  // long pages: a Done button right after the title (hidden on screen) so a screen-reader player can leave at any point, without swiping to the very end
+  [['howtoTitle','howtoDone'],['aboutTitle','aboutDone'],['privacyTitle','privacyDone']].forEach(([t, d])=>{
+    const title = document.getElementById(t), done = document.getElementById(d), head = title && title.closest('.settings-head'); if (!head || !done) return;
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'visually-hidden'; b.id = d + 'Top'; b.setAttribute('aria-label', 'Done');
+    b.addEventListener('click', ()=>{ playSound('tap'); done.onclick(); });
+    head.parentNode.insertBefore(b, head.nextSibling);
+  });
+  // the two drop-downs: while the picker is open the rest of Settings is hidden from VoiceOver, so the first swipe cannot wander to the next row
+  ['setNature','setMusicTrack'].forEach(id=>{ const s = document.getElementById(id); if (!s) return; let safety = null;
+    const rest = ()=> [...document.querySelectorAll('#settings .settings-head, #settings .settings-body > *, #settingsDone')].filter(el=>!el.contains(s));
+    const lock = on=>{ clearTimeout(safety); rest().forEach(el=>{ if (on) el.setAttribute('aria-hidden','true'); else el.removeAttribute('aria-hidden'); }); if (on) safety = setTimeout(()=>lock(false), 30000); };
+    ['focus','click'].forEach(ev=>s.addEventListener(ev, ()=>lock(true)));
+    ['blur','change','focusout'].forEach(ev=>s.addEventListener(ev, ()=>setTimeout(()=>lock(false), 400)));
+  });
+}
+if (BACKDROP_USE_ARIA || IS_IPAD){ const _mp = document.querySelector('#menu .panel'); if (_mp){ _mp.removeAttribute('role'); _mp.removeAttribute('aria-modal'); _mp.removeAttribute('aria-label'); } }   // computers: the New game pop-up said "New game, dialog, New game" (its name + its first button); without the dialog label it reads "New game, button" (Dani 2026-10-22, NVDA)
 if (IS_MAC){ ['topRow','tableau','buttons'].forEach(id=>{ const g = document.getElementById(id); if (g){ g.removeAttribute('role'); g.removeAttribute('aria-label'); } }); }   // Mac VoiceOver announced "Foundations, waste, and draw pile, group" after every card (Dani 2026-10-22); each card already says its column
 if (IS_MAC){ document.querySelectorAll('.panel[role="dialog"]').forEach(p=>{ p.removeAttribute('role'); p.removeAttribute('aria-modal'); p.removeAttribute('aria-labelledby'); p.removeAttribute('aria-label'); }); }   // Mac VoiceOver said "web dialog" on every pop-up (Dani 2026-10-22); the board behind is locked anyway, so the dialog role is not needed there
 if (IS_MAC){ const _ws = document.getElementById('winStatus'); if (_ws) _ws.setAttribute('role', 'text'); }   // Mac Safari: a focusable paragraph is announced "group"; role=text (WebKit) reads it as plain text (Dani 2026-10-22: the winning script ended with "group")
@@ -4244,7 +4272,11 @@ function startupFlow(){
     setTimeout(()=>{ try{ const n = document.getElementById('welNext'), c = document.getElementById('welCat'); if (!n.dataset.orig) n.dataset.orig = n.getAttribute('aria-label') || 'Begin the game'; n.hidden = false; n.setAttribute('aria-label', ((c && c.getAttribute('aria-label')) || '') + ' ' + n.dataset.orig); n.focus(); }catch(e){} }, 1200);
   }
   const _standalone = (window.navigator.standalone === true) || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);   // saved to the Home Screen: no Safari chrome, VoiceOver is already inside the page, so the hack below is skipped (Dani 2026-10-17: it broke the app version)
-  if (!_standalone) setTimeout(()=>{ try{ const l = document.getElementById('welLive'), c = document.getElementById('welCat'); if (BACKDROP_USE_ARIA){ /* computers: the first focus (80ms) is enough - a second one made NVDA read the cat twice */ } else { if (l && c) l.textContent = c.getAttribute("aria-label") || ""; c.focus(); } }catch(e){} }, BACKDROP_USE_ARIA ? 2500 : 3500);   // ...and SPEAK the welcome by itself, without waiting for a touch
+  if (IS_IPAD){   // iPad (Safari AND the Home Screen app): the welcome speaks by itself as a fresh alert, once; no focus move, so nothing is read twice (Dani 2026-11-03: it only said "web page loaded" until she found the cat)
+    setTimeout(()=>{ try{ const c = document.getElementById('welCat'), w = document.getElementById('screenWelcome'); if (!c || !w || !w.classList.contains('show')) return;
+      const a = document.createElement('div'); a.className = 'visually-hidden'; a.setAttribute('role','alert'); a.textContent = c.getAttribute('aria-label') || ''; document.body.appendChild(a); setTimeout(()=>{ try{ a.remove(); }catch(e){} }, 30000); }catch(e){} }, 1800);
+  }
+  if (!_standalone && !IS_IPAD) setTimeout(()=>{ try{ const l = document.getElementById('welLive'), c = document.getElementById('welCat'); if (BACKDROP_USE_ARIA){ /* computers: the first focus (80ms) is enough - a second one made NVDA read the cat twice */ } else { if (l && c) l.textContent = c.getAttribute("aria-label") || ""; c.focus(); } }catch(e){} }, BACKDROP_USE_ARIA ? 2500 : 3500);   // ...and SPEAK the welcome by itself, without waiting for a touch
   // The Begin arrow fades in so the greeting is read before the arrow draws the
   // eye: a calm ~5s the first-ever launch, a brisk ~1.8s on repeat opens.
   const cancelWelArrow = revealArrowLater('welNext', firstLaunch ? 2500 : 900);   // halved 2026-10-12 (Dani: less to read now)
