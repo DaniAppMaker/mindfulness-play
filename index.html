@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c92">
+<meta name="build" content="c93">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -1140,8 +1140,7 @@
   <p id="winStatus" class="visually-hidden" tabindex="-1"></p>
   <p id="sr-intro" class="visually-hidden" tabindex="-1">
     Listen to the game description, or tap anywhere (or click) to skip it. To hear it again
-    later, find the resting cat (the first item on the game screen) and double-tap it (or press Enter, or
-    double-click it). Coopunahpah, a mindful game of solitaire. If you like, you can
+    later, find the resting cat (the first item on the game screen) and double-tap it (or press Enter, or click it). Coopunahpah, a mindful game of solitaire. If you like, you can
     practice mindfulness while you play. You can wait for an invitation to arrive, or
     find and press the button An invitation to pause to receive one. Your goal is to
     send every card home to the four foundation piles, each built up from Ace to King.
@@ -1153,10 +1152,9 @@
     instead of the traditional court and ace designs.
     Swipe right (or press Tab) to move through it; each card tells you where it sits and whether it
     has one or more moves available. To move a card with a screen reader, double-tap it.
-    With a keyboard, press Enter. On a computer, you can also double-click it. It travels
+    With a keyboard, press Enter. On a computer, you can also click it once. It travels
     on its own to the best legal spot: home to its foundation, or onto the card it can
-    build on. To turn over a card from the draw pile, double-tap it, press Enter, or
-    double-click it. When the pile is empty, do the same again to turn all the cards
+    build on. To turn over a card from the draw pile, double-tap it, press Enter, or click it. When the pile is empty, do the same again to turn all the cards
     over. To take a move back, press the Undo button, or Ctrl+Z, or Escape. There are
     no timers and no score. Take all the time you like.
   </p>
@@ -1170,7 +1168,7 @@
              impractical (it sits behind all 52 cards), so double-tapping this cat
              re-reads the whole game description. Wired in JS (replayIntro). -->
         <img id="promptCat" src="assets/interface/prompt-cat.webp" role="button" tabindex="0"
-             aria-label="The resting cat: playfully upside down on its back in lilac-and-pink watercolor, paws curled, gazing at you. Double-tap, press Enter, or double-click to hear the game description again."
+             aria-label="The resting cat: playfully upside down on its back in lilac-and-pink watercolor, paws curled, gazing at you. Double-tap, press Enter, or click to hear the game description again."
              alt="A cute cat playfully upside down on its back, paws curled, gazing at you; a lilac-and-pink watercolor splotch turned into a playful critter with ink.">
         <img id="promptMouse" src="assets/interface/prompt-mouse.png" alt="A tiny watercolor mouse in soft blue — a round ear, a dot for an eye, whiskers, and a long curly tail — resting quietly near the cat, the two of them at ease together.">
       </div>
@@ -1445,7 +1443,7 @@
         <ul>
           <li>On a phone or tablet, tap it and it goes to its best spot. Or drag it.</li>
           <li>With a screen reader, swipe to the card and double-tap.</li>
-          <li>On a computer, double-click and the card moves on its own to its best spot, or click it and then click where it goes. You can also drag it.</li>
+          <li>On a computer, click a card once and it moves on its own to its best spot. You can also drag it.</li>
           <li>With a keyboard, use Tab or the arrow keys to reach it, then press Enter.</li>
         </ul>
         <p>To take a move back, press the Undo button (&ldquo;Undo the last move&rdquo;), or Ctrl+Z (Cmd+Z on a Mac), or Esc.</p>
@@ -2958,11 +2956,10 @@ function cleanupDrag(){
 }
 
 /* ================= computer mouse + keyboard conveniences (Dani 2026-10-10) =================
-   Researched with how classic/Microsoft Solitaire plays: on a MOUSE, one click picks a card up
-   (it lifts with the honey glow), a click on where it goes puts it there, and a DOUBLE-click
-   sends it to its best spot. Dragging still works. The draw pile flips on a click OR a
-   double-click (a double-click is ONE flip). Phones, touch, pens, the keyboard and VoiceOver are
-   NOT touched: for them one tap / Enter still auto-moves, exactly as approved. */
+   CHANGED 2026-11-03 (Dani, from computer testers): on a MOUSE one click on a card sends it to its best spot
+   (the old "click to pick up, click where it goes, double-click for best spot" is retired). Dragging still works.
+   The draw pile flips on a click (a double-click is still ONE flip). Phones, touch, pens, the keyboard and
+   VoiceOver are NOT touched: for them one tap / Enter auto-moves, exactly as approved. */
 let lastPointerType = 'touch';
 document.addEventListener('pointerdown', e=>{ lastPointerType = e.pointerType || 'mouse'; }, true);
 document.addEventListener('keydown', ()=>{ lastPointerType = 'touch'; }, true);   // any key press means the next click is not a mouse click, so an assistive-technology press always MOVES the card instead of only selecting it
@@ -3030,28 +3027,11 @@ document.addEventListener('click', e=>{
     return;
   }
 
-  const cardEl = t.closest('.card');
-  const src = (cardEl && cardEl.dataset.where) ? { where: cardEl.dataset.where, col: +cardEl.dataset.col, idx: +cardEl.dataset.idx } : null;
-  const colEl = t.closest('.col'), fEl = t.closest('[data-found]');
-  const dest = fEl ? { where:'foundation', col:+fEl.dataset.found } : colEl ? { where:'tableau', col:+colEl.dataset.col } : null;
-
-  if (src && e.detail >= 2){                            // double-click: best spot
-    e.stopPropagation(); e.preventDefault();
-    clearSelection(); autoMove(src.where, src.col, src.idx); return;
-  }
-  if (mouseSel && dest){                                // a card is picked up: this click says where it goes
-    const same = src && src.where === mouseSel.where && src.col === mouseSel.col && src.idx === mouseSel.idx;
-    e.stopPropagation(); e.preventDefault();
-    if (same){ clearSelection(); return; }              // click it again to put it down
-    if (clickMoveLegal(mouseSel, dest)){ const s = mouseSel; clearSelection(); performClickMove(s, dest); return; }
-    if (src && selectRun(src)) return;                  // not a legal spot: pick up this card instead
-    shakeSelected(); return;                            // nothing legal here: a gentle shudder
-  }
-  if (src){                                             // nothing picked up yet: pick this card up
-    e.stopPropagation(); e.preventDefault();
-    selectRun(src); return;
-  }
-  clearSelection();                                     // a click on empty space puts it down
+  /* ONE click on a card now sends it to its best spot, like a tap on a phone (Dani 2026-11-03: computer testers
+     prefer a single click to a double-click). The card's own click handler does the move; here we only make sure
+     that the second click of a quick double-click is ignored, so the habit of double-clicking never moves two cards. */
+  clearSelection();
+  if (e.detail >= 2){ e.stopPropagation(); e.preventDefault(); }
 }, true);
 
 /* keyboard: arrow keys move between cards (spatially), Enter/Space moves the card (already built).
@@ -3185,7 +3165,7 @@ function renderTopRow(){
   } else {
     // Empty pile: tell a VoiceOver player HOW to keep playing — double-tap gathers
     // the used cards back and turns them all again (Dani 2026-09-12).
-    draw = makeSlot({ recycle:true, label:'Draw pile, empty. Double-tap, press Enter, or double-click to gather the used cards and turn them all again.' });
+    draw = makeSlot({ recycle:true, label:'Draw pile, empty. Double-tap, press Enter, or click to gather the used cards and turn them all again.' });
     // Gently fade the recycle arrow in the FIRST render after the pile empties;
     // don't replay the fade on later re-renders while it stays empty, and never
     // pulse/scale (Dani 2026-09-12). The arrow's own subtle flash continues.
@@ -3482,7 +3462,7 @@ function showHint(){
   const shown = moves.slice(0, MAX).map(m=>m.text).join('; ');
   const more = moves.length > MAX ? `; and ${moves.length - MAX} more` : '';
   const n = moves.length;
-  { const _msg = `${n} move${n>1?'s':''} you can make: ${shown}${more}. Find the card and double-tap it (or press Enter, or double-click it) to move it.`; if (!(BACKDROP_USE_ARIA && (IS_MAC ? speakViaTempButton(_msg) : speakViaHintButton(_msg)))) announce(_msg); }
+  { const _msg = `${n} move${n>1?'s':''} you can make: ${shown}${more}. Find the card and double-tap it (or press Enter, or click it) to move it.`; if (!(BACKDROP_USE_ARIA && (IS_MAC ? speakViaTempButton(_msg) : speakViaHintButton(_msg)))) announce(_msg); }
   // still give the gentle visual pulse on the first move's card for sighted players
   const el = document.querySelector(`.card[data-id="${moves[0].id}"]`);
   if (el) el.classList.add('hint');
@@ -4138,7 +4118,7 @@ function runLoading(finish){
 // keep the approved text for a fresh deal (Dani 2026-09-20).
 const SR_INTRO_NEW = (document.getElementById('sr-intro') || {}).innerHTML || '';
 const SR_INTRO_RETURNING =
-  'Welcome back. You are returning to a game already in progress, and the board is just as you left it. To hear the game description, find the resting cat (the first item on the game screen) and double-tap it (or press Enter, or double-click it).';
+  'Welcome back. You are returning to a game already in progress, and the board is just as you left it. To hear the game description, find the resting cat (the first item on the game screen) and double-tap it (or press Enter, or click it).';
 function applySrIntro(){
   const intro = document.getElementById('sr-intro');
   if (intro) intro.innerHTML = resumedGame ? SR_INTRO_RETURNING : SR_INTRO_NEW;
