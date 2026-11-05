@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c107">
+<meta name="build" content="c108">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -265,6 +265,13 @@
     50%    { transform:translateY(calc(-12 * var(--u))) scale(1.06); }
   }
   .card.hint, .slot.hint{ animation:hintBreathe .8s ease-in-out 3; z-index:6; }
+  /* the draw pile touches the screen's right edge: grow it toward the left and push its glow inward, so nothing is cut off by the edge (Dani 2026-11-05) */
+  .card.drawpile.hint{ transform-origin:100% 50%; }
+  .card.drawpile.hint img{
+    filter:drop-shadow(calc(-6*var(--u)) 0 calc(12*var(--u)) rgba(215,168,110,.95))
+           drop-shadow(calc(-12*var(--u)) 0 calc(22*var(--u)) rgba(215,168,110,.55))
+           drop-shadow(calc(3*var(--u)) calc(5*var(--u)) calc(7*var(--u)) rgba(70,57,50,.15));
+  }
   body.hinting #app{ overflow:visible; }   /* the draw pile sits at the board's right edge: when its card rose and grew, the board's own edge cut it off like a ledge (Dani 2026-11-05, iPhone) */
   body.hinting #tableau{ overflow:visible; }   /* while a hint flashes, the column area stops clipping, so a top-row card that grows is not cut off by the "ledge" above it (Dani 2026-11-03) */
   /* the draw pile when it's an empty "gather back" slot (no card img to glow) */
@@ -3548,7 +3555,7 @@ function showHint(){
 function hintDrawPile(){
   const pile = document.querySelector('.drawpile');
   if (pile && anyPileCardPlayable()){
-    pile.classList.add('hint');
+    document.body.classList.add('hinting'); pile.classList.add('hint');   // (the pile hint had no 'hinting' flag, so the board edge still clipped it - Dani 2026-11-05)
     { const _m2 = (state.stock.length ? 'Turn a card from the draw pile.'
                                 : 'Tap, click, or press Enter on the pile to gather the cards back.'); if (!speakHint(_m2)) announce(_m2); }
     setTimeout(clearHints, 2500);
