@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c104">
+<meta name="build" content="c105">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -4222,17 +4222,7 @@ function runLoading(finish){
   // The Begin arrow starts hidden and appears when the mouse finishes walking the line;
   // it only becomes tappable once it has fully faded in (armArrow).
   disarmArrow(document.getElementById('loadNext'));
-  // iPhone + iPad (Dani 2026-11-05): when the Begin arrow appears nothing told VoiceOver, so a blind player had to swipe to find it. Her exact words are spoken once, by a fresh alert, once the arrow can be pressed; the button carries the same words.
-  const BEGIN_READY = 'Begin the game. To begin the game, find the arrow button and double tap or press enter. When you begin, you can listen to a short description of the game, or tap the screen (or click) to skip it.';
-  if (!BACKDROP_USE_ARIA){ try{ document.getElementById('loadNext').setAttribute('aria-label', BEGIN_READY); }catch(e){} }
-  const cancelWalk = startMouseWalk(()=>{
-    armArrow(document.getElementById('loadNext'));
-    if (!BACKDROP_USE_ARIA) setTimeout(()=>{ try{
-      if (finished || !document.getElementById('screenLoading').classList.contains('show')) return;
-      const a = document.createElement('div'); a.className = 'visually-hidden'; a.setAttribute('role','alert'); a.textContent = BEGIN_READY; document.body.appendChild(a);
-      setTimeout(()=>{ try{ a.remove(); }catch(e){} }, 30000);
-    }catch(e){} }, reducedMotion() ? 150 : ARROW_FADE_MS + 150);
-  }, ()=> loadingAssetsReady);
+  const cancelWalk = startMouseWalk(()=> armArrow(document.getElementById('loadNext')), ()=> loadingAssetsReady);
   const done = ()=>{ if(finished) return; finished = true; cancelWalk(); advanceScreen = null; finish(); };
   advanceScreen = done;
   // Advance ONLY via the Begin arrow — and only once it has faded in (it's
