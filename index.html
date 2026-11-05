@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c108">
+<meta name="build" content="c109">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -265,6 +265,8 @@
     50%    { transform:translateY(calc(-12 * var(--u))) scale(1.06); }
   }
   .card.hint, .slot.hint{ animation:hintBreathe .8s ease-in-out 3; z-index:6; }
+  /* a hinted run (5, 4, 3 stacked): the cards under the first one show no glow ABOVE their own top edge, so the glow of one card never washes over the card above it */
+  .card.hint-follow{ clip-path:inset(0 calc(-60*var(--u)) calc(-60*var(--u)) calc(-60*var(--u))); }
   /* the draw pile touches the screen's right edge: grow it toward the left and push its glow inward, so nothing is cut off by the edge (Dani 2026-11-05) */
   .card.drawpile.hint{ transform-origin:100% 50%; }
   .card.drawpile.hint img{
@@ -3496,7 +3498,7 @@ function anyPileCardPlayable(){
 }
 function clearHints(){
   document.body.classList.remove('hinting');
-  document.querySelectorAll('.hint').forEach(c=>{ c.classList.remove('hint'); c.style.animation = 'none'; void c.offsetWidth; c.style.animation = ''; });   // restart from the plain state and repaint, so a card never stays raised with a halo after the flash (Dani 2026-11-03, Safari on the small iPad)
+  document.querySelectorAll('.hint').forEach(c=>{ c.classList.remove('hint', 'hint-follow'); c.style.transformOrigin = ''; c.style.animation = 'none'; void c.offsetWidth; c.style.animation = ''; });   // restart from the plain state and repaint, so a card never stays raised with a halo after the flash (Dani 2026-11-03, Safari on the small iPad)
 }
 /* computers: say the hint through the lightbulb button itself - the cursor is re-seated on it with the hint as its spoken name, which NVDA reads every time
    (a brand-new alert was still missed the very first time). The name goes back to "Show me a move" afterwards. (Dani 2026-10-21) */
@@ -3530,6 +3532,18 @@ function speakHint(msg){
   if (BACKDROP_USE_ARIA) return speakViaHintButton(msg);
   return false;
 }
+/* the hint animation for the card the hint points at. A card in a column with cards resting on it (the 5 with the 4 and 3 below it) moves as a WHOLE RUN, so the whole stack does the hint
+   together, stacked as it always is: every card in the run gets the same breathing, all of them growing around the middle of the run, not each around its own middle (Dani 2026-11-05:
+   only the 5 flashed and landed on top of the 4 and 3). */
+function hintCards(el){
+  const run = [el];
+  if (el.dataset.where === 'tableau'){ let n = el.nextElementSibling; while (n && n.classList.contains('card')){ run.push(n); n = n.nextElementSibling; } }
+  if (run.length > 1){
+    const last = run[run.length-1], mid = (el.offsetTop + last.offsetTop + last.offsetHeight) / 2;
+    run.forEach((c, i)=>{ c.style.transformOrigin = '50% ' + (mid - c.offsetTop) + 'px'; if (i > 0) c.classList.add('hint-follow'); });
+  }
+  run.forEach(c=>c.classList.add('hint'));
+}
 function showHint(){
   clearHints();
   const moves = findAllMoves();
@@ -3545,7 +3559,7 @@ function showHint(){
   { const _msg = `${n} move${n>1?'s':''} you can make: ${shown}${more}. Find the card and double-tap it (or press Enter, or click it) to move it.`; if (!speakHint(_msg)) announce(_msg); }
   // still give the gentle visual pulse on the first move's card for sighted players
   const el = document.querySelector(`.card[data-id="${moves[0].id}"]`);
-  if (el){ document.body.classList.add('hinting'); el.classList.add('hint'); }
+  if (el){ document.body.classList.add('hinting'); hintCards(el); }
   clearTimeout(hintClearTimer); hintClearTimer = setTimeout(clearHints, 2500);
 }
 /* when the only move is to draw, point at the pile itself with the same gentle
@@ -4034,7 +4048,7 @@ if (IPAD_X){
   // long pages: when the cursor reaches the bottom Done, scroll it fully into view first, so VoiceOver's double-tap has a real place to press (Dani 2026-11-03: Done could not be reached / pressed after the email link). (The extra hidden Done at the top was removed: it was read after the first swipe.)
   ['howtoDone','aboutDone','privacyDone','settingsDone'].forEach(d=>{ const done = document.getElementById(d); if (done) done.addEventListener('focus', ()=>{ try{ done.scrollIntoView({ block:'center' }); }catch(e){} }); });
   // the two drop-downs: while the picker is open the rest of Settings is hidden from VoiceOver, so the first swipe cannot wander to the next row
-  ['setNature','setMusicTrack'].forEach(id=>{ const s = document.getElementById(id); if (!s) return; if (!BACKDROP_USE_ARIA && !IS_IPAD) return;   /* iPhone: no lock - the phone's own picker is already modal, and hiding/un-hiding the page behind it interrupted VoiceOver (it never picked the track; the musician page was cut off after "Cassie hu") (Dani 2026-11-05, board feedback A) */ let safety = null;
+  ['setNature','setMusicTrack'].forEach(id=>{ const s = document.getElementById(id); if (!s) return; let safety = null;
     const rest = ()=> [...document.querySelectorAll('#settings .settings-head, #settings .settings-body > *, #settingsDone')].filter(el=>!el.contains(s));
     const lock = on=>{ clearTimeout(safety); rest().forEach(el=>{ if (on) el.setAttribute('aria-hidden','true'); else el.removeAttribute('aria-hidden'); }); if (on) safety = setTimeout(()=>lock(false), 30000); };
     ['focus','click'].forEach(ev=>s.addEventListener(ev, ()=>lock(true)));
