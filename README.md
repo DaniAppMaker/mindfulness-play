@@ -1,5 +1,7 @@
-# Mindfulness Play Solitaire
+# Cupunapa: Mindful Solitaire
 
-A calm game of solitaire with gentle mindfulness invitations that drift in as you play — made with hand-painted watercolor cats.
+A familiar game of solitaire with no streaks, no scores, and no guilt. Playful watercolor cats invite you into a moment of mindfulness.
 
-Plays by touch, mouse, keyboard, or screen reader. Silent unless you turn sounds on.
+Plays by touch, mouse, keyboard, or screen reader. Card sounds are on by default; nature sounds and music are optional.
+
+Play it here: https://cupunapa.com/play
