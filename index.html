@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c100">
+<meta name="build" content="c101">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -585,6 +585,8 @@
   .musphoto .musinit{ font-family:"Quicksand","Segoe UI",sans-serif; font-weight:600; font-size:46px; color:var(--ink); letter-spacing:.02em; }
   #musTitle{ margin:6px 0 0; }
   .mustrack{ margin:0; color:var(--ink-soft); font-size:15px; }
+  #musTrack, #musBio{ color:#6f6a5f; }   /* a little darker than --ink-soft so the track line and bio pass the contrast rule (4.2 to 5.0; Dani 2026-11-05) */
+  #about .setmail, #privacy .setmail{ color:#a2530f; }   /* the email link in About and Privacy: the deep orange, a touch deeper so the 17px text passes (4.2 to 5.2; Dani 2026-11-05). Settings keeps its own 19px orange. */
   .muslinks{ list-style:none; margin:4px 0 0; padding:0; display:flex; flex-direction:column; gap:8px; }
   .muslinks a{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; border-radius:16px;
     border:1px solid var(--line, #e8dccb); background:rgba(255,253,249,.8); color:var(--ink); text-decoration:none; font-weight:600; font-size:16px; min-height:48px; }
@@ -1423,7 +1425,7 @@
         <!-- contact row — info@ is the ONE public address (Dani 2026-09-24). VoiceOver wording is
              Dani's exact words; VO adds "link" itself, then reads the describedby hint. -->
         <a class="setrow setcontact" id="setContact" href="mailto:info@cupunapa.com?subject=Cupunapa"
-           aria-label="Questions or ideas? Write to us at info at coopunahpah dot com" aria-describedby="setContactHint">
+           aria-label="Questions or ideas? Write to us at info at c u p u n a p a dot com" aria-describedby="setContactHint">
           <div><div class="setlabel">Questions or ideas?</div><div class="sethint">We'd love to hear from you: <span class="setmail">info@cupunapa.com</span></div></div>
         </a>
         <span id="setContactHint" class="visually-hidden">Double-tap, press Enter, or click to open your email app.</span>
@@ -1501,7 +1503,7 @@
         <h3 class="abouth">Acknowledgements</h3>
         <p id="aboutThanks"></p>
 
-        <p class="aboutcontact"><strong>Questions or ideas?</strong> <a class="setmail" href="mailto:info@cupunapa.com?subject=Cupunapa" aria-label="info at coopunahpah dot com">info@cupunapa.com</a></p>
+        <p class="aboutcontact"><strong>Questions or ideas?</strong> <a class="setmail" href="mailto:info@cupunapa.com?subject=Cupunapa" aria-label="info at c u p u n a p a dot com">info@cupunapa.com</a></p>
         <p class="aboutsign">With gratitude, Dani</p>
       </div>
       <button class="btn bloom" id="aboutDone">Done</button>
@@ -1524,7 +1526,7 @@
         <p>The game itself doesn't collect, store, or share any personal information. No accounts, no ads, no tracking. Your game stays on your device. The only time we receive any information about you is if you choose to email us.</p>
 
         <h3 class="abouth">Who we are</h3>
-        <p><span aria-hidden="true">Cupunapa</span><span class="visually-hidden">Coopunahpah</span> is a small independent game made by Daniela Bramwell, PhD, based in Ecuador. If you have any questions about this policy, write to us at <a class="setmail" href="mailto:info@cupunapa.com?subject=Cupunapa" aria-label="info at coopunahpah dot com">info@cupunapa.com</a>.</p>
+        <p><span aria-hidden="true">Cupunapa</span><span class="visually-hidden">Coopunahpah</span> is a small independent game made by Daniela Bramwell, PhD, based in Ecuador. If you have any questions about this policy, write to us at <a class="setmail" href="mailto:info@cupunapa.com?subject=Cupunapa" aria-label="info at c u p u n a p a dot com">info@cupunapa.com</a><span aria-hidden="true">.</span></p>
 
         <h3 class="abouth">What we collect</h3>
         <p>Nothing. The game does not ask for your name, email, location, contacts, photos, or any other personal details. It does not use analytics, advertising, or tracking tools, and it does not send information about you or how you play to us or to anyone else.</p>
@@ -1544,16 +1546,16 @@
         <p>If you choose to write to us, we'll receive your email address and your message. We use them only to reply to you. We never sell or share them.</p>
 
         <h3 class="abouth">How long we keep it, and how to have it deleted</h3>
-        <p>We keep your email and message only as long as we need them to answer you and to improve the game. If you'd like us to delete them, or to tell you what we have, write to <a class="setmail" href="mailto:info@cupunapa.com?subject=Cupunapa" aria-label="info at coopunahpah dot com">info@cupunapa.com</a> and we'll do it.</p>
+        <p>We keep your email and message only as long as we need them to answer you and to improve the game. If you'd like us to delete them, or to tell you what we have, write to <a class="setmail" href="mailto:info@cupunapa.com?subject=Cupunapa" aria-label="info at c u p u n a p a dot com">info@cupunapa.com</a> and we'll do it.</p>
 
         <h3 class="abouth">Your rights</h3>
-        <p>You can ask us what information we hold about you (only the emails you've sent us), ask us to correct it, or ask us to delete it. Write to <a class="setmail" href="mailto:info@cupunapa.com?subject=Cupunapa" aria-label="info at coopunahpah dot com">info@cupunapa.com</a>. Because the game collects nothing, there is nothing else to access, correct, or delete.</p>
+        <p>You can ask us what information we hold about you (only the emails you've sent us), ask us to correct it, or ask us to delete it. Write to <a class="setmail" href="mailto:info@cupunapa.com?subject=Cupunapa" aria-label="info at c u p u n a p a dot com">info@cupunapa.com</a>. Because the game collects nothing, there is nothing else to access, correct, or delete.</p>
 
         <h3 class="abouth">Buying the game</h3>
         <p>If you buy <span aria-hidden="true">Cupunapa</span><span class="visually-hidden">Coopunahpah</span> through the Apple App Store or Google Play, the payment is handled entirely by Apple or Google under their own privacy policies. We never see your card or payment details. Apple and Google may keep their own records about your download or purchase under their own policies; we don't receive them.</p>
 
         <h3 class="abouth">Where the game and website are hosted</h3>
-        <p>The <span aria-hidden="true">Cupunapa</span><span class="visually-hidden">Coopunahpah</span> website (<span aria-hidden="true">cupunapa.com</span><span class="visually-hidden">coopunahpah dot com</span>) is hosted by GitHub Pages. Like most web hosts, GitHub may keep basic technical records (such as IP addresses) for security. We don't have access to those records or use them. See GitHub's privacy statement for details.</p>
+        <p>The <span aria-hidden="true">Cupunapa</span><span class="visually-hidden">Coopunahpah</span> website (<span aria-hidden="true">cupunapa.com</span><span class="visually-hidden">c u p u n a p a dot com</span>) is hosted by GitHub Pages. Like most web hosts, GitHub may keep basic technical records (such as IP addresses) for security. We don't have access to those records or use them. See GitHub's privacy statement for details.</p>
 
         <h3 class="abouth">Who the game is for</h3>
         <p><span aria-hidden="true">Cupunapa</span><span class="visually-hidden">Coopunahpah</span> is made for a general audience and isn't aimed specifically at children. The game doesn't collect personal information from anyone, including children.</p>
@@ -1562,7 +1564,7 @@
         <p>If this policy ever changes, we'll update it here and change the date at the top. If the game ever starts collecting any information, we'll say so clearly first.</p>
 
         <h3 class="abouth">Contact</h3>
-        <p class="aboutcontact"><a class="setmail" href="mailto:info@cupunapa.com?subject=Cupunapa" aria-label="info at coopunahpah dot com">info@cupunapa.com</a></p>
+        <p class="aboutcontact"><a class="setmail" href="mailto:info@cupunapa.com?subject=Cupunapa" aria-label="info at c u p u n a p a dot com">info@cupunapa.com</a></p>
       </div>
       <button class="btn bloom" id="privacyDone">Done</button>
     </div>
@@ -3441,6 +3443,26 @@ function findAllMoves(){
           : `${from}, into the empty column ${d+1}` });
         break;   // one destination per source is enough to hear
       }
+      // A smaller piece of that run (even just its last card) can be the key: lifting it off frees the
+      // card under it to go home. Without this the board looked stuck - and "No moves left" could appear -
+      // while that one move was still there (found by the 2026-11-05 robot; about 1 dead end in 14).
+      for (let j=i+1;j<pile.length;j++){
+        const freed = pile[j-1], part = pile[j];
+        if (!state.foundations.some(f=>canStackFoundation(freed, f))) continue;
+        let said = false;
+        for (let d=0;d<7;d++){
+          if (d===c) continue;
+          const onto = state.tableau[d][state.tableau[d].length-1];
+          if (!onto || !canStackTableau(part, onto)) continue;
+          const carried = pile.length - 1 - j;
+          const from = carried > 0
+            ? `${cardName(part)} with ${carried} card${carried>1?'s':''} on top, column ${c+1}`
+            : `${cardName(part)} in column ${c+1}`;
+          moves.push({ id: part.id, text: `${from}, onto the ${cardName(onto)} in column ${d+1}` });
+          said = true; break;
+        }
+        if (said) break;   // one such move per column is enough to hear
+      }
       break;   // only the deepest valid run head per column, as before
     }
   }
@@ -4013,9 +4035,10 @@ if (IS_MAC){ const _ws = document.getElementById('winStatus'); if (_ws) _ws.setA
 (function(){ try{ var h = document.documentElement; addEventListener('keydown', function(e){ if (e.key === 'Tab' || e.key === 'Enter' || e.key === ' ' || e.key.indexOf('Arrow') === 0) h.classList.add('kbd'); }, true); addEventListener('pointerdown', function(){ h.classList.remove('kbd'); }, true); }catch(e){} })();   // 'kbd' = the last input was the keyboard: only then show the focus ring on the Begin arrow
 (function(){ try{ var m = document.querySelector('meta[name="build"]'), v = document.getElementById('verTag'); if (m && v) v.textContent = 'cupunapa ' + m.getAttribute('content'); }catch(e){} })();   // welcome-screen version label, read from <meta name="build"> (bump the meta on every publish)
 if (IS_MAC){   // Safari's Tab skips real links, so the "Questions or ideas?" row was never reached by keyboard. On Mac they become focusable "link" elements that open the email when pressed (Dani 2026-10-22).
+  { const _hint = document.getElementById('setContactHint'); if (_hint) _hint.setAttribute('aria-hidden', 'true'); }   // Mac VoiceOver read this sentence twice (as the link's description AND as its own line); aria-describedby still uses it (Dani 2026-11-05)
   document.querySelectorAll('a[href^="mailto:"]').forEach(a=>{
     const url = a.getAttribute('href'); a.removeAttribute('href'); a.setAttribute('role', 'link'); a.tabIndex = 0; a.style.cursor = 'pointer';
-    if (a.classList.contains('setmail')) a.setAttribute('aria-label', 'Questions or ideas? Write to us at info at koopoonahpah dot com');
+    if (a.classList.contains('setmail')) a.setAttribute('aria-label', 'Questions or ideas? Write to us at info at c u p u n a p a dot com');   // the address is spelled letter by letter so a listener can type it (Dani 2026-11-05)
     const go = ()=>{ location.href = url; };
     a.addEventListener('click', e=>{ e.preventDefault(); go(); });
     a.addEventListener('keydown', e=>{ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); go(); } });
