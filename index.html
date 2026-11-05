@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c106">
+<meta name="build" content="c107">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -146,6 +146,8 @@
     overflow-x:hidden;
     user-select:none; -webkit-user-select:none;
   }
+  /* nothing may scroll the page: when VoiceOver moved its focus, iPhone Safari nudged the whole page a few pixels (Dani 2026-11-05) */
+  html, body{ overflow:hidden; overflow:clip; overscroll-behavior:none; }
 
   /* faint watercolor wash over the paper (spec §3: ~18% opacity, barely there).
      Painted on a FIXED full-viewport layer so it fills the whole screen — the
@@ -263,6 +265,7 @@
     50%    { transform:translateY(calc(-12 * var(--u))) scale(1.06); }
   }
   .card.hint, .slot.hint{ animation:hintBreathe .8s ease-in-out 3; z-index:6; }
+  body.hinting #app{ overflow:visible; }   /* the draw pile sits at the board's right edge: when its card rose and grew, the board's own edge cut it off like a ledge (Dani 2026-11-05, iPhone) */
   body.hinting #tableau{ overflow:visible; }   /* while a hint flashes, the column area stops clipping, so a top-row card that grows is not cut off by the "ledge" above it (Dani 2026-11-03) */
   /* the draw pile when it's an empty "gather back" slot (no card img to glow) */
   .slot.hint{
@@ -1704,6 +1707,8 @@ function fitStage(){
 fitStage();
 ['resize','orientationchange','pageshow','load'].forEach(ev=>window.addEventListener(ev, ()=>{ fitStage(); setTimeout(fitStage, 120); setTimeout(fitStage, 450); setTimeout(fitStage, 1100); }));
 try{ if (window.visualViewport) window.visualViewport.addEventListener('resize', fitStage); }catch(e){}
+/* fallback for the page-lock in the CSS: if anything still scrolls the page (VoiceOver focus), put it straight back (Dani 2026-11-05) */
+try{ window.addEventListener('scroll', ()=>{ if (window.scrollX || window.scrollY) window.scrollTo(0,0); const d=document.documentElement,b=document.body; if (d.scrollTop) d.scrollTop=0; if (b.scrollTop) b.scrollTop=0; if (b.scrollLeft) b.scrollLeft=0; }, { passive:true, capture:true }); }catch(e){}
 
 /* ---------- accessibility helpers ---------- */
 function applyA11y(){
@@ -4022,7 +4027,7 @@ if (IPAD_X){
   // long pages: when the cursor reaches the bottom Done, scroll it fully into view first, so VoiceOver's double-tap has a real place to press (Dani 2026-11-03: Done could not be reached / pressed after the email link). (The extra hidden Done at the top was removed: it was read after the first swipe.)
   ['howtoDone','aboutDone','privacyDone','settingsDone'].forEach(d=>{ const done = document.getElementById(d); if (done) done.addEventListener('focus', ()=>{ try{ done.scrollIntoView({ block:'center' }); }catch(e){} }); });
   // the two drop-downs: while the picker is open the rest of Settings is hidden from VoiceOver, so the first swipe cannot wander to the next row
-  ['setNature','setMusicTrack'].forEach(id=>{ const s = document.getElementById(id); if (!s) return; let safety = null;
+  ['setNature','setMusicTrack'].forEach(id=>{ const s = document.getElementById(id); if (!s) return; if (!BACKDROP_USE_ARIA && !IS_IPAD) return;   /* iPhone: no lock - the phone's own picker is already modal, and hiding/un-hiding the page behind it interrupted VoiceOver (it never picked the track; the musician page was cut off after "Cassie hu") (Dani 2026-11-05, board feedback A) */ let safety = null;
     const rest = ()=> [...document.querySelectorAll('#settings .settings-head, #settings .settings-body > *, #settingsDone')].filter(el=>!el.contains(s));
     const lock = on=>{ clearTimeout(safety); rest().forEach(el=>{ if (on) el.setAttribute('aria-hidden','true'); else el.removeAttribute('aria-hidden'); }); if (on) safety = setTimeout(()=>lock(false), 30000); };
     ['focus','click'].forEach(ev=>s.addEventListener(ev, ()=>lock(true)));
