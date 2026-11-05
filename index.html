@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c102">
+<meta name="build" content="c103">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -4333,7 +4333,7 @@ function startupFlow(){
   // when VoiceOver is already on as the page opens (if it's switched on afterwards,
   // iOS starts its own cursor at the top and this can't override it). Same trick as
   // revealBoardForAT() for the board.
-  if (!BACKDROP_USE_ARIA) moveATCursorTo('welCat');   // (touch only: on computers NVDA reads the welcome from the page load, and a focus on top of that read the cat twice) land VO on the cat (role=img, intro label); swipe → words → Begin
+  if (!BACKDROP_USE_ARIA && !IS_IPAD) moveATCursorTo('welCat');   // (iPad excluded 2026-11-05: the silent script focus put VoiceOver ON the cat, so the first swipe skipped the description; on iPad the first swipe now lands on the cat) (touch only: on computers NVDA reads the welcome from the page load, and a focus on top of that read the cat twice) land VO on the cat (role=img, intro label); swipe → words → Begin
   if (IS_MAC){   // Mac VoiceOver does not read a page by itself: put the cursor ON the Begin button, whose spoken name is the whole welcome (cat description + "Begin the game"); read once, then Return. (Dani 2026-10-22: in Safari nothing was read and Tab only reached the button)
     setTimeout(()=>{ try{ const n = document.getElementById('welNext'), c = document.getElementById('welCat'); if (!n.dataset.orig) n.dataset.orig = n.getAttribute('aria-label') || 'Begin the game'; n.hidden = false; n.setAttribute('aria-label', ((c && c.getAttribute('aria-label')) || '') + ' ' + n.dataset.orig); n.focus(); }catch(e){} }, 1200);
   }
