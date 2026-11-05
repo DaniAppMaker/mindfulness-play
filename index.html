@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c101">
+<meta name="build" content="c102">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -15,12 +15,12 @@
      "Mindful Solitaire" on the home screen. -->
 <meta name="application-name" content="Mindful Solitaire" />
 <meta name="apple-mobile-web-app-title" content="Mindful Solitaire" />
-<meta name="description" content="Cupunapa, a mindful game of solitaire, designed to take the pressure off, to bring some ease. Watercolor cats invite you into mindfulness. No streaks, no scores, no guilt." />
+<meta name="description" content="Cupunapa is a familiar game of solitaire with no streaks, no scores, and no guilt. Playful watercolor cats invite you into a moment of mindfulness." />
 <!-- Link preview (iMessage, WhatsApp, social): what a shared link shows. -->
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Cupunapa" />
 <meta property="og:title" content="Cupunapa: Mindful Solitaire" />
-<meta property="og:description" content="Cupunapa, a mindful game of solitaire, designed to take the pressure off, to bring some ease. Watercolor cats invite you into mindfulness. No streaks, no scores, no guilt." />
+<meta property="og:description" content="Cupunapa is a familiar game of solitaire with no streaks, no scores, and no guilt. Playful watercolor cats invite you into a moment of mindfulness." />
 <meta property="og:url" content="https://daniappmaker.github.io/mindfulness-play/" />
 <meta property="og:image" content="https://daniappmaker.github.io/mindfulness-play/assets/icon/apple-touch-icon.png" />
 <meta name="twitter:card" content="summary" />
@@ -898,8 +898,8 @@
     #welBrand .tm{ width:auto; display:inline; }   /* here the TM counts as part of the title, so the right-most part of the text really sits on the margin */
     #welKind{ font-size:calc(133 * var(--u)); margin-top:calc(10 * var(--u)); }
     /* the Begin arrows (welcome + loading): identical size, bottom-right corner of the SCREEN, ~20px in */
-    .next-arrow{ position:absolute; right:max(36px, env(safe-area-inset-right, 0px)); bottom:max(64px, calc((100% - var(--boardH)) / 2 + 230 * var(--u)), env(safe-area-inset-bottom, 0px));
-                 width:56px; height:56px; }   /* lifted off the bottom edge: at ~20px the iPhone app ignored taps (Dani 2026-10-12, a26/a27); 64px up worked in a24 */
+    .next-arrow{ position:absolute; right:max(64px, env(safe-area-inset-right, 0px)); bottom:max(64px, env(safe-area-inset-bottom, 0px));
+                 width:56px; height:56px; }   /* 64px from the bottom AND from the side (Dani 2026-11-05: equal distances). Not closer to the bottom: at ~20px the iPhone app ignored taps (Dani 2026-10-12, a26/a27); 64px up worked in a24 */
     .next-arrow::after{ content:""; position:absolute; inset:-36px -12px -8px -36px; }   /* invisible extra tap room above and to the left */
     /* loading */
     #loadCat{ left:calc(170.4 * var(--u)); top:calc(97 * var(--u)); width:calc(560 * var(--u)); }
@@ -983,11 +983,12 @@
     #musician .musplaywrap{ padding-bottom:14px; }
   }
   /* ===== UPRIGHT TABLETS (Dani 2026-11-03, from her iPad check): the Begin arrows sit 2 cm (about 95 px on an iPad) from the bottom and the right edge of the SCREEN
-     (they were inside the narrower game column), and the watercolor picture starts 2 cm lower so its soft torn top edge is never trimmed (as on the phone).
+     (they were inside the narrower game column). The watercolor picture is aligned to the TOP edge (Dani 2026-11-05: starting it 2 cm lower left a blank band at the top and
+     looked too far down): the soft torn top edge is shown whole, with no blank band; only the bottom of the picture can be trimmed.
      Phones and sideways screens are unchanged. */
   @media (min-width: 700px) and (max-aspect-ratio: 13/10){
     .next-arrow{ right:95px; bottom:max(64px, 95px); }
-    body::before, .screen::before, .overlay.overlay--full::before{ background-position:50% 95px; }
+    body::before, .screen::before, .overlay.overlay--full::before{ background-position:50% 0; }
   }
   /* Wide screens: the painting is turned a quarter-turn, so its soft torn top edge fades in
      from the LEFT edge (like the top of the tall phone view) and the colour runs all the way

@@ -1,7 +1,7 @@
 {
   "name": "Cupunapa: Mindful Solitaire",
   "short_name": "Mindful Solitaire",
-  "description": "A calm game of solitaire with gentle mindfulness invitations.",
+  "description": "A familiar game of solitaire with no streaks, no scores, and no guilt. Playful watercolor cats invite you into a moment of mindfulness.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
