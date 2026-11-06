@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c109">
+<meta name="build" content="c110">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -1508,7 +1508,7 @@
         </section>
 
         <h3 class="abouth">Music</h3>
-        <p>Cassie Hubert and cellOboe created music for this game. Choose a track in Settings to meet each of them.</p>
+        <p>Cassie Hubert and <span aria-hidden="true">cellOboe</span><span class="visually-hidden">Chell oboe</span> created music for this game. Choose a track in Settings to meet each of them.</p>
 
         <h3 class="abouth">Sounds</h3>
         <p>The ambient sounds are real recordings shared freely on Pixabay: rain by Liecio, ocean waves by DRAGON-STUDIO, forest birds by Dany_photo, and a stream by Pixabay user 26327991. The cat purring is by Islabonita. The soft card sounds and the gentle bell come from Kenney (kenney.nl).</p>
@@ -1672,12 +1672,27 @@ const MUSICIANS = [
     bio:'Cassie Hubert is a professional actress, singer, songwriter, artist, talker, and all around creative woman, raising her children and staying alive to beauty, wonder and joy.',
     links:[ {label:'Facebook', url:'https://www.facebook.com/creativeperformermum'}, {label:'Podcast: Connecting the Dots', url:'https://connectingthedotspodcast.buzzsprout.com'} ],
     tracks:[ {id:'cassie-1', title:'Innesfree Contemplation', file:'assets/sounds/cassie-1.mp3'} ] },   // real track + photo + bio (Cassie 2026-10-31); professional name Cassie Hubert
-  { id:'erin', name:'cellOboe', photo:'assets/musicians/erin-cody.jpg', photoAlt:'A photo of cellOboe: two smiling people kneeling on a lawn. One holds an oboe and the other holds a cello',   // the duo Erin and Cody Flory Robertson (Dani 2026-10-30: the name under the photo is cellOboe; their own names are in the bio)
+  { id:'erin', name:'cellOboe', spoken:'Chell oboe', photo:'assets/musicians/erin-cody.jpg', photoAlt:'A photo of Chell oboe: two smiling people kneeling on a lawn. One holds an oboe and the other holds a cello',   // the duo Erin and Cody Flory Robertson (Dani 2026-10-30: the name under the photo is cellOboe; their own names are in the bio)
     bio:'Erin and Cody Flory Robertson formed the folk/classical duo cellOboe in 2013 out of a desire to sing together while exploring folk music, songwriting, and music improvisation. Classically trained musicians and active performers, they’ve developed a unique sound combining oboe melodies and blending vocals with rich harmonies and textures on the cello. Their music centers around themes of life with three young boys, eco justice and inter-spirituality. They live in Wichita, Kansas, with their children, numerous pets, and a thriving herb garden.',
     links:[ {label:'Facebook', url:'https://www.facebook.com/share/1CKNkgpnJr/'} ],   // cellOboe wants only ONE link: their Facebook page (Dani 2026-11-02; tracking part ?mibextid removed)
     tracks:[ {id:'erin-1', title:'Paths Across Water', file:'assets/sounds/erin-1.mp3'} ] }   // real track (2026-10-30), converted from their m4a to mp3 96 kbps mono
   /* Christian Hardy was taken OUT on 2026-11-02 (Dani): he won't send music before the first launch, maybe for a later one. His old placeholder entry is saved in DRAFTS.md ("CHRISTIAN HARDY: removed entry"). */
 ];
+/* How a musician's name is SPOKEN by a screen reader (Dani 2026-11-06: cellOboe is said "Chell oboe", like the cello and the oboe). The name stays "cellOboe" on screen. */
+const spokenOf = m => m.spoken || m.name;
+/* put text in an element, with the musician's name shown as written but spoken as it is said (the same pair the Cupunapa name uses: shown text hidden from screen readers + a hidden spoken twin) */
+function setNameText(el, text, m){
+  el.textContent = '';
+  if (!m.spoken || !text.includes(m.name)){ el.textContent = text; return; }
+  text.split(m.name).forEach((part, i)=>{
+    if (i > 0){
+      const vis = document.createElement('span'); vis.setAttribute('aria-hidden', 'true'); vis.textContent = m.name;
+      const say = document.createElement('span'); say.className = 'visually-hidden'; say.textContent = m.spoken;
+      el.appendChild(vis); el.appendChild(say);
+    }
+    if (part) el.appendChild(document.createTextNode(part));
+  });
+}
 function findTrack(id){
   for (const m of MUSICIANS) for (const t of m.tracks) if (t.id === id) return { musician:m, track:t };
   return null;
@@ -3806,31 +3821,39 @@ function closeMusician(backToList){
     setTimeout(()=>{ const s = document.getElementById('setMusicTrack'); if (s) { try{ s.focus(); }catch(e){} } }, 220);   // land on the dropdown they came from
   }
 }
-function openMusician(m, t){
+function openMusician(m, t, fromPicker){
+  const IPHONE = !BACKDROP_USE_ARIA && !IS_IPAD;   // iPhone (touch phone): the c20-approved behaviour for everything else stays
   pendingTrackId = t.id;
-  document.getElementById('musTitle').textContent = m.name;
+  setNameText(document.getElementById('musTitle'), m.name, m);
   document.getElementById('musTrack').textContent = 'Track: ' + t.title;
   const ph = document.getElementById('musPhoto'); ph.textContent = '';
   if (m.photo){ const im = document.createElement('img'); im.src = m.photo; im.alt = m.photoAlt || ''; ph.appendChild(im); ph.removeAttribute('role'); ph.removeAttribute('aria-label'); }
   else { const ini = document.createElement('span'); ini.className = 'musinit'; ini.setAttribute('aria-hidden','true');
          ini.textContent = m.initials || m.name.split(/\s+/).filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase(); ph.appendChild(ini);
          ph.setAttribute('role','img'); ph.setAttribute('aria-label', m.photoAlt || m.name); }
-  if (IPAD_X){   // (experimental, ?lab=1 only) the cursor starts on the PHOTO (its description), then the name, track and bio (Dani 2026-11-03)
+  if (IPAD_X || IPHONE){   // the cursor starts on the PHOTO (its description), then the name, track and bio (Dani 2026-11-03 for the iPad lab; iPhone 2026-11-06: "should start at the photo and describe it")
     ph.setAttribute('role','img'); ph.setAttribute('aria-label', m.photoAlt || m.name); ph.tabIndex = -1;
     const _im = ph.querySelector('img'); if (_im){ _im.alt = ''; _im.setAttribute('aria-hidden','true'); }
   }
-  document.getElementById('musBio').textContent = m.bio;
+  setNameText(document.getElementById('musBio'), m.bio, m);
   const ul = document.getElementById('musLinks'); ul.textContent = '';
   (m.links || []).forEach(l=>{
     const li = document.createElement('li'), a = document.createElement('a');
     a.href = l.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
-    a.setAttribute('aria-label', l.label + ' for ' + m.name + '. Opens in a new tab.');
+    a.setAttribute('aria-label', l.label + ' for ' + spokenOf(m) + '. Opens in a new tab.');
     a.innerHTML = '<span></span><span class="chev" aria-hidden="true">&rsaquo;</span>'; a.firstChild.textContent = l.label;
     if (l.url === '#') a.addEventListener('click', e=>e.preventDefault());   // placeholder link: does nothing yet
     li.appendChild(a); ul.appendChild(li);
   });
   closeOverlay('settings');                   // swap Settings for the musician's page
-  openOverlay('musician', IPAD_X ? 'musPhoto' : 'musTitle');
+  const startId = (IPAD_X || IPHONE) ? 'musPhoto' : 'musTitle';
+  if (IPHONE && fromPicker){
+    /* iPhone: Safari's picker takes the cursor away a moment AFTER the choice is made (WebKit bug 281525: a focus() during/just after the drop-down's change event does not hold, "BODY receives focus").
+       It cut "Cassie Hubert" off after "Cassie hu" and left the cursor on nothing (Dani 2026-11-05). So the page opens now, but the cursor is put on it once the picker has let go, and again if it is taken away. */
+    openOverlay('musician', null);
+    const startEl = document.getElementById(startId);
+    [500, 1000, 1600].forEach((ms, i)=>setTimeout(()=>{ try{ if (!isShowing('musician')) return; if (i === 0 || document.activeElement !== startEl) startEl.focus(); }catch(e){} }, ms));
+  } else openOverlay('musician', startId);
 }
 if (MUSICIANS_ON){
   (function(){
@@ -3849,7 +3872,7 @@ if (MUSICIANS_ON){
       if (v === 'none'){ settings.musicTrack = 'none'; saveSettings(); updateMusic(); playSound('confirm'); return; }
       const f = findTrack(v);
       sel.value = findTrack(settings.musicTrack) ? settings.musicTrack : 'none';   // stays on the old choice until the big button is pressed
-      if (f) openMusician(f.musician, f.track);
+      if (f) openMusician(f.musician, f.track, true);
     });
     row.appendChild(sel);
     oldRow.parentNode.insertBefore(row, oldRow.nextSibling);
@@ -3861,7 +3884,7 @@ if (MUSICIANS_ON){
     settings.musicTrack = f.track.id; saveSettings();
     closeOverlay('musician'); pendingTrackId = null;
     updateMusic(); playSound('confirm');
-    if (f.track.file) announce('Now playing ' + f.track.title + ', by ' + f.musician.name + '.');   // placeholder tracks have no sound yet, so nothing is announced
+    if (f.track.file) announce('Now playing ' + f.track.title + ', by ' + spokenOf(f.musician) + '.');   // placeholder tracks have no sound yet, so nothing is announced
     seatCursor('btnAppear');
   };
 }
