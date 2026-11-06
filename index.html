@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c117">
+<meta name="build" content="c118">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -1007,6 +1007,13 @@
   @media (min-width: 760px) and (min-height: 600px) and (max-height: 790px){
     #musician .mus-head .musphoto{ width:132px; height:132px; }
     #musician .musplaywrap{ padding-bottom:14px; }
+  }
+  /* UPRIGHT TABLETS (Dani 2026-11-06, iPad upright check: "the photo and everything below it is squashed at the bottom and there is a big empty space above the photos"): on a tall page
+     the musician block (photo, name, track, bio, links) and the big button now sit TOGETHER in the middle of the page; the back arrow and the cat stay at the top. Sideways tablets/laptops and phones are unchanged. */
+  @media (min-width: 700px) and (max-aspect-ratio: 13/10){
+    #musician .musmain{ flex:0 0 auto; justify-content:flex-start; margin-top:auto; }
+    #musician .musplaywrap{ margin-top:55px; margin-bottom:auto; }
+    #musician .mus-head .musphoto{ width:200px; height:200px; }
   }
   /* ===== UPRIGHT TABLETS (Dani 2026-11-03, from her iPad check): the Begin arrows sit 2 cm (about 95 px on an iPad) from the bottom and the right edge of the SCREEN
      (they were inside the narrower game column). The watercolor picture is aligned to the TOP edge (Dani 2026-11-05: starting it 2 cm lower left a blank band at the top and
@@ -3777,7 +3784,7 @@ function syncToggles(){
   // role="switch" buttons carry their state in aria-checked (Dani 2026-09-13)
   for (const id in TOGGLES){ const el=document.getElementById(id); if(el) el.setAttribute('aria-checked', settings[TOGGLES[id]] ? 'true' : 'false'); }
   const nat=document.getElementById('setNature'); if(nat) nat.value = settings.natureSound || 'none';
-  const mus=document.getElementById('setMusicTrack'); if(mus) mus.value = findTrack(settings.musicTrack) ? settings.musicTrack : 'none';
+  rebuildMusicOptions();
 }
 /* Nature-sound dropdown: pick one soft looping background sound (or None). */
 (function(){ const nat=document.getElementById('setNature'); if(!nat) return;
@@ -3847,6 +3854,20 @@ document.getElementById('about').addEventListener('click', (e)=>{ if (e.target.i
 
 /* ---- Musicians: wide Music dropdown + a page for each musician (private ?musicians switch) ---- */
 let pendingTrackId = null;
+/* The Music drop-down always sits on a "current" entry (value __current) that shows what is playing, so choosing ANY real track in the list, even the one that is already playing, is a real change and opens that musician's page
+   (before, choosing the track that was already chosen did nothing, so its page could not be opened again - Dani 2026-11-06, iPad). When a track is playing the current entry reads "Now playing: <track> – <musician>"; with nothing playing it reads "None". */
+const MUSIC_CUR = '__current';
+function rebuildMusicOptions(){
+  const sel = document.getElementById('setMusicTrack'); if (!sel) return;
+  const playing = findTrack(settings.musicTrack);
+  sel.textContent = '';
+  const cur = document.createElement('option'); cur.value = MUSIC_CUR;
+  cur.textContent = playing ? 'Now playing: ' + playing.track.title + ' – ' + playing.musician.name : 'None';
+  sel.appendChild(cur);
+  if (playing){ const none = document.createElement('option'); none.value = 'none'; none.textContent = 'None'; sel.appendChild(none); }
+  MUSICIANS.forEach(m=>m.tracks.forEach(t=>{ const o = document.createElement('option'); o.value = t.id; o.textContent = t.title + ' – ' + m.name; sel.appendChild(o); }));
+  sel.value = MUSIC_CUR;
+}
 function closeMusician(backToList){
   closeOverlay('musician', IPAD_X && backToList);
   pendingTrackId = null;
@@ -3898,18 +3919,17 @@ if (MUSICIANS_ON){
     const lab = document.createElement('div'); lab.className = 'setlabel'; lab.textContent = 'Music'; row.appendChild(lab);
     const sel = document.createElement('select'); sel.id = 'setMusicTrack'; sel.className = 'langselect wideselect';
     sel.setAttribute('aria-label', 'Music. Choose a track. The options show the track name and the artist’s name. To choose a track, swipe up or down (or use the arrow keys) to hear each option, then double-tap (or press Enter) to select it.');
-    const none = document.createElement('option'); none.value = 'none'; none.textContent = 'None'; sel.appendChild(none);
-    MUSICIANS.forEach(m=>m.tracks.forEach(t=>{ const o = document.createElement('option'); o.value = t.id; o.textContent = t.title + ' – ' + m.name; sel.appendChild(o); }));
-    sel.value = findTrack(settings.musicTrack) ? settings.musicTrack : 'none';
-    sel.addEventListener('change', ()=>{
-      const v = sel.value;
-      if (v === 'none'){ settings.musicTrack = 'none'; saveSettings(); updateMusic(); playSound('confirm'); return; }
-      const f = findTrack(v);
-      sel.value = findTrack(settings.musicTrack) ? settings.musicTrack : 'none';   // stays on the old choice until the big button is pressed
-      if (f) openMusician(f.musician, f.track, true);
-    });
     row.appendChild(sel);
     oldRow.parentNode.insertBefore(row, oldRow.nextSibling);
+    rebuildMusicOptions();   // the entries (current / None / the tracks) are built here and again every time Settings opens
+    sel.addEventListener('change', ()=>{
+      const v = sel.value;
+      if (v === MUSIC_CUR) return;
+      if (v === 'none'){ settings.musicTrack = 'none'; saveSettings(); updateMusic(); playSound('confirm'); rebuildMusicOptions(); return; }
+      const f = findTrack(v);
+      sel.value = MUSIC_CUR;   // keeps showing what is playing until the big button on the musician's page is pressed
+      if (f) openMusician(f.musician, f.track, true);
+    });
   })();
   document.getElementById('musBack').onclick = ()=> closeMusician(true);
   document.getElementById('musician').addEventListener('click', (e)=>{ if (e.target.id === 'musician') closeMusician(true); });
@@ -4130,7 +4150,7 @@ if (IPAD_X){
   // the two drop-downs: while the picker is open the rest of Settings is hidden from VoiceOver, so the first swipe cannot wander to the next row
   ['setNature','setMusicTrack'].forEach(id=>{ const s = document.getElementById(id); if (!s) return; let safety = null;
     const rest = ()=> [...document.querySelectorAll('#settings .settings-head, #settings .settings-body > *, #settingsDone')].filter(el=>!el.contains(s));
-    const lock = on=>{ clearTimeout(safety); rest().forEach(el=>{ if (on) el.setAttribute('aria-hidden','true'); else el.removeAttribute('aria-hidden'); }); if (on) safety = setTimeout(()=>lock(false), 30000); };
+    const lock = on=>{ clearTimeout(safety); rest().forEach(el=>{ if (on) el.setAttribute('aria-hidden','true'); else el.removeAttribute('aria-hidden'); }); if (on) safety = setTimeout(()=>lock(false), 3500); };
     ['focus','click'].forEach(ev=>s.addEventListener(ev, ()=>lock(true)));
     ['blur','change','focusout'].forEach(ev=>s.addEventListener(ev, ()=>setTimeout(()=>lock(false), 400)));
   });
