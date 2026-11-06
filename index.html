@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c126">
+<meta name="build" content="c127">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -851,6 +851,7 @@
     pointer-events:none;
   }
   .next-arrow.revealed{ opacity:.5; }
+  #loadNext:not(.revealed){ opacity:.02; }   /* the loading Begin button is a screen-reader stop from the first second: it is almost-but-not-quite transparent (invisible to the eye), because on the iPhone VoiceOver could not swipe back to a fully transparent button (opacity 0), c126 (Dani 2026-11-06) */
   .next-arrow.armed{ pointer-events:auto; }
   .next-arrow svg{ width:72%; height:72%; }
   .next-arrow:active{ transform:scale(.94); }
