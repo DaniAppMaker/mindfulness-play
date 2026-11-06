@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c127">
+<meta name="build" content="c129">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -851,7 +851,6 @@
     pointer-events:none;
   }
   .next-arrow.revealed{ opacity:.5; }
-  #loadNext:not(.revealed){ opacity:.02; }   /* the loading Begin button is a screen-reader stop from the first second: it is almost-but-not-quite transparent (invisible to the eye), because on the iPhone VoiceOver could not swipe back to a fully transparent button (opacity 0), c126 (Dani 2026-11-06) */
   .next-arrow.armed{ pointer-events:auto; }
   .next-arrow svg{ width:72%; height:72%; }
   .next-arrow:active{ transform:scale(.94); }
@@ -4507,23 +4506,12 @@ function startupFlow(){
     // nothing, swipe jumped to Safari's buttons" bug).
     runLoading(()=> revealBoardForAT());            // sets the teaching line + narration first
     if (BACKDROP_USE_ARIA){ try{ const n = document.getElementById('loadNext'); if (!n.dataset.orig) n.dataset.orig = n.getAttribute('aria-label'); n.hidden = false; n.setAttribute('aria-label', [LOAD_CAT_DESC, document.getElementById('loadPrompt').textContent, document.getElementById('loadTrack').getAttribute('aria-label'), n.dataset.orig].join(' ')); n.focus(); }catch(e){} }   // computers: the cursor lands ON the Begin button, whose spoken name is the whole screen in order (cat, teaching line, loading line, Begin): read once, then Enter works at once, like the welcome screen (Dani 2026-10-20: after the last version NVDA repeated the cat and Enter did nothing)
-    else try {
-      const next = document.getElementById('loadNext'), cat = document.getElementById('loadCat');
-      if (!IS_IPAD){
-        /* iPhone: the loading screen works like the welcome / computer screens - the cursor is put ON the Begin button inside the double-tap, and the button's spoken name is the whole screen in order
-           (cat, loading line, loading-progress line, how to begin), read ONCE. Nothing is announced separately (that cut the cat off or repeated it), nothing changes while VoiceOver is moving (that made Begin
-           unreachable), and Begin is a real stop from the very first second, so swiping left/right and double-tapping always work (Dani 2026-11-06). The arrow stays invisible and untappable by touch until the mouse has walked. */
-        if (!next.dataset.orig) next.dataset.orig = next.getAttribute('aria-label');
-        next.hidden = false;
-        next.setAttribute('aria-label', [LOAD_CAT_DESC, document.getElementById('loadPrompt').textContent, document.getElementById('loadTrack').getAttribute('aria-label'), next.dataset.orig].join(' '));
-        next.focus();
-      } else cat.focus();
-    } catch(e){}
-    if (!BACKDROP_USE_ARIA) setTimeout(()=>{ try{ document.getElementById(IS_IPAD ? 'loadCat' : 'loadNext').focus(); }catch(e){} }, 150);   // touch only; on computers a second focus made NVDA read the cat twice
+    else try { document.getElementById('loadCat').focus(); } catch(e){}
+    if (!BACKDROP_USE_ARIA) setTimeout(()=>{ try{ document.getElementById('loadCat').focus(); }catch(e){} }, 150);   // touch only; on computers a second focus made NVDA read the cat twice
     w.classList.remove('show'); w.style.opacity='';
     cancelWelArrow();                               // hide the welcome arrow only NOW, after the cursor has moved (hiding it first orphaned VoiceOver)
     // belt and braces for iPad: SPEAK the loading screen in order (cat, teaching line, loading line) whatever VoiceOver is sitting on
-    setTimeout(()=>{ try{ const l=document.getElementById('loadLive'); if(!l || BACKDROP_USE_ARIA || !IS_IPAD) return; const parts=[document.getElementById('loadPrompt').textContent, document.getElementById('loadTrack').getAttribute('aria-label'), 'To begin the game, find the arrow button and double tap or press enter.']; if (IS_IPAD) parts.unshift(LOAD_CAT_DESC);   /* iPhone: the cursor was put ON the cat inside the double-tap, so VoiceOver has already read the cat; saying it again here made it repeat (Dani 2026-11-06, vertical and sideways). iPad keeps the whole in-order reading. */   /* iPhone + iPad (Dani 2026-11-05): how to begin is the LAST sentence of the in-order reading, so it can only be heard after the loading line and never cuts anything off (a separate announcement when the arrow appeared did, c104) */ if (BACKDROP_USE_ARIA){ parts.push(document.getElementById('loadNext').getAttribute('aria-label')); l.setAttribute('role','alert'); } l.textContent = parts.join(' '); }catch(e){} }, BACKDROP_USE_ARIA ? 400 : 500);   // computers: the whole screen is spoken by itself in order (cat, teaching line, loading line, Begin), like the welcome - Dani 2026-10-18
+    setTimeout(()=>{ try{ const l=document.getElementById('loadLive'); if(!l || BACKDROP_USE_ARIA) return; const parts=[LOAD_CAT_DESC, document.getElementById('loadPrompt').textContent, document.getElementById('loadTrack').getAttribute('aria-label'), 'To begin the game, find the arrow button and double tap or press enter.'];   /* iPhone + iPad (Dani 2026-11-05): how to begin is the LAST sentence of the in-order reading, so it can only be heard after the loading line and never cuts anything off (a separate announcement when the arrow appeared did, c104) */ if (BACKDROP_USE_ARIA){ parts.push(document.getElementById('loadNext').getAttribute('aria-label')); l.setAttribute('role','alert'); } l.textContent = parts.join(' '); }catch(e){} }, BACKDROP_USE_ARIA ? 400 : 500);   // computers: the whole screen is spoken by itself in order (cat, teaching line, loading line, Begin), like the welcome - Dani 2026-10-18
   };
   advanceScreen = proceed;
   // Advance ONLY via the Begin button (see runLoading note) — never a whole-screen tap.
