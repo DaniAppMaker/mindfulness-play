@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c123">
+<meta name="build" content="c124">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -4511,7 +4511,7 @@ function startupFlow(){
     w.classList.remove('show'); w.style.opacity='';
     cancelWelArrow();                               // hide the welcome arrow only NOW, after the cursor has moved (hiding it first orphaned VoiceOver)
     // belt and braces for iPad: SPEAK the loading screen in order (cat, teaching line, loading line) whatever VoiceOver is sitting on
-    setTimeout(()=>{ try{ const l=document.getElementById('loadLive'); if(!l || BACKDROP_USE_ARIA) return; const parts=[LOAD_CAT_DESC, document.getElementById('loadPrompt').textContent, document.getElementById('loadTrack').getAttribute('aria-label'), 'To begin the game, find the arrow button and double tap or press enter.'];   /* iPhone + iPad (Dani 2026-11-05): how to begin is the LAST sentence of the in-order reading, so it can only be heard after the loading line and never cuts anything off (a separate announcement when the arrow appeared did, c104) */ if (BACKDROP_USE_ARIA){ parts.push(document.getElementById('loadNext').getAttribute('aria-label')); l.setAttribute('role','alert'); } l.textContent = parts.join(' '); }catch(e){} }, BACKDROP_USE_ARIA ? 400 : 500);   // computers: the whole screen is spoken by itself in order (cat, teaching line, loading line, Begin), like the welcome - Dani 2026-10-18
+    setTimeout(()=>{ try{ const l=document.getElementById('loadLive'); if(!l || BACKDROP_USE_ARIA) return; const parts=[document.getElementById('loadPrompt').textContent, document.getElementById('loadTrack').getAttribute('aria-label'), 'To begin the game, find the arrow button and double tap or press enter.']; if (IS_IPAD) parts.unshift(LOAD_CAT_DESC);   /* iPhone: the cursor was put ON the cat inside the double-tap, so VoiceOver has already read the cat; saying it again here made it repeat (Dani 2026-11-06, vertical and sideways). iPad keeps the whole in-order reading. */   /* iPhone + iPad (Dani 2026-11-05): how to begin is the LAST sentence of the in-order reading, so it can only be heard after the loading line and never cuts anything off (a separate announcement when the arrow appeared did, c104) */ if (BACKDROP_USE_ARIA){ parts.push(document.getElementById('loadNext').getAttribute('aria-label')); l.setAttribute('role','alert'); } l.textContent = parts.join(' '); }catch(e){} }, BACKDROP_USE_ARIA ? 400 : 500);   // computers: the whole screen is spoken by itself in order (cat, teaching line, loading line, Begin), like the welcome - Dani 2026-10-18
   };
   advanceScreen = proceed;
   // Advance ONLY via the Begin button (see runLoading note) — never a whole-screen tap.
