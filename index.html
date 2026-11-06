@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c111">
+<meta name="build" content="c112">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -3847,7 +3847,7 @@ function openMusician(m, t, fromPicker){
   });
   closeOverlay('settings');                   // swap Settings for the musician's page
   const startId = (IPAD_X || IPHONE) ? 'musPhoto' : 'musTitle';
-  if (IPHONE && fromPicker){
+  if ((IPHONE || IPAD_X) && fromPicker){   // (iPad: only in the ?lab=1 test mode, c112)
     /* iPhone: Safari's picker takes the cursor away a moment AFTER the choice is made (WebKit bug 281525: a focus() during/just after the drop-down's change event does not hold, "BODY receives focus").
        It cut "Cassie Hubert" off after "Cassie hu" and left the cursor on nothing (Dani 2026-11-05). So the page opens now, but the cursor is put on it once the picker has let go, and again if it is taken away. */
     openOverlay('musician', null);
