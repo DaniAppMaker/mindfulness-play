@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c113">
+<meta name="build" content="c114">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -4095,7 +4095,11 @@ const IS_MAC = BACKDROP_USE_ARIA && /Mac/i.test(navigator.platform || navigator.
 const IS_IPAD = /[?&]ipad=1(&|$)/.test(location.search) || (/Mac/i.test(navigator.platform || '') && (navigator.maxTouchPoints || 0) > 1) || /iPad/i.test(navigator.userAgent || '');
 /* IPAD_X = the experimental iPad focus / pop-up changes of c97-c99. They are OFF (the iPad behaves exactly as in the approved c95/c96 build) unless the link has ?lab=1.
    On Dani's small iPad (2026-11-03) they broke the pop-ups (the cursor jumped to Safari's "new tab", stuck on a dead "button"), so they stay parked here until the VoiceOver lab page (voiceover-lab.html) shows which method works. */
-const IPAD_X = IS_IPAD && /[?&]lab=1(&|$)/.test(location.search);
+/* 2026-11-06 (c114): CONFIRMED by Dani on her iPad Pro 10.5" (iPadOS 17.7): the drop-downs stay inside their list, Done on How to play / About / Privacy puts the cursor back on its row. So on a REAL iPad running Safari 17 or newer these fixes are now ON by themselves.
+   Older iPads (iPad mini 4, iPadOS 15) keep the approved c95/c96 behaviour. ?lab=1 forces the fixes on (any iPad), ?lab=0 forces them off (for comparing). The test switch ?ipad=1 on a computer never turns them on by itself, so the safety net still sees the c100 behaviour. */
+const IPAD_REAL = (/Mac/i.test(navigator.platform || '') && (navigator.maxTouchPoints || 0) > 1) || /iPad/i.test(navigator.userAgent || '');
+const SAFARI_V = parseInt((/Version\/(\d+)/.exec(navigator.userAgent || '') || [0, 0])[1], 10) || 0;
+const IPAD_X = IS_IPAD && (/[?&]lab=1(&|$)/.test(location.search) || (IPAD_REAL && SAFARI_V >= 17 && !/[?&]lab=0(&|$)/.test(location.search)));
 if (IPAD_X){
   document.querySelectorAll('.panel[role="dialog"]').forEach(p=>{ p.removeAttribute('role'); p.removeAttribute('aria-modal'); p.removeAttribute('aria-labelledby'); p.removeAttribute('aria-label'); });   // no "web dialog" on any pop-up
   ['settingsTitle','howtoTitle','aboutTitle','privacyTitle','musTitle'].forEach(id=>{ const t = document.getElementById(id); if (t) t.setAttribute('role', 'text'); });   // the page title is read as plain words, no "heading level 2"
