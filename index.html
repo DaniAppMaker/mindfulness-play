@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c121">
+<meta name="build" content="c123">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -859,7 +859,7 @@
     50%    { transform:scale(1.09); }
   }
   /* ---- Loading (spec Screen 2) ---- */
-  #loadPrompt{ top:calc(500 * var(--u));  font-size:calc(60 * var(--u)); line-height:1.22; white-space:pre-line; }
+  #loadPrompt{ top:calc(500 * var(--u));  font-size:calc(60 * var(--u)); line-height:1.22; white-space:pre-line; text-wrap:balance; }   /* balanced rows where the browser supports it (Safari 17.5+, Chrome 114+) */
   #loadCat{    left:calc(300 * var(--u)); top:calc(840 * var(--u));  width:calc(480 * var(--u)); aspect-ratio:1371 / 1727; background:url("assets/interface/paw-licking-cat.webp") center/contain no-repeat; }
   /* #loadPrompt and #loadCat are focused programmatically to seat the VoiceOver cursor;
      both are non-interactive (tabindex=-1, never keyboard-tabbable), so hide the blue
@@ -4202,7 +4202,6 @@ function showScreen(id, fadeIn){
   const el = document.getElementById(id);
   if (id === 'screenWelcome' || id === 'screenLoading') setBackdropInert(true, id);
   el.classList.add('show');
-  if (id === 'screenLoading') balanceText(document.getElementById('loadPrompt'));   // the loading sentence flows at the normal size, balanced (see balanceText)
   if (fadeIn && !reducedMotion()){ el.style.opacity='0'; void el.offsetWidth; el.style.opacity='1'; }
   else { el.style.opacity='1'; }
 }
@@ -4277,36 +4276,18 @@ const LOAD_CAT_DESC = 'On the screen: a soft blue-green and peach watercolor cat
 function setLoadingScreenText(){
   const line = pickLoadingLine();
   document.getElementById('loadPrompt').textContent = line.replace(/\s*\n\s*/g, ' ');          // visible AND read once: ONE sentence, no forced line breaks (Dani's master list has none)
-  balanceText(document.getElementById('loadPrompt'));
+  glueLastWords(document.getElementById('loadPrompt'));   // no lone word on the last row (older browsers); newer ones also balance the rows with CSS text-wrap
   document.getElementById('loadCat').setAttribute('aria-label', LOAD_CAT_DESC);
 }
 
 /* NO LONE WORDS (Dani 2026-11-06). The loading lines are her sentences with NO line breaks (INVITATIONS-BY-FAMILY.md); the forced breaks were added later by mistake and made a long line spill one word onto a row of its own ("sign" alone on a row on the iPhone).
-   1. The loading line now flows as ONE sentence at the SAME text size (low-vision players need the size untouched) and is BALANCED: the text block is made as narrow as it can be without needing another row, so the rows come out nearly equal and no word is left alone.
+   1. The loading line now flows as ONE sentence at the SAME text size (low-vision players need the size untouched). Newer browsers BALANCE its rows with CSS (text-wrap: balance on #loadPrompt); every browser keeps its last two words together, so no word is left alone. (An earlier JavaScript balancer was removed: the Begin button could not be reached by VoiceOver on Dani's iPhone with it, 2026-11-06.)
    2. Paragraphs on the text pages (How to play, About, Privacy, the musician bios) keep their last two words together, so the last row is never a single word. */
-function rowsOf(el){   // the words of each visual row of a single-text-node element
-  const tn = el.firstChild; if (!tn || tn.nodeType !== 3) return [];
-  const range = document.createRange(), rows = new Map(), re = /\S+/g; let m;
-  while ((m = re.exec(tn.textContent))){ range.setStart(tn, m.index); range.setEnd(tn, m.index + m[0].length); const r = range.getClientRects()[0]; if (r){ const k = Math.round(r.top / 3); rows.set(k, (rows.get(k) || []).concat(m[0])); } }
-  return [...rows.values()];
+function glueLastWords(el){ try{ if (el) el.textContent = el.textContent.replace(/(\S+)\s+(\S+)\s*$/, '$1 $2'); }catch(e){} }   // the last two words of one text stay together
+function bindLastWords(root){   // same rule: a problem here must never stop the game from starting
+  try{ _bindLastWords(root); }catch(e){}
 }
-function balanceText(el){
-  if (!el) return;
-  el.style.paddingLeft = el.style.paddingRight = '';
-  const full = el.clientWidth; if (!(full > 0)) return;           // not on screen yet: it is balanced again when the screen is shown
-  const cs = getComputedStyle(el), side0 = parseFloat(cs.paddingLeft) || 0;
-  const at = side=>{ el.style.paddingLeft = el.style.paddingRight = side + 'px'; return rowsOf(el); };
-  const n = at(side0).length;
-  if (n < 2) { el.style.paddingLeft = el.style.paddingRight = ''; return; }
-  let lo = side0, hi = full / 2 - 40, best = side0;                 // the larger the side padding, the narrower the text block
-  for (let k = 0; k < 10; k++){ const mid = (lo + hi) / 2; if (at(mid).length <= n){ best = mid; lo = mid; } else hi = mid; }
-  let rows = at(best);
-  if (rows.some(r=>r.length === 1)){                                // still a single word on a row: widen a little until none is
-    for (let s = best; s >= side0; s -= 2){ const r = at(s); if (r.length === n && !r.some(x=>x.length === 1)){ best = s; break; } }
-    at(best);
-  }
-}
-function bindLastWords(root){
+function _bindLastWords(root){
   if (!root) return;
   root.querySelectorAll('p, li').forEach(el=>{
     const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let last = null, n;
@@ -4314,8 +4295,6 @@ function bindLastWords(root){
     if (last) last.textContent = last.textContent.replace(/(\S+)\s+(\S+)(\s*)$/, '$1 $2$3');
   });
 }
-(function(){ let t = null; const again = ()=>{ clearTimeout(t); t = setTimeout(()=>{ const s = document.getElementById('screenLoading'); if (s && s.classList.contains('show')) balanceText(document.getElementById('loadPrompt')); }, 150); };
-  window.addEventListener('resize', again); window.addEventListener('orientationchange', again); })();
 
 /* the loading mouse walks the short line 0 -> 1; when it arrives, reveal the Begin
    arrow. Returns a canceller (an early advance drops a pending walk). The screen still
