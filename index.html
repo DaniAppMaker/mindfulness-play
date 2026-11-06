@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c114">
+<meta name="build" content="c115">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -282,6 +282,18 @@
                0 0 calc(28 * var(--u)) rgba(215,168,110,.55);
     border-color:rgba(215,168,110,.9);
   }
+  /* Reduce Motion: the hint cannot bounce, so its glow has to be easy to see on its own: a crisp amber ring plus a wide halo (Dani 2026-11-06: "too easy to miss") */
+  @media (prefers-reduced-motion: reduce){
+    .card.hint img, .card.drawpile.hint img{
+      filter:drop-shadow(0 0 calc(2*var(--u)) #f0a83a) drop-shadow(0 0 calc(2*var(--u)) #f0a83a)
+             drop-shadow(0 0 calc(12*var(--u)) rgba(240,168,58,1)) drop-shadow(0 0 calc(30*var(--u)) rgba(240,168,58,.8))
+             drop-shadow(0 0 calc(54*var(--u)) rgba(240,168,58,.5));
+    }
+    .slot.hint{
+      box-shadow:0 0 0 calc(4*var(--u)) #f0a83a, 0 0 calc(24*var(--u)) rgba(240,168,58,.9), 0 0 calc(48*var(--u)) rgba(240,168,58,.6);
+      border-color:#f0a83a;
+    }
+  }
   /* A card uncovered in the tableau turns over like a real card: its BACK shows,
      then it flips vertically (around the horizontal axis) to its FACE. Both faces
      are real images (the back and the preloaded front), so there is no blank gap
@@ -301,6 +313,8 @@
     to{   transform:rotateY(180deg); }   /* face facing the player */
   }
   body.reduce-motion .card.flipping .flip-inner{ animation:none; transform:rotateY(180deg); }
+  /* Reduce Motion (the device setting): the global rule below stops the flip animation, which left the uncovered card showing its BACK for good (Dani 2026-11-06: "they are staying face down"). Show the face at once. */
+  @media (prefers-reduced-motion: reduce){ .card.flipping .flip-inner{ animation:none !important; transform:rotateY(180deg) !important; } }
   /* a card tapped with nowhere to go gives a quick shudder, so the tap clearly
      registered and it's obvious the card simply has no move */
   @keyframes cardShake{
@@ -1499,7 +1513,7 @@
         <p>This game is a small bridge, not the whole path. If a moment of noticing feels good here, I warmly invite you to explore the traditions it comes from.</p>
 
         <h3 class="abouth">Accessibility</h3>
-        <p>Works with VoiceOver and NVDA, plus keyboard play, a left-handed layout, larger cards, and reduced motion. Feedback from early testers shaped all of it, and I will keep improving it.</p>
+        <p>Works with VoiceOver and NVDA, plus keyboard play and a left-handed layout. Feedback from early testers shaped all of it, and I will keep improving it.</p>
 
         <!-- Giving back: shown since Dani approved the no-names wording and her art sentence (2026-10-10) -->
         <section id="aboutGiving">
@@ -2697,6 +2711,14 @@ function drawStock(){
     // playable top to the RIGHT slot (Dani 2026-09-20). One snapshot = one undo for it.
     const n = Math.min(settings.draw3 ? 3 : 1, state.stock.length);
     snapshot();
+    if (n > 1 && reducedMotion()){   // Reduce Motion: all the cards of a 3-card draw appear AT ONCE, not one after another (Dani 2026-11-06)
+      const all = [];
+      for (let k = 0; k < n && state.stock.length; k++){ const c = state.stock.pop(); c.faceUp = true; state.waste.push(c); all.push(c); }
+      try{ render(); }catch(e){ try{ console.error(e); }catch(_){} }
+      playSound('tup');   // one bong for the whole draw
+      finishDraw(all);
+      return;
+    }
     const turned = [ turnStockCard() ];          // first card, right now
     if (n === 1){ finishDraw(turned); return; }
     drawSeqActive = true;
