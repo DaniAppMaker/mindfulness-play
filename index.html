@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c110">
+<meta name="build" content="c111">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -3603,7 +3603,7 @@ function speakScreenOnButton(descId, promptId, btnId){
   try{
     const d = document.getElementById(descId), p = document.getElementById(promptId), b = document.getElementById(btnId);
     const desc = d ? (d.getAttribute('aria-label') || d.textContent || '') : '';
-    b.setAttribute('aria-label', [desc, p ? p.textContent : '', 'New Game'].join(' ').replace(/\s+/g,' ').trim());
+    b.setAttribute('aria-label', [desc, p ? spokenText(p) : '', 'New Game'].join(' ').replace(/\s+/g,' ').trim());
     b.focus();
   }catch(e){}
 }
@@ -3630,7 +3630,7 @@ function lostScreen(){
 function winScreen(){
   clearSavedGame();   // this game is finished — don't resume the won board next launch
   const line = pick(WIN_LINES);
-  document.getElementById('winPrompt').textContent = line;
+  setSpokenText(document.getElementById('winPrompt'), line);   // shown "yummyyy", said "yummee"
   clearLiveRegions();              // don't let a board line replay over the win screen
   setBoardInert(true);             // trap VoiceOver in the dialog, same as the lost screen (Dani 2026-09-13)
   showScreen('screenWin', true);   // gentle fade-in over the finished board
@@ -3954,6 +3954,25 @@ const LOST_LINES = [                                        // Dani's chosen wor
   "No moves left! Start a new game?"
 ];
 const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+/* Words that are SHOWN as written but SPOKEN differently by a screen reader (Dani 2026-11-06: "yummyyy" is said "yummee"). Same pair the Cupunapa name uses: the shown word is hidden from screen readers, a hidden twin carries the spoken one. */
+const SPOKEN_WORDS = { 'yummyyy': 'yummee' };
+function setSpokenText(el, text){
+  el.textContent = '';
+  const keys = Object.keys(SPOKEN_WORDS);
+  text.split(new RegExp('(' + keys.join('|') + ')')).forEach(part=>{
+    if (SPOKEN_WORDS[part]){
+      const vis = document.createElement('span'); vis.setAttribute('aria-hidden', 'true'); vis.textContent = part;
+      const say = document.createElement('span'); say.className = 'visually-hidden'; say.textContent = SPOKEN_WORDS[part];
+      el.appendChild(vis); el.appendChild(say);
+    } else if (part) el.appendChild(document.createTextNode(part));
+  });
+}
+/* the words a screen reader says for an element: everything except the pieces hidden from screen readers */
+function spokenText(el){
+  let s = '';
+  el.childNodes.forEach(n=>{ if (n.nodeType === 3) s += n.textContent; else if (n.nodeType === 1 && n.getAttribute('aria-hidden') !== 'true') s += spokenText(n); });
+  return s;
+}
 /* the no-moves message goes on two lines ("No moves left!" / "Start a new game?"), the button centred under both: tablets + laptops, and the upright phone (Dani 2026-11-03); the words themselves are unchanged. Phones held sideways keep their one line. */
 function lostLine(s){ try{ if (!window.matchMedia('(min-aspect-ratio: 155/100) and (max-height: 520px)').matches) return s.replace('! ', '!\n'); }catch(e){} return s; }
 // loading teaching: a shuffled deck — every line once before any repeats, remembered
@@ -4360,7 +4379,7 @@ function startupFlow(){
   }
   if (pv === 'welcome' || pv === 'loading' || pv === 'win' || pv === 'lost'){
     if (pv === 'loading') setLoadingScreenText();
-    if (pv === 'win')     document.getElementById('winPrompt').textContent  = pick(WIN_LINES);
+    if (pv === 'win')     setSpokenText(document.getElementById('winPrompt'), pick(WIN_LINES));
     if (pv === 'lost')    document.getElementById('lostPrompt').textContent = lostLine(pick(LOST_LINES));
     const screenId = pv === 'welcome' ? 'screenWelcome' : pv === 'loading' ? 'screenLoading'
                    : pv === 'win' ? 'screenWin' : 'screenLost';
