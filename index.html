@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c112">
+<meta name="build" content="c113">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -3669,6 +3669,18 @@ function setBoardInert(hidden){
     }
   });
 }
+/* iPad TEST MODE only (?lab=1): how the cursor is put on a control and kept there. ?lab=1&ret=1 / 2 / 3 choose between three ways while the right one is being found
+   (Dani 2026-11-06, bigger iPad: after Done on How to play / About / Privacy the cursor stayed on the old Done button, dead, and swiping gave error sounds).
+   1 = like lab test 7 (blur+focus now, then check every 25 ms for half a second); 2 = blur+focus now and again at 120 / 300 / 550 ms whatever the page thinks;
+   3 = wait 350 ms for the page to settle, then blur+focus, and check again at 700 ms. */
+const LAB_RET = new URLSearchParams(location.search).get('ret') || '1';
+function labFocus(el){
+  const hard = ()=>{ try{ el.blur(); el.focus({ preventScroll:true }); }catch(e){} };
+  const soft = ()=>{ try{ if (document.activeElement !== el) el.focus({ preventScroll:true }); }catch(e){} };
+  if (LAB_RET === '2'){ hard(); [120, 300, 550].forEach(ms=>setTimeout(hard, ms)); }
+  else if (LAB_RET === '3'){ setTimeout(hard, 350); setTimeout(soft, 700); }
+  else { hard(); let n = 0; const t = setInterval(()=>{ soft(); if (++n >= 20) clearInterval(t); }, 25); }
+}
 function openOverlay(id, focusId){
   { const _hs = document.getElementById('hintSpeak'); if (_hs) _hs.remove(); }   // the short-lived hint button must not still hold the cursor when the board is hidden behind the page
   clearLiveRegions();             // no stale board announcement should carry into the pop-up
@@ -3676,8 +3688,8 @@ function openOverlay(id, focusId){
   document.getElementById(id).classList.add('open');   // visibility-based show (see .overlay CSS)
   if (IPAD_X && focusId){   // (experimental, ?lab=1 only) iPad: put the cursor there NOW, inside the tap that opened the page (a timer-only focus was ignored, so it stayed where Done had been); force the layout first, and try again if it did not stick (Dani 2026-11-03: Settings started at "Draw three cards")
     const _t = document.getElementById(focusId);
-    try{ void document.body.offsetHeight; _t.focus({ preventScroll:true }); }catch(e){}
-    [60, 250].forEach(ms=>setTimeout(()=>{ try{ if (document.activeElement !== _t) _t.focus({ preventScroll:true }); }catch(e){} }, ms));
+    try{ void document.body.offsetHeight; }catch(e){}
+    labFocus(_t);
   }
   if (BACKDROP_USE_ARIA){   // computers: put the cursor inside the pop-up FIRST, then lock the board, so it never drops to the page (the pre-flight saw ~30 ms on <body>)
     try{ if (focusId) document.getElementById(focusId).focus({ preventScroll:true }); }catch(e){}
@@ -3687,9 +3699,9 @@ function openOverlay(id, focusId){
   // dropped by iOS VoiceOver, leaving the cursor outside so swipe can't enter (Dani 2026-09-13).
   if (focusId) setTimeout(()=>{ try{ document.getElementById(focusId).focus(); }catch(e){} }, 60);
 }
-function closeOverlay(id){
+function closeOverlay(id, keepBoardHidden){
   document.getElementById(id).classList.remove('open');   // visibility-based hide (see .overlay CSS)
-  setBoardInert(false);          // hand the board back to VoiceOver
+  if (!keepBoardHidden) setBoardInert(false);          // hand the board back to VoiceOver   (keepBoardHidden = Settings is about to open again: the board must not flash back in between, iPad test mode)
   clearLiveRegions();            // nothing said before the pop-up should replay on return (Dani 2026-09-13)
 }
 
@@ -3782,7 +3794,7 @@ function openHowTo(fromSettings){
   openOverlay('howto', 'howtoTitle');                         // lands on the title, like Settings
 }
 function closeHowTo(){
-  closeOverlay('howto');
+  closeOverlay('howto', IPAD_X && howtoFromSettings);
   if (howtoFromSettings){ howtoFromSettings = false; openSettings('setHow'); return; }
   const back = howtoReturnEl && document.contains(howtoReturnEl) ? howtoReturnEl : document.getElementById('btnAppear');
   try { back.focus(); } catch(e){}
@@ -3798,9 +3810,9 @@ const ABOUT_TESTERS = ['Daniel Angus MacDonald'];   // early testers who agreed 
   document.getElementById('aboutThanks').textContent = 'Thank you to all of the early testers for their time and kind feedback, including those from the AppleVis community: ' + list + ' and others who didn’t submit their names to be directly credited, and helped so much with their feedback.';
 })();
 function openAbout(){ closeOverlay('settings'); openOverlay('about', 'aboutTitle'); }
-function closeAbout(){ closeOverlay('about'); openSettings('setAbout'); }
+function closeAbout(){ closeOverlay('about', IPAD_X); openSettings('setAbout'); }
 function openPrivacy(){ closeOverlay('settings'); openOverlay('privacy', 'privacyTitle'); }
-function closePrivacy(){ closeOverlay('privacy'); openSettings('setPrivacy'); }
+function closePrivacy(){ closeOverlay('privacy', IPAD_X); openSettings('setPrivacy'); }
 /* The "About" row in Settings (Dani 2026-10-10: yes to this place) */
 const ABOUT_ON = !/[?&]about=(0|off|no)(&|$)/.test(location.search);   // ON for everyone since Dani said yes to the Settings row (2026-10-10); ?about=off hides it
 if (!ABOUT_ON) document.getElementById('setAbout').style.display = 'none';
@@ -3814,7 +3826,7 @@ document.getElementById('about').addEventListener('click', (e)=>{ if (e.target.i
 /* ---- Musicians: wide Music dropdown + a page for each musician (private ?musicians switch) ---- */
 let pendingTrackId = null;
 function closeMusician(backToList){
-  closeOverlay('musician');
+  closeOverlay('musician', IPAD_X && backToList);
   pendingTrackId = null;
   if (backToList){
     openSettings('setMusicTrack');
