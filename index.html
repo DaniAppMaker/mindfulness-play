@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c132">
+<meta name="build" content="c133">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -3196,6 +3196,11 @@ function renderTopRow(){
   row.querySelectorAll('.top-dyn').forEach(el=>el.remove());
   let fan = document.getElementById('wasteFan');
   if (!fan){ fan = document.createElement('div'); fan.id='wasteFan'; row.appendChild(fan); }
+  // The order of the top row in the page IS the order a touch screen reader (VoiceOver, TalkBack) swipes through it, and a pile with no card is not a stop.
+  // Foundations first, then the waste (the cards just drawn), then the draw pile - the order the group is named in ("Foundations, waste, and draw pile").
+  // Until c132 the waste came FIRST, so from the draw pile a swipe back had to pass every foundation pile that held a card before it reached the card just drawn
+  // (Dani 2026-11-07, iPhone + iPad). Computers keep their old order: there the drawn card takes the focus itself (see finishDraw).
+  const beforeFan = BACKDROP_USE_ARIA ? null : fan;   // insertBefore(x, null) = append at the end
 
   // four foundation slots on the left (each a faint paw watermark)
   state.foundations.forEach((pile, f)=>{
@@ -3218,7 +3223,7 @@ function renderTopRow(){
         under.setAttribute('aria-hidden', 'true');
         under.tabIndex = -1;
         under.style.pointerEvents = 'none';
-        row.appendChild(under);
+        row.insertBefore(under, beforeFan);
       }
       const topCard = pile[pile.length-1];
       el = cardEl(topCard);
@@ -3240,7 +3245,7 @@ function renderTopRow(){
     el.classList.add('top-dyn');
     el.style.left = xpos(FOUND_X[f], CARD_W);
     el.style.top = '0';
-    row.appendChild(el);
+    row.insertBefore(el, beforeFan);
   });
 
   // draw pile on the far right
