@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="build" content="c129">
+<meta name="build" content="c132">
 <!-- pinch-zoom is left ON on purpose: low-vision players need to be able to
      enlarge the board. Don't add maximum-scale / user-scalable=no here. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -854,6 +854,9 @@
   .next-arrow.armed{ pointer-events:auto; }
   .next-arrow svg{ width:72%; height:72%; }
   .next-arrow:active{ transform:scale(.94); }
+  /* ?lb=1 = TEST ONLY (c131, touch devices): the loading Begin button is in the accessibility tree from the first second at its normal resting opacity; the eye sees nothing because the ink colour is transparent, and it fades in by colour when it is time. */
+  html.lb1 #loadNext{ opacity:.5; color:transparent; pointer-events:auto; transition:color 1.8s ease-in; }
+  html.lb1 #loadNext.revealed{ color:var(--ink-soft); }
   @keyframes arrowBreathe{
     0%,100%{ transform:scale(1);    }
     50%    { transform:scale(1.09); }
@@ -4113,7 +4116,11 @@ function keepLoadArrowClear(){
     const a = document.getElementById('loadNext'), m = document.getElementById('loadMouse');
     if (!a || !m) return;
     a.style.bottom = '';                                    // start from the CSS position every time
+    // measure against where the mouse will END UP (c131: the arrow can now come up while the mouse is still walking): park it at the end of its line for a moment, measure, put it back (nothing is drawn in between)
+    const savedLeft = m.style.left;
+    m.style.left = 'calc((var(--ltStart) + 1 * var(--ltLen) - ' + LOAD_MOUSE_HALF + ') * var(--u))';
     const ar = a.getBoundingClientRect(), mr = m.getBoundingClientRect();
+    m.style.left = savedLeft;
     if (!ar.width || !mr.width) return;
     const gap = 14;
     const hit = ar.left < mr.right + gap && ar.right > mr.left - gap && ar.top < mr.bottom + gap && ar.bottom > mr.top - gap;
@@ -4127,7 +4134,7 @@ function armArrow(el){
   clearTimeout(el._armT);
   el._armT = setTimeout(()=>el.classList.add('armed'), reducedMotion() ? 0 : ARROW_FADE_MS);
 }
-function disarmArrow(el){ el.classList.remove('revealed','armed'); clearTimeout(el._armT); if (!(BACKDROP_USE_ARIA && (el.id === 'loadNext' || (IS_MAC && el.id === 'welNext')))) el.hidden = true; }   // hidden = removed from the accessibility tree until it has appeared, so VoiceOver can never keep the old arrow selected
+function disarmArrow(el){ el.classList.remove('revealed','armed'); clearTimeout(el._armT); if (!(BACKDROP_USE_ARIA && (el.id === 'loadNext' || (IS_MAC && el.id === 'welNext'))) && !(LB1 && el.id === 'loadNext')) el.hidden = true; }   // hidden = removed from the accessibility tree until it has appeared, so VoiceOver can never keep the old arrow selected
 
 /* While the welcome / loading screen is up, EVERYTHING else on the page (the hidden live regions, the board, the settings pages, the
    win/lose screens, the build label) is made inert, so a VoiceOver swipe can never wander onto something the player cannot see - it
@@ -4137,6 +4144,10 @@ const IS_MAC = BACKDROP_USE_ARIA && /Mac/i.test(navigator.platform || navigator.
 /* iPad (any iPadOS Safari, which says it is a Mac but has a touch screen). The computer fixes below were written for NVDA and Mac VoiceOver only; the iPad
    used the touch path and never got them (Dani 2026-11-03: "web dialog", heading words, the hint, focus after closing a page...). ?ipad=1 turns this on for testing. */
 const IS_IPAD = /[?&]ipad=1(&|$)/.test(location.search) || (/Mac/i.test(navigator.platform || '') && (navigator.maxTouchPoints || 0) > 1) || /iPad/i.test(navigator.userAgent || '');
+/* LB1 = TEST ONLY (c131), touch devices: ?lb=1 makes the loading Begin button exist for VoiceOver from the very first second (hidden from the eye by a transparent ink colour, never by display or opacity 0), instead of
+   appearing a moment later. A backup idea for the loading screen, kept behind a link so Dani can try it without waiting for another build. */
+const LB1 = !BACKDROP_USE_ARIA && /[?&]lb=1(&|$)/.test(location.search);
+if (LB1) document.documentElement.classList.add('lb1');
 /* IPAD_X = the experimental iPad focus / pop-up changes of c97-c99. They are OFF (the iPad behaves exactly as in the approved c95/c96 build) unless the link has ?lab=1.
    On Dani's small iPad (2026-11-03) they broke the pop-ups (the cursor jumped to Safari's "new tab", stuck on a dead "button"), so they stay parked here until the VoiceOver lab page (voiceover-lab.html) shows which method works. */
 /* 2026-11-06 (c114): CONFIRMED by Dani on her iPad Pro 10.5" (iPadOS 17.7): the drop-downs stay inside their list, Done on How to play / About / Privacy puts the cursor back on its row. So on a REAL iPad running Safari 17 or newer these fixes are now ON by themselves.
@@ -4364,16 +4375,23 @@ function runLoading(finish){
   // The screen-reader cursor is put on the CAT synchronously by proceed() (inside the double-tap, the only moment iOS honours it);
   // swipe goes cat -> teaching line -> loading line -> Begin.
   let finished = false;
-  // The Begin arrow starts hidden and appears when the mouse finishes walking the line;
-  // it only becomes tappable once it has fully faded in (armArrow).
-  disarmArrow(document.getElementById('loadNext'));
-  const cancelWalk = startMouseWalk(()=> armArrow(document.getElementById('loadNext')), ()=> loadingAssetsReady);
-  const done = ()=>{ if(finished) return; finished = true; cancelWalk(); advanceScreen = null; finish(); };
+  const next = document.getElementById('loadNext');
+  // The Begin arrow starts hidden and (c131, Dani 2026-11-06) now comes up as soon as the WELCOME screen's arrow does: 900 ms after the screen shows on a repeat open, 2.5 s the very first time.
+  // On her iPhone VoiceOver can only swipe to Begin once it exists: swiping on before it had appeared left VoiceOver on Safari's controls with no way back, and it used to wait for the mouse
+  // to finish its walk, several seconds longer than the welcome arrow. It still never comes up before the pictures are ready, and the mouse still walks its line for the eye.
+  // It only becomes tappable once it has fully faded in (armArrow).
+  disarmArrow(next);
+  let revealT = 0, revealed = false;
+  const reveal = ()=>{ if (revealed || finished) return; if (!loadingAssetsReady){ revealT = setTimeout(reveal, 200); return; } revealed = true; armArrow(next); };
+  revealT = setTimeout(reveal, firstLaunch ? 2500 : 900);
+  const cancelWalk = startMouseWalk(()=>{}, ()=> loadingAssetsReady);
+  const done = ()=>{ if(finished) return; finished = true; clearTimeout(revealT); cancelWalk(); advanceScreen = null; finish(); };
   advanceScreen = done;
   // Advance ONLY via the Begin arrow — and only once it has faded in (it's
   // pointer-events:none until then, see .next-arrow), so an accidental touch, or the
   // stray second tap of a welcome double-tap, can never skip the loading screen.
-  document.getElementById('loadNext').onclick = (e)=>{ e.stopPropagation(); playSound('tap'); fireAdvance(); };   // soft bong on the Begin arrow (Dani 2026-10-31)
+  // (?lb=1 test switch: there the button exists from the first second, so a press before it is armed - which a screen reader can make even though a finger cannot - is ignored here.)
+  next.onclick = (e)=>{ e.stopPropagation(); if (LB1 && !next.classList.contains('armed')) return; playSound('tap'); fireAdvance(); };   // soft bong on the Begin arrow (Dani 2026-10-31)
 }
 
 // Advance from the loading screen to the board. Reveal the board to VoiceOver and
@@ -4510,7 +4528,8 @@ function startupFlow(){
     if (!BACKDROP_USE_ARIA) setTimeout(()=>{ try{ document.getElementById('loadCat').focus(); }catch(e){} }, 150);   // touch only; on computers a second focus made NVDA read the cat twice
     w.classList.remove('show'); w.style.opacity='';
     cancelWelArrow();                               // hide the welcome arrow only NOW, after the cursor has moved (hiding it first orphaned VoiceOver)
-    // belt and braces for iPad: SPEAK the loading screen in order (cat, teaching line, loading line) whatever VoiceOver is sitting on
+    // belt and braces for iPad AND iPhone: SPEAK the loading screen in order (cat, teaching line, loading line) whatever VoiceOver is sitting on.
+    // KEEP THIS on the iPhone (Dani 2026-11-06): taking it away (c130/c131: the cat only said by the cursor landing on it) left her loading screen SILENT, the selector going straight to Begin. It is the one speaker that always works.
     setTimeout(()=>{ try{ const l=document.getElementById('loadLive'); if(!l || BACKDROP_USE_ARIA) return; const parts=[LOAD_CAT_DESC, document.getElementById('loadPrompt').textContent, document.getElementById('loadTrack').getAttribute('aria-label'), 'To begin the game, find the arrow button and double tap or press enter.'];   /* iPhone + iPad (Dani 2026-11-05): how to begin is the LAST sentence of the in-order reading, so it can only be heard after the loading line and never cuts anything off (a separate announcement when the arrow appeared did, c104) */ if (BACKDROP_USE_ARIA){ parts.push(document.getElementById('loadNext').getAttribute('aria-label')); l.setAttribute('role','alert'); } l.textContent = parts.join(' '); }catch(e){} }, BACKDROP_USE_ARIA ? 400 : 500);   // computers: the whole screen is spoken by itself in order (cat, teaching line, loading line, Begin), like the welcome - Dani 2026-10-18
   };
   advanceScreen = proceed;
